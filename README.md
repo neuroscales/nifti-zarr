@@ -57,7 +57,7 @@ as the adoption of compressed-NIfTI (`.nii.gz`).
 * to conform with the NIfTI expectation, on load data should be returned as a [C, T, Z, Y, X] array
   (in Fortran order; [X, Y, Z, T, C] in C order).
 
-### Nift header
+### NIfTI header
 
 The nifti header ([v1](https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h) or [v2](https://nifti.nimh.nih.gov/pub/dist/doc/nifti2.h)) 
 should be encoded as a string using [base64](https://en.wikipedia.org/wiki/Base64) encoding and saved in the group-level `.zattrs` under 
