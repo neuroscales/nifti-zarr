@@ -54,27 +54,64 @@ as the adoption of compressed-NIfTI (`.nii.gz`).
 
 * Following the OME-NGFF specifcation, dimensions are ordered as [T, C, Z, Y, X] (in Fortran order)
   as opposed to [C, T, Z, Y, X].
-* to conform with the NIfTI expectation, on load data should be returned as a [C, T, Z, Y, X] 
-
+* to conform with the NIfTI expectation, on load data should be returned as a [C, T, Z, Y, X] array
+  (in Fortran order; [X, Y, Z, T, C] in C order).
 
 ### Single resolution
 
+Directory structure:
 ```
 └── mri.nii.zarr              # A nifti volume converted to Zarr.
     │
     ├── .zgroup               # An image is a Zarr array.
     ├── .zattrs               # Attributes are stored in the .zattrs file and include "nifti" (see below).
     │
-    └─ c                      # Chunks are stored with the nested directory layout.
-       └─ t                   # All but the last chunk element are stored as directories.
-          └─ z                # The terminal chunk is a file. Together the directory and file names
-             └─ y             # provide the "chunk coordinate" (c, t, z, y, x), where the maximum coordinate
-                └─ x          # will be dimension_size / chunk_size.
+    └── 0
+        └─ t                  # Chunks are stored with the nested directory layout.
+           └─ c               # All but the last chunk element are stored as directories.
+              └─ z            # The terminal chunk is a file. Together the directory and file names
+                 └─ y         # provide the "chunk coordinate" (t, c, z, y, x), where the maximum coordinate
+                    └─ x      # will be dimension_size / chunk_size.
 
+```
+
+`.zattrs` file
+```python
+{
+    # Nifti header encoded in base64
+    "nifti": "...",
+    # OME-NGFF resolution specification
+    "multiscales": [
+        {
+            "version": "0.4",
+            "axes": [
+                {"name": "t", "type": "time", "unit": "second"},
+                {"name": "c", "type": "channel"},
+                {"name": "z", "type": "space", "unit": "millimeter"},
+                {"name": "y", "type": "space", "unit": "millimeter"},
+                {"name": "x", "type": "space", "unit": "millimeter"}
+            ],
+            "datasets": [{
+                 "path": "0",
+                 "coordinateTransformations": [{
+                     # the voxel size for the first scale level (0.5 millimeter)
+                     "type": "scale",
+                     "scale": [1.0, 1.0, 0.5, 0.5, 0.5]
+                 }]
+            }],
+            "coordinateTransformations": [{
+                # the time unit (1.0 seconds), which is the same for each scale level
+                "type": "scale",
+                "scale": [0.1, 1.0, 1.0, 1.0, 1.0]
+            }],
+        }
+    ]
+}
 ```
 
 ### Multi resolution
 
+Directory structure:
 ```
 └── mri.nii.zarr              # A nifti volume converted to Zarr.
     │
@@ -92,10 +129,61 @@ as the adoption of compressed-NIfTI (`.nii.gz`).
         ├── .zarray           # All image arrays must be up to 5-dimensional
         │                     # with the axis of type time before type channel, before spatial axes.
         │
-        └─ c                  # Chunks are stored with the nested directory layout.
-           └─ t               # All but the last chunk element are stored as directories.
+        └─ t                  # Chunks are stored with the nested directory layout.
+           └─ c               # All but the last chunk element are stored as directories.
               └─ z            # The terminal chunk is a file. Together the directory and file names
-                 └─ y         # provide the "chunk coordinate" (c, t, z, y, x), where the maximum coordinate
+                 └─ y         # provide the "chunk coordinate" (t, c, z, y, x), where the maximum coordinate
                     └─ x      # will be dimension_size / chunk_size.
 
+```
+
+`.zattrs` file
+```python
+{
+    # Nifti header encoded in base64
+    "nifti": "...",
+    "multiscales": [
+        {
+            "version": "0.4",
+            "axes": [
+                {"name": "t", "type": "time", "unit": "second"},
+                {"name": "c", "type": "channel"},
+                {"name": "z", "type": "space", "unit": "millimeter"},
+                {"name": "y", "type": "space", "unit": "millimeter"},
+                {"name": "x", "type": "space", "unit": "millimeter"}
+            ],
+            "datasets": [
+                {
+                    "path": "0",
+                    "coordinateTransformations": [{
+                        # the voxel size for the first scale level (0.5 millimeter)
+                        "type": "scale",
+                        "scale": [1.0, 1.0, 0.5, 0.5, 0.5]
+                    }]
+                },
+                {
+                    "path": "1",
+                    "coordinateTransformations": [{
+                        # the voxel size for the second scale level (downscaled by a factor of 2 -> 1 millimeter)
+                        "type": "scale",
+                        "scale": [1.0, 1.0, 1.0, 1.0, 1.0]
+                    }]
+                },
+                {
+                    "path": "2",
+                    "coordinateTransformations": [{
+                        # the voxel size for the third scale level (downscaled by a factor of 4 -> 2 millimeter)
+                        "type": "scale",
+                        "scale": [1.0, 1.0, 2.0, 2.0, 2.0]
+                    }]
+                }
+            ],
+            "coordinateTransformations": [{
+                # the time unit (1.0 seconds), which is the same for each scale level
+                "type": "scale",
+                "scale": [0.1, 1.0, 1.0, 1.0, 1.0]
+            }],
+        }
+    ]
+}
 ```
