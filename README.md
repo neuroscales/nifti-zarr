@@ -116,8 +116,6 @@ Directory structure:
 `.zattrs`
 ```python
 {
-    # Nifti header encoded in base64
-    "nifti": "...",
     "multiscales": [
         {
             "version": "0.4",
