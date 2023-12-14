@@ -413,7 +413,7 @@ In OME-NGFF, units must be names from the UDUNITS-2 database.
 | MxN matrix at each voxel  | `1004` | `"GENMATRIX"`            | `2` | [M, N] |
 | NxN matrix at each voxel  | `1005` | `"SYMMATRIX"`            | `1` | [N] |
 | Displacement field        | `1006` | `"DISPVECT"`             | `0` | [] |
-| Vector field              | `1006` | `"VECTOR"`               | `0` | [] |
+| Vector field              | `1007` | `"VECTOR"`               | `0` | [] |
 | Spatial coordinate        | `1008` | `"POINTSET"`             | `0` | [] |
 | Triangle (3 indices)      | `1009` | `"TRIANGLE"`             | `0` | [] |
 | Quaternion (4 values)     | `1010` | `"QUATERNION"`           | `0` | [] |
