@@ -88,6 +88,9 @@ Directory structure:
 ```
 
 ### 2.2. Zarr metadata
+
+**REF:** https://zarr.readthedocs.io/en/stable/spec/v2.html#arrays
+
 `.zarray`
 ```python
 {
@@ -119,6 +122,8 @@ Directory structure:
 ```
 
 ### 2.3. OME-NGFF metadata
+
+**REF:** https://ngff.openmicroscopy.org/0.4/#multiscale-md
 
 `.zattrs`
 ```python
@@ -173,6 +178,8 @@ Directory structure:
 ```
 
 ### 2.4. NIfTI header
+
+**REF**: https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h
 
 The nifti header ([v1](https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h) 
 or [v2](https://nifti.nimh.nih.gov/pub/dist/doc/nifti2.h)) **MUST** be encoded as 
