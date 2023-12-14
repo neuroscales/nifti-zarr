@@ -66,6 +66,7 @@ as the adoption of compressed-NIfTI (`.nii.gz`).
 
 ### OME-Zarr features that are not supported by NIfTI-Zarr
 
+* TODO
 
 ### NIfTI > Zarr maps
 
@@ -92,6 +93,19 @@ as the adoption of compressed-NIfTI (`.nii.gz`).
 | `time`       | 🛑 unsupported! | `"M8[{unit}]"` |
 
 In Zarr, the byte order **MUST** be specified by prepending one of `{"|", "<", ">"}` to the data type string.
+
+| Unit         | NIfTI  | Zarr            |
+| ------------ | ------ | --------------- |
+| unknown      | `0`    | `""`            |
+| meter        | `1`    | `"meter"`       |
+| millimeter   | `2`    | `"millimeter"`  |
+| micron       | `3`    | `"micrometer"`  |
+| second       | `8`    | `"second"`      |
+| millisecond  | `16`   | `"millisecond"` |
+| microsecond  | `24`   | `"microsecond"` |
+| hertz        | `32`   | 🛑 unsupported! |
+| ppm          | `40`   | 🛑 unsupported! |
+| rad          | `48`   | 🛑 unsupported! |
 
 ## Format structure
 
