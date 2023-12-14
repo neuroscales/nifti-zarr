@@ -29,13 +29,16 @@ that are relatively complex, as they need to conform to different organs, differ
 processing pipelines. This has drastically slowed down the adoption of a coordinate transform standard—the current version (0.5)
 only handles canonical scales and offsets—and has also made the future coordinate transform standard much more complicated.
 
-In contrast, the neuroimaging community has adopted and used a standard "world" coordinate frame for decades
-([left->right, posterior->anterior, inferior->superior] and its variations). An affine transform is used to map from 
-the C-ordered voxel space to world space. The neuroimaging community has also created a simple data exchange 
-format--NIfTI--that has been widely embraced and is the mandatory file format in standardization efforts such as BIDS.
-
-The lack of multiresolution/chunk support in NIfTI has lead BIDS to adopt OME-TIFF and OME-ZARR as standard 
-format for its microscopy component.
+In contrast, the neuroimaging community has adopted and used a standard "world" coordinate frame for decades, where
+```
++x = left      -> right
++y = posterior -> anterior
++z = inferior  -> superior
+```
+An affine transform is used to map from  the F-ordered voxel space (i, j, k) to world space (x, y, z). 
+The neuroimaging community has also created a simple data exchange format—NIfTI—that has been widely embraced and 
+is the mandatory file format in standardization efforts such as BIDS. However, the lack of multiresolution/chunk 
+support in NIfTI has lead BIDS to adopt OME-TIFF and OME-ZARR as standard format for its microscopy component.
 
 The NIfTI-Zarr (`nii.zarr`) specification attempts to merge the best of both worlds, in the simplest possible way. 
 Like NIfTI, it aims to make the implementation of I/O libraries as simple as possible, to maximize chances that it 
@@ -48,14 +51,48 @@ gets adopted by the community. Its guiding principles are
 The simplicity of these guiding principles should make the adoption of `nii.zarr` in cloud environments (almost) as straightforward 
 as the adoption of compressed-NIfTI (`.nii.gz`).
 
-## Format structure
 
-### Main differences with NIfTI and/or OME-NGFF
+## Main differences with NIfTI and/or OME-NGFF
 
-* Following the OME-NGFF specifcation, dimensions are ordered as [T, C, Z, Y, X] (in Fortran order)
+* Following the OME-NGFF specifcation, dimensions are ordered as [T, C, Z, Y, X] (in C order)
   as opposed to [C, T, Z, Y, X].
-* to conform with the NIfTI expectation, on load data should be returned as a [C, T, Z, Y, X] array
-  (in Fortran order; [X, Y, Z, T, C] in C order).
+* To conform with the NIfTI expectation, on load data should be returned as a [C, T, Z, Y, X] array
+  (in C order; [X, Y, Z, T, C] in F order).
+
+### NIfTI features that are not supported by NIfTI-Zarr
+
+* Any file with has more than 5 dimensions
+
+### OME-Zarr features that are not supported by NIfTI-Zarr
+
+
+### NIfTI > Zarr maps
+
+| Data type    | NIfTI  | Zarr    |
+| ------------ | ------ | ------- |
+| `uint8`      | `2`    | `"|u1"` |
+| `int16`      | `4`    | `"i2"`  |
+| `int32`      | `8`    | `"i4"`  |
+| `float32`    | `16`   | `"f4"`  |
+| `complex64`  | `32`   | `"c8"`  |
+| `float64`    | `64`   | `"f8"`  |
+| `rgb24`      | `128`  | <code>[["r", "&vert;u1"], ["g", "&vert;u1"], ["b", "&vert;u1"]]</code> |
+| `int8`       | `256`  | `"|i1"` |
+| `uint16`     | `512`  | `"u2"`  |
+| `uint32`     | `768`  | `"u4"`  |
+| `int64`      | `1024` | `"i8"`  |
+| `uint64`     | `1280` | `"u8"`  |
+| `float128`   | `1536` | `"f16"` |
+| `complex128` | `1792` | `"c16"` |
+| `complex256` | `2048` | `"c32"` |
+| `rgba32`     | `2304` | <code>[["r", "&vert;u1"], ["g", "&vert;u1"], ["b", "&vert;u1"], ["a", "&vert;u1"]]</code> |
+| `bool`       | 🛑 unsupported! | `"b1"` |
+| `timedelta`  | 🛑 unsupported! | `"m8[{unit}]"` |
+| `time`       | 🛑 unsupported! | `"M8[{unit}]"` |
+
+In Zarr, the byte order **MUST** be specified by prepending one of `{"|", "<", ">"}` to the data type string.
+
+## Format structure
 
 ### NIfTI header
 
