@@ -57,40 +57,79 @@ as the adoption of compressed-NIfTI (`.nii.gz`).
 
 ### NIfTI header
 
-The nifti header ([v1](https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h) or [v2](https://nifti.nimh.nih.gov/pub/dist/doc/nifti2.h)) 
-**MUST** be encoded as a string using [base64](https://en.wikipedia.org/wiki/Base64) encoding and saved in the group-level `.zattrs` under 
-the `"nifti/base64"` key:
-
-`.zattrs`
-```
-{
-   "nifti": {"base64": "..."}
-}
-```
+The nifti header ([v1](https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h) 
+or [v2](https://nifti.nimh.nih.gov/pub/dist/doc/nifti2.h)) **MUST** be encoded as 
+a string using [base64](https://en.wikipedia.org/wiki/Base64) encoding and saved in 
+the group-level `.zattrs` under the `["nifti"]["base64"]` key:
 
 A JSON version  of the nifti header **MAY** be encoded under the `"nifti"` key.
-The JSON version is only provided for human-readability. If values conflict 
-between the binary and JSON headers, the binary form takes precendence. 
+The JSON version is only provided for human-readability. Its values **SHOULD** be 
+compatible with those of the binary header. If values conflict between the binary 
+and JSON headers, the binary form **MUST** take precendence. 
 
 `.zattrs`
 ```python
 {
    "nifti": {
-      "base64": "...",
-      "sizeof_hdr": 348,             # **MUST** be 348
+      "base64": "...",               # **MUST** be present. Base64 encoding of the binary header.
+
+      # All other tags **MAY** contain JSON representations
+      # of the nifti header. Not all fields are included.
+      # This JSON representation is **optional** and has
+      # a lower priority than the base64 header.
+
+      "magic": b"nz1\0",             # **MUST** be "nz1\0" or "nz2\0"
       "dim_info": {
-         "freq": 1,                  # {0, 1, 2, 3}
-         "phase": 2,                 # {0, 1, 2, 3}
-         "slice": 2                  # {0, 1, 2, 3}
+         "freq": 1,                  # **MUST** be one of {0, 1, 2, 3}
+         "phase": 2,                 # **MUST** be one of {0, 1, 2, 3}
+         "slice": 3                  # **MUST** be one of {0, 1, 2, 3}
       },
-      "dim": [128, 128, 128, 1, 3],  # Does not contain the number of dimensions
-      "intent": "DISPVECT",          # **MUST** be a valid intent name (see table)
-      
-      
-   }
+      "intent": {
+         "code": "DISPVECT",         # **MUST** be a valid intent code (see table)
+         "name": "",                 # 'name' or meaning of data
+         "p": []                     # Intent parameters (see table)
+      },
+      "scl": {
+         "slope": 1.0,               # Data scaling: slope
+         "inter": 0.0                # Data scaling: intercept
+      },
+      "slice": {                     # Slice timing order
+         "code": "SEQ_INC",          # **MUST** be a valid slice timing code (see table)
+         "start": 0 ,                # First slice index
+         "end": 127,                 # Last slice index
+         "duration": 1.0             # Time for 1 slice.
+      },
+      "cal": {
+         "min": 0.0,                 # Min display intensity
+         "max": 1.0                  # Max display intensity
+      },
+      "toffset": 0.0,                # Time axis shift
+      "description": "An MRI",       # Any text you like
+      "aux_file": "/path/to/aux",    # Auxiliary filename
+      "qform": {
+         "code": "SCANNER_ANAT",     # **MUST** be a valid xform name (see table)
+         "quatern": [b, c, d],       # Quaternion
+         "offset": [tx, ty, tz]      # Translation
+      },
+      "sform": {
+         "code": "ALIGN_ANAT",      # **MUST** be a valid xform name (see table)
+         "linear": [                # Linear part of the sform
+            [axx, axy, axz],        # 1st row affine transform
+            [ayx, ayy, ayz],        # 2nd row affine transform
+            [azx, azy, azz],        # 3rd row affine transform
+         ]
+      },
+  }
 }
 ```
+Note that some fields are not set in the JSON variant because they are already part of the OME metadata:
 
+```
+dim      -> .zarray["shape"]
+datatype -> .zarray["dtype"]
+bitpix   -> .zarray["dtype"]
+pixdim   -> .zgroup["multiscales"][0]["datasets"][0]["coordinateTransformations"][-1]["scale"]
+```
 
 ### Single resolution
 
@@ -398,3 +437,32 @@ In OME-NGFF, units must be names from the UDUNITS-2 database.
 | FSL-TOPUP cubic spline    | `2016` | `"FSL_TOPUP_CUBIC_SPLINE_COEFFICIENTS"`     | `0` | [] |
 | FSL-TOPUP quad spline     | `2017` | `"FSL_TOPUP_QUADRATIC_SPLINE_COEFFICIENTS"` | `0` | [] |
 | FSL-TOPUP field           | `2018` | `"FSL_TOPUP_FIELD"`                         | `0` | [] |
+
+
+```
+#define NIFTI_XFORM_UNKNOWN      0
+
+                                    /*! Scanner-based anatomical coordinates */
+
+#define NIFTI_XFORM_SCANNER_ANAT 1
+
+                                    /*! Coordinates aligned to another file's,
+                                        or to anatomical "truth".            */
+
+#define NIFTI_XFORM_ALIGNED_ANAT 2
+
+                                    /*! Coordinates aligned to Talairach-
+                                        Tournoux Atlas; (0,0,0)=AC, etc. */
+
+#define NIFTI_XFORM_TALAIRACH    3
+
+                                    /*! MNI 152 normalized coordinates. */
+
+#define NIFTI_XFORM_MNI_152      4
+
+                                    /*!  Normalized coordinates (for
+                                         any general standard template
+                                         space). Added March 8, 2019. */
+
+#define NIFTI_XFORM_TEMPLATE_OTHER  5
+```
