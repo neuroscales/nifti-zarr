@@ -109,7 +109,7 @@ Directory structure:
     },
     "dtype": "<f4",         # **SHOULD** be the same as zattrs["nifti"]["datatype"]
     "fill_value": "NaN",    # Value to use for missing chunks
-    "order": "C",           # **MUST** be "C"
+    "order": "F",           # **MUST** be "F"
     "shape": [              # **SHOULD** be the same as zattrs["nifti"]["dim"][[3, 4, 2, 1, 0]]
         1,                  # T shape
         3,                  # C shape
