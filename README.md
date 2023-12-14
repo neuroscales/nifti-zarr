@@ -186,7 +186,7 @@ and JSON headers, the binary form **MUST** take precendence.
       # a lower priority than the base64 header.
 
       "magic": b"nz1\0",             # **MUST** be "nz1\0" or "nz2\0"
-      "dim" : [128, 128, 128, 1, 3]  # **SHOULD** match .zarray["shape"][[4, 3, 2, 0, 1]]
+      "dim" : [128, 128, 128, 1, 3], # **SHOULD** match .zarray["shape"][[4, 3, 2, 0, 1]]
       "pixdim": [                    # XYZTC unit size, **SHOULD** match:
          1.5, 1.5, 1.5,              #   .zattrs["multiscales"][0]["datasets"][0]["coordinateTransformations"][-1]["scale"][2:5]
          0.1,                        #   .zattrs["multiscales"][0]["coordinateTransformations"][-1]["scale"][0]
