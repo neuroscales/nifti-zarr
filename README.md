@@ -11,7 +11,7 @@ This document contains _draft_ nifti-zarr specifications for storing neuroimagin
 * [__BIDS__](https://bids-specification.readthedocs.io) (Brain Imaging Data Structure) is a simple and intuitive way to organize and describe data.
 
 
-## Introduction
+## 1. Introduction
 
 As biomedical imaging scales up, it is making more and more use of remote storage, remote computing and remote visualization.
 Classical file formats—which store array data contiguously in a single file—are limited at large scales as
@@ -52,144 +52,14 @@ gets adopted by the community. Its guiding principles are
 The simplicity of these guiding principles should make the adoption of `nii.zarr` in cloud environments (almost) as straightforward 
 as the adoption of compressed-NIfTI (`.nii.gz`).
 
+## 2. Format specification
 
-## Format structure
-
-### NIfTI header
-
-The nifti header ([v1](https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h) 
-or [v2](https://nifti.nimh.nih.gov/pub/dist/doc/nifti2.h)) **MUST** be encoded as 
-a string using [base64](https://en.wikipedia.org/wiki/Base64) encoding and saved in 
-the group-level `.zattrs` under the `["nifti"]["base64"]` key:
-
-A JSON version  of the nifti header **MAY** be encoded under the `"nifti"` key.
-The JSON version is only provided for human-readability. Its values **SHOULD** be 
-compatible with those of the binary header. If values conflict between the binary 
-and JSON headers, the binary form **MUST** take precendence. 
-
-`.zattrs`
-```python
-{
-   "nifti": {
-      "base64": "...",               # **MUST** be present. Base64 encoding of the binary header.
-
-      # All other tags **MAY** contain JSON representations
-      # of the nifti header. Not all fields are included.
-      # This JSON representation is **optional** and has
-      # a lower priority than the base64 header.
-
-      "magic": b"nz1\0",             # **MUST** be "nz1\0" or "nz2\0"
-      "dim_info": {
-         "freq": 1,                  # **MUST** be one of {0, 1, 2, 3}
-         "phase": 2,                 # **MUST** be one of {0, 1, 2, 3}
-         "slice": 3                  # **MUST** be one of {0, 1, 2, 3}
-      },
-      "intent": {
-         "code": "DISPVECT",         # **MUST** be a valid intent code (see table)
-         "name": "",                 # 'name' or meaning of data
-         "p": []                     # Intent parameters (see table)
-      },
-      "scl": {
-         "slope": 1.0,               # Data scaling: slope
-         "inter": 0.0                # Data scaling: intercept
-      },
-      "slice": {                     # Slice timing order
-         "code": "SEQ_INC",          # **MUST** be a valid slice timing code (see table)
-         "start": 0 ,                # First slice index
-         "end": 127,                 # Last slice index
-         "duration": 1.0             # Time for 1 slice.
-      },
-      "cal": {
-         "min": 0.0,                 # Min display intensity
-         "max": 1.0                  # Max display intensity
-      },
-      "toffset": 0.0,                # Time axis shift
-      "description": "An MRI",       # Any text you like
-      "aux_file": "/path/to/aux",    # Auxiliary filename
-      "qform": {
-         "code": "SCANNER_ANAT",     # **MUST** be a valid xform name (see table)
-         "quatern": [b, c, d],       # Quaternion
-         "offset": [tx, ty, tz]      # Translation
-      },
-      "sform": {
-         "code": "ALIGN_ANAT",      # **MUST** be a valid xform name (see table)
-         "linear": [                # Linear part of the sform
-            [axx, axy, axz],        # 1st row affine transform
-            [ayx, ayy, ayz],        # 2nd row affine transform
-            [azx, azy, azz],        # 3rd row affine transform
-         ]
-      },
-  }
-}
-```
-Note that some fields are not set in the JSON variant because they are already part of the OME metadata:
-
-```
-dim      -> .zarray["shape"]
-datatype -> .zarray["dtype"]
-bitpix   -> .zarray["dtype"]
-pixdim   -> .zgroup["multiscales"][0]["datasets"][0]["coordinateTransformations"][-1]["scale"]
-```
-
-### Single resolution
-
+### 2.1. Directory structure
 Directory structure:
 ```
 └── mri.nii.zarr              # A nifti volume converted to Zarr.
     │
-    ├── .zgroup               # An image is a Zarr array.
-    ├── .zattrs               # Attributes are stored in the .zattrs file and include "nifti" (see below).
-    │
-    └── 0
-        └─ t                  # Chunks are stored with the nested directory layout.
-           └─ c               # All but the last chunk element are stored as directories.
-              └─ z            # The terminal chunk is a file. Together the directory and file names
-                 └─ y         # provide the "chunk coordinate" (t, c, z, y, x), where the maximum coordinate
-                    └─ x      # will be dimension_size / chunk_size.
-
-```
-
-`.zattrs` file
-```python
-{
-    # Nifti header encoded in base64
-    "nifti": "...",
-    # OME-NGFF resolution specification
-    "multiscales": [
-        {
-            "version": "0.4",
-            "axes": [
-                {"name": "t", "type": "time", "unit": "second"},
-                {"name": "c", "type": "channel"},
-                {"name": "z", "type": "space", "unit": "millimeter"},
-                {"name": "y", "type": "space", "unit": "millimeter"},
-                {"name": "x", "type": "space", "unit": "millimeter"}
-            ],
-            "datasets": [{
-                 "path": "0",
-                 "coordinateTransformations": [{
-                     # the voxel size for the first scale level (0.5 millimeter)
-                     "type": "scale",
-                     "scale": [1.0, 1.0, 0.5, 0.5, 0.5]
-                 }]
-            }],
-            "coordinateTransformations": [{
-                # the time unit (1.0 seconds), which is the same for each scale level
-                "type": "scale",
-                "scale": [0.1, 1.0, 1.0, 1.0, 1.0]
-            }],
-        }
-    ]
-}
-```
-
-### Multi resolution
-
-Directory structure:
-```
-└── mri.nii.zarr              # A nifti volume converted to Zarr.
-    │
-    ├── .zgroup               # Each image is a Zarr group, or a folder, of other groups and arrays.
+    ├── .zgroup               # Each volume is a Zarr group, of arrays.
     ├── .zattrs               # Group level attributes are stored in the .zattrs file and include
     │                         # "multiscales" and "nifti" (see below). In addition, the group level attributes
     │                         # may also contain "_ARRAY_DIMENSIONS" for compatibility with xarray if
@@ -208,10 +78,42 @@ Directory structure:
               └─ z            # The terminal chunk is a file. Together the directory and file names
                  └─ y         # provide the "chunk coordinate" (t, c, z, y, x), where the maximum coordinate
                     └─ x      # will be dimension_size / chunk_size.
-
 ```
 
-`.zattrs` file
+### 2.2. Zarr metadata
+`.zarray`
+```python
+{
+    "chunks": [
+        1,                  # number of time chunks
+        3,                  # Number of channel chunks
+        1000,               # Number of z chunks
+        1000,               # Number of y chunks
+        1000,               # Number of x chunks
+    ],
+    "compressor": {         # Codec used to compress chunks
+        "id": "blosc",      # **MUST** be "blosc" or "zlib"
+        "cname": "lz4",
+        "clevel": 5,
+        "shuffle": 1
+    },
+    "dtype": "<f4",         # **SHOULD** be the same as zattrs["nifti"]["datatype"]
+    "fill_value": "NaN",    # Value to use for missing chunks
+    "order": "C",           # **MUST** be "C"
+    "shape": [              # **SHOULD** be the same as zattrs["nifti"]["dim"][[3, 4, 2, 1, 0]]
+        1,                  # T shape
+        3,                  # C shape
+        10000,              # Z shape
+        10000,              # Y shape
+        10000               # X shape
+    ],
+    "zarr_format": 2
+}
+```
+
+### 2.3. OME-NGFF metadata
+
+`.zattrs`
 ```python
 {
     # Nifti header encoded in base64
@@ -262,94 +164,166 @@ Directory structure:
 }
 ```
 
+### 2.4. NIfTI header
 
-## Main differences with NIfTI and/or OME-NGFF
+The nifti header ([v1](https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h) 
+or [v2](https://nifti.nimh.nih.gov/pub/dist/doc/nifti2.h)) **MUST** be encoded as 
+a string using [base64](https://en.wikipedia.org/wiki/Base64) encoding and saved in 
+the group-level `.zattrs` under the `["nifti"]["base64"]` key:
+
+A JSON version  of the nifti header **MAY** be encoded under the `"nifti"` key.
+The JSON version is only provided for human-readability. Its values **SHOULD** be 
+compatible with those of the binary header. If values conflict between the binary 
+and JSON headers, the binary form **MUST** take precendence. 
+
+`.zattrs`
+```python
+{
+   "nifti": {
+      "base64": "...",               # **MUST** be present. Base64 encoding of the binary header.
+
+      # All other tags **MAY** contain JSON representations
+      # of the nifti header. Not all fields are included.
+      # This JSON representation is **optional** and has
+      # a lower priority than the base64 header.
+
+      "magic": b"nz1\0",             # **MUST** be "nz1\0" or "nz2\0"
+      "dim" : [128, 128, 128, 1, 3]  # **SHOULD** match .zarray["shape"][[4, 3, 2, 0, 1]]
+      "pixdim": [                    # XYZTC unit size, **SHOULD** match:
+         1.5, 1.5, 1.5,              #   .zattrs["multiscales"][0]["datasets"][0]["coordinateTransformations"][-1]["scale"][2:5]
+         0.1,                        #   .zattrs["multiscales"][0]["coordinateTransformations"][-1]["scale"][0]
+         1.0,                        #   .zattrs["multiscales"][0]["coordinateTransformations"][-1]["scale"][1]
+      ],
+      "units": {                     # XYZT unit, **SHOULD** match
+         "space": "millimeter",      #   .zattrs["multiscales"][0]["axes"][2:]["unit"]
+         "time": "second",           #   .zattrs["multiscales"][0]["axes"][0]["unit"]
+      },
+      "datatype": "<f4",             # **MUST** be a zarr-compatible data type
+                                     # **SHOULD** match .zarray["dtype"]
+      "dim_info": {
+         "freq": 1,                  # **MUST** be one of {0, 1, 2, 3}
+         "phase": 2,                 # **MUST** be one of {0, 1, 2, 3}
+         "slice": 3                  # **MUST** be one of {0, 1, 2, 3}
+      },
+      "intent": {
+         "code": "DISPVECT",         # **MUST** be a valid intent code (see table 4.2)
+         "name": "",                 # 'name' or meaning of data
+         "p": []                     # Intent parameters (see table 4.2)
+      },
+      "scl": {
+         "slope": 1.0,               # Data scaling: slope
+         "inter": 0.0                # Data scaling: intercept
+      },
+      "slice": {                     # Slice timing order
+         "code": "SEQ_INC",          # **MUST** be a valid slice timing code (see table 4.6)
+         "start": 0 ,                # First slice index
+         "end": 127,                 # Last slice index
+         "duration": 1.0             # Time for 1 slice.
+      },
+      "cal": {
+         "min": 0.0,                 # Min display intensity
+         "max": 1.0                  # Max display intensity
+      },
+      "toffset": 0.0,                # Time axis shift
+      "description": "An MRI",       # Any text you like
+      "aux_file": "/path/to/aux",    # Auxiliary filename
+      "qform": {
+         "code": "SCANNER_ANAT",     # **MUST** be a valid xform name (see table 4.5)
+         "quatern": [b, c, d],       # Quaternion
+         "offset": [tx, ty, tz]      # Translation
+      },
+      "sform": {
+         "code": "ALIGN_ANAT",       # **MUST** be a valid xform name (see table 4.5)
+         "linear": [                 # Linear part of the sform
+            [axx, axy, axz],         # 1st row affine transform
+            [ayx, ayy, ayz],         # 2nd row affine transform
+            [azx, azy, azz],         # 3rd row affine transform
+         ]
+      },
+  }
+}
+```
+
+Some fields **SHOULD** be equivalent to their OME-Zarr counterparts:
+```python
+zattrs["nifti"]["dim"]         ==  zarray["shape"][[4, 3, 2, 0, 1]]   # Level 0 zarray
+zattrs["nifti"]["datatype"]    ==  zarray["dtype"]                    # All zarrays
+zattrs["nifti"]["pixdim"][:3]  ==  zattrs["multiscales"][0]["datasets"][0]["coordinateTransformations"][-1]["scale"][2:5::-1]
+zattrs["nifti"]["pixdim"][3]   ==  zattrs["multiscales"][0]["coordinateTransformations"][-1]["scale"][0]
+zattrs["nifti"]["pixdim"][4]   ==  zattrs["multiscales"][0]["coordinateTransformations"][-1]["scale"][1]
+```
+
+## 3. Main differences with NIfTI and/or OME-NGFF
 
 * Following the OME-NGFF specifcation, dimensions are ordered as [T, C, Z, Y, X] (in C order)
   as opposed to [C, T, Z, Y, X].
 * To conform with the NIfTI expectation, on load data should be returned as a [C, T, Z, Y, X] array
   (in C order; [X, Y, Z, T, C] in F order).
 
-### NIfTI features that are not supported by NIfTI-Zarr
+### 3.1. NIfTI features that are not supported by NIfTI-Zarr
 
 * Any file with more than 5 dimensions
 
-### OME-NGFF features that are not supported by NIfTI-Zarr
+### 3.2. OME-NGFF features that are not supported by NIfTI-Zarr
 
 * Image collections
 * Image with labels
 * High-content screening data
 * OMERO metadata
 
-### NIfTI header
+## 4. Conversion tables
+
+### Table 4.1. NIfTI header
 
 As a reminder, the nifti1 header has the following structure:
-```C
-                        /*************************/  /************************/
-struct nifti_1_header { /* NIFTI-1 usage         */  /* ANALYZE 7.5 field(s) */
-                        /*************************/  /************************/
+| Type       | Name             | NIFfI-1 usage                   | 
+| ---------- | ---------------- | ------------------------------- | 
+| `int`      | `sizeof_hdr`     | MUST be 348                     |
+| `char`     | `data_type`      | ~~UNUSED~~                      |
+| `char`     | `db_name`        | ~~UNUSED~~                      |
+| `int`      | `extents`        | ~~UNUSED~~                      |
+| `short`    | `session_error`  | ~~UNUSED~~                      |
+| `char`     | `regular`        | ~~UNUSED~~                      |
+| `char`     | `dim_info`       | MRI slice ordering.             |
+| `short[8]` | `dim`            | Data array dimensions.          |
+| `float`    | `intent_p1`      | 1st intent parameter.           |
+| `float`    | `intent_p2`      | 2nd intent parameter.           |
+| `float`    | `intent_p3`      | 3rd intent parameter.           |
+| `short`    | `intent_code`    | `NIFTI_INTENT_*` code.          |
+| `short`    | `datatype`       | Defines data type!              |
+| `short`    | `bitpix`         | Number bits/voxel.              |
+| `short`    | `slice_start`    | First slice index.              |
+| `float[8]` | `pixdim`         | Grid spacings.                  |
+| `float`    | `vox_offset`     | Offset into .nii file           |
+| `float`    | `scl_slope`      | Data scaling: slope.            |
+| `float`    | `scl_inter`      | Data scaling: offset.           |
+| `short`    | `slice_end`      | Last slice index.               |
+| `char`     | `slice_code`     | Slice timing order.             |
+| `char`     | `xyzt_units`     | Units of `pixdim[1..4]`         |
+| `float`    | `cal_max`        | Max display intensity           |
+| `float`    | `cal_min`        | Min display intensity           |
+| `float`    | `slice_duration` | Time for 1 slice.               |
+| `float`    | `toffset`        | Time axis shift.                |
+| `int`      | `glmax`          | ~~UNUSED~~                      |
+| `int`      | `glmin`          | ~~UNUSED~~                      |
+| `char[80]` | `descrip`        | any text you like.              |
+| `char[24]` | `aux_file`       | auxiliary filename.             |
+| `short`    | `qform_code`     | `NIFTI_XFORM_*` code.           |
+| `short`    | `sform_code`     | `NIFTI_XFORM_*` code.           |
+| `float`    | `quatern_b`      | Quaternion b param.             |
+| `float`    | `quatern_c`      | Quaternion c param.             |
+| `float`    | `quatern_d`      | Quaternion d param.             |
+| `float`    | `qoffset_x`      | Quaternion x shift.             |
+| `float`    | `qoffset_y`      | Quaternion y shift.             |
+| `float`    | `qoffset_z`      | Quaternion z shift.             |
+| `float[4]` | `srow_x`         | 1st row affine transform.       |
+| `float[4]` | `srow_y`         | 2nd row affine transform.       |
+| `float[4]` | `srow_z`         | 3rd row affine transform.       |
+| `char[16]` | `intent_name`    | 'name' or meaning of data.      |
+| `char[4]`  | `magic`          | MUST be `"ni1\0"` or `"n+1\0"`. |
 
-                                           /*--- was header_key substruct ---*/
- int   sizeof_hdr;    /*!< MUST be 348           */  /* int sizeof_hdr;      */
- char  data_type[10]; /*!< ++UNUSED++            */  /* char data_type[10];  */
- char  db_name[18];   /*!< ++UNUSED++            */  /* char db_name[18];    */
- int   extents;       /*!< ++UNUSED++            */  /* int extents;         */
- short session_error; /*!< ++UNUSED++            */  /* short session_error; */
- char  regular;       /*!< ++UNUSED++            */  /* char regular;        */
- char  dim_info;      /*!< MRI slice ordering.   */  /* char hkey_un0;       */
 
-                                      /*--- was image_dimension substruct ---*/
- short dim[8];        /*!< Data array dimensions.*/  /* short dim[8];        */
- float intent_p1 ;    /*!< 1st intent parameter. */  /* short unused8;       */
-                                                     /* short unused9;       */
- float intent_p2 ;    /*!< 2nd intent parameter. */  /* short unused10;      */
-                                                     /* short unused11;      */
- float intent_p3 ;    /*!< 3rd intent parameter. */  /* short unused12;      */
-                                                     /* short unused13;      */
- short intent_code ;  /*!< NIFTI_INTENT_* code.  */  /* short unused14;      */
- short datatype;      /*!< Defines data type!    */  /* short datatype;      */
- short bitpix;        /*!< Number bits/voxel.    */  /* short bitpix;        */
- short slice_start;   /*!< First slice index.    */  /* short dim_un0;       */
- float pixdim[8];     /*!< Grid spacings.        */  /* float pixdim[8];     */
- float vox_offset;    /*!< Offset into .nii file */  /* float vox_offset;    */
- float scl_slope ;    /*!< Data scaling: slope.  */  /* float funused1;      */
- float scl_inter ;    /*!< Data scaling: offset. */  /* float funused2;      */
- short slice_end;     /*!< Last slice index.     */  /* float funused3;      */
- char  slice_code ;   /*!< Slice timing order.   */
- char  xyzt_units ;   /*!< Units of pixdim[1..4] */
- float cal_max;       /*!< Max display intensity */  /* float cal_max;       */
- float cal_min;       /*!< Min display intensity */  /* float cal_min;       */
- float slice_duration;/*!< Time for 1 slice.     */  /* float compressed;    */
- float toffset;       /*!< Time axis shift.      */  /* float verified;      */
- int   glmax;         /*!< ++UNUSED++            */  /* int glmax;           */
- int   glmin;         /*!< ++UNUSED++            */  /* int glmin;           */
-
-                                         /*--- was data_history substruct ---*/
- char  descrip[80];   /*!< any text you like.    */  /* char descrip[80];    */
- char  aux_file[24];  /*!< auxiliary filename.   */  /* char aux_file[24];   */
-
- short qform_code ;   /*!< NIFTI_XFORM_* code.   */  /*-- all ANALYZE 7.5 ---*/
- short sform_code ;   /*!< NIFTI_XFORM_* code.   */  /*   fields below here  */
-                                                     /*   are replaced       */
- float quatern_b ;    /*!< Quaternion b param.   */
- float quatern_c ;    /*!< Quaternion c param.   */
- float quatern_d ;    /*!< Quaternion d param.   */
- float qoffset_x ;    /*!< Quaternion x shift.   */
- float qoffset_y ;    /*!< Quaternion y shift.   */
- float qoffset_z ;    /*!< Quaternion z shift.   */
-
- float srow_x[4] ;    /*!< 1st row affine transform.   */
- float srow_y[4] ;    /*!< 2nd row affine transform.   */
- float srow_z[4] ;    /*!< 3rd row affine transform.   */
-
- char intent_name[16];/*!< 'name' or meaning of data.  */
-
- char magic[4] ;      /*!< MUST be "ni1\0" or "n+1\0". */
-
-} ;                   /**** 348 bytes total ****/
-```
-
-### NIfTI > OME-Zarr maps
+### Table 4.2. Data types
 
 In Zarr, the byte order **MUST** be specified by prepending one of `{"|", "<", ">"}` to the data type string.
 | Data type    | NIfTI  | Zarr    |
@@ -374,6 +348,8 @@ In Zarr, the byte order **MUST** be specified by prepending one of `{"|", "<", "
 | `timedelta`  | 🛑 unsupported! | `"m8[{unit}]"` |
 | `time`       | 🛑 unsupported! | `"M8[{unit}]"` |
 
+### Table 4.3. Units
+
 In OME-NGFF, units must be names from the UDUNITS-2 database. 
 | Unit         | NIfTI  | UDUNITS-2       | OME-NGFF axis |
 | ------------ | ------ | --------------- | ------------- |
@@ -387,6 +363,8 @@ In OME-NGFF, units must be names from the UDUNITS-2 database.
 | hertz        | `32`   | `"hertz"`       | `"channel"`   |
 | ppm          | `40`   | 🛑 unsupported! | `"channel"`   |
 | rad          | `48`   | `"radian"`      | `"channel"`   |
+
+### Table 4.4. Intents
 
 | Intent                    | NIfTI  | NIfTI-Zarr's JSON header | `len(intent_p)` | Intent parameters |
 | ------------------------- | ------ | ------------------------ | --------------- | ----------------- |
@@ -438,31 +416,25 @@ In OME-NGFF, units must be names from the UDUNITS-2 database.
 | FSL-TOPUP quad spline     | `2017` | `"FSL_TOPUP_QUADRATIC_SPLINE_COEFFICIENTS"` | `0` | [] |
 | FSL-TOPUP field           | `2018` | `"FSL_TOPUP_FIELD"`                         | `0` | [] |
 
+### Table 4.5. Xforms
 
-```
-#define NIFTI_XFORM_UNKNOWN      0
+| Transform | NIfTI | NIfTI-Zarr's JSON header |
+| --------- | ----- | ------------------------ |
+| Unknown   | `0`   | `"UNKNOWN"`              |
+| Scanner   | `1`   | `"SCANNER_ANAT"`         |
+| Aligned   | `2`   | `"ALIGNED_ANAT"`         |
+| Talairach | `3`   | `"TALAIRACH"`            |
+| MNI       | `4`   | `"MNI"`                  |
+| Template  | `5`   | `"TEMPLATE_OTHER"`       |
 
-                                    /*! Scanner-based anatomical coordinates */
+### Table 4.6. Slice order
 
-#define NIFTI_XFORM_SCANNER_ANAT 1
-
-                                    /*! Coordinates aligned to another file's,
-                                        or to anatomical "truth".            */
-
-#define NIFTI_XFORM_ALIGNED_ANAT 2
-
-                                    /*! Coordinates aligned to Talairach-
-                                        Tournoux Atlas; (0,0,0)=AC, etc. */
-
-#define NIFTI_XFORM_TALAIRACH    3
-
-                                    /*! MNI 152 normalized coordinates. */
-
-#define NIFTI_XFORM_MNI_152      4
-
-                                    /*!  Normalized coordinates (for
-                                         any general standard template
-                                         space). Added March 8, 2019. */
-
-#define NIFTI_XFORM_TEMPLATE_OTHER  5
-```
+| Order                     | NIfTI | NIfTI-Zarr's JSON header |
+| ------------------------- | ----- | ------------------------ |
+| Unknown                   | `0`   | `"UNKNOWN"`              |
+| Sequential increasing     | `1`   | `"SEQ_INC"`              |
+| Sequential decreasing     | `2`   | `"SEQ_DEC"`              |
+| alternating increasing    | `3`   | `"ALT_INC"`              |
+| alternating decreasing    | `4`   | `"ALT_DEC"`              |
+| alternating increasing #2 | `5`   | `"ALT_INC2"`             |
+| alternating decreasing #2 | `6`   | `"ALT_DEC2"`             |
