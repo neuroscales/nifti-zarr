@@ -167,7 +167,7 @@ Directory structure:
                 }
             ],
             "coordinateTransformations": [{
-                # the time unit (1.0 seconds),
+                # the time unit (0.1 seconds),
                 # which is the same for each scale level
                 "type": "scale",
                 "scale": [0.1, 1.0, 1.0, 1.0, 1.0]
