@@ -249,10 +249,10 @@ and JSON headers, the binary form **MUST** take precedence.
       },
       "sform": {
          "code": "ALIGN_ANAT",       # **MUST** be a valid xform name (see table 4.5)
-         "linear": [                 # Linear part of the sform
-            [axx, axy, axz],         # 1st row affine transform
-            [ayx, ayy, ayz],         # 2nd row affine transform
-            [azx, azy, azz],         # 3rd row affine transform
+         "affine": [
+            [axx, axy, axz, tx],         # 1st row affine transform
+            [ayx, ayy, ayz, ty],         # 2nd row affine transform
+            [azx, azy, azz, tz],         # 3rd row affine transform
          ]
       },
   }
