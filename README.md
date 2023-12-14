@@ -60,24 +60,31 @@ Directory structure:
 └── mri.nii.zarr              # A nifti volume converted to Zarr.
     │
     ├── .zgroup               # Each volume is a Zarr group, of arrays.
-    ├── .zattrs               # Group level attributes are stored in the .zattrs file and include
-    │                         # "multiscales" and "nifti" (see below). In addition, the group level attributes
-    │                         # may also contain "_ARRAY_DIMENSIONS" for compatibility with xarray if
-    |                         # this group directly contains multi-scale arrays.
+    ├── .zattrs               # Group level attributes are stored in the .zattrs
+    |                         # file and include "multiscales" and "nifti" (see
+    |                         # below). In addition, the group level attributes
+    │                         # may also contain "_ARRAY_DIMENSIONS" for
+    |                         # compatibility with xarray if this group directly
+    |                         # contains multi-scale arrays.
     │
-    ├── 0                     # Each multiscale level is stored as a separate Zarr array,
-    │   ...                   # which is a folder containing chunk files which compose the array.
-    └── n                     # The name of the array is arbitrary with the ordering defined by
-        │                     # by the "multiscales" metadata, but is often a sequence starting at 0.
+    ├── 0                     # Each multiscale level is stored as a separate
+    |                         # Zarr array, which is a folder containing chunk 
+    │   ...                   # files which compose the array.
+    |
+    └── n                     # The name of the array is arbitrary with the
+        |                     # ordering defined by the "multiscales" metadata,
+        │                     # but is often a sequence starting at 0.
         │
         ├── .zarray           # All image arrays must be up to 5-dimensional
-        │                     # with the axis of type time before type channel, before spatial axes.
+        │                     # with the axis of type time before type channel,
+        |                     # before spatial axes.
         │
-        └─ t                  # Chunks are stored with the nested directory layout.
-           └─ c               # All but the last chunk element are stored as directories.
-              └─ z            # The terminal chunk is a file. Together the directory and file names
-                 └─ y         # provide the "chunk coordinate" (t, c, z, y, x), where the maximum coordinate
-                    └─ x      # will be dimension_size / chunk_size.
+        └─ t                  # Chunks are stored with the nested directory
+           └─ c               # layout. All but the last chunk element are stored 
+              └─ z            # as directories. The terminal chunk is a file.
+                 └─ y         # Together the directory and file names provide the 
+                    └─ x      # "chunk coordinate" (t, c, z, y, x), where the
+                              # maximum coordinate will be dimension_size / chunk_size.
 ```
 
 ### 2.2. Zarr metadata
@@ -138,7 +145,8 @@ Directory structure:
                 {
                     "path": "1",
                     "coordinateTransformations": [{
-                        # the voxel size for the second scale level (downscaled by a factor of 2 -> 1 millimeter)
+                        # the voxel size for the second scale level
+                        # (downscaled by a factor of 2 -> 1 millimeter)
                         "type": "scale",
                         "scale": [1.0, 1.0, 1.0, 1.0, 1.0]
                     }]
@@ -146,14 +154,16 @@ Directory structure:
                 {
                     "path": "2",
                     "coordinateTransformations": [{
-                        # the voxel size for the third scale level (downscaled by a factor of 4 -> 2 millimeter)
+                        # the voxel size for the third scale level
+                        # (downscaled by a factor of 4 -> 2 millimeter)
                         "type": "scale",
                         "scale": [1.0, 1.0, 2.0, 2.0, 2.0]
                     }]
                 }
             ],
             "coordinateTransformations": [{
-                # the time unit (1.0 seconds), which is the same for each scale level
+                # the time unit (1.0 seconds),
+                # which is the same for each scale level
                 "type": "scale",
                 "scale": [0.1, 1.0, 1.0, 1.0, 1.0]
             }],
