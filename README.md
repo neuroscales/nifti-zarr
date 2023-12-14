@@ -376,7 +376,7 @@ In OME-NGFF, units must be names from the UDUNITS-2 database.
 | millisecond  | `16`   | `"millisecond"` | `"time"`      |
 | microsecond  | `24`   | `"microsecond"` | `"time"`      |
 | hertz        | `32`   | `"hertz"`       | `"channel"`   |
-| ppm          | `40`   | 🛑 unsupported! | `"channel"`   |
+| ppm          | `40`   | `"micro"`       | `"channel"`   |
 | rad          | `48`   | `"radian"`      | `"channel"`   |
 
 ### Table 4.4. Intents
