@@ -70,14 +70,14 @@ as the adoption of compressed-NIfTI (`.nii.gz`).
 
 | Data type    | NIfTI  | Zarr    |
 | ------------ | ------ | ------- |
-| `uint8`      | `2`    | `"|u1"` |
+| `uint8`      | `2`    | <code>"&vert;u1"</code> |
 | `int16`      | `4`    | `"i2"`  |
 | `int32`      | `8`    | `"i4"`  |
 | `float32`    | `16`   | `"f4"`  |
 | `complex64`  | `32`   | `"c8"`  |
 | `float64`    | `64`   | `"f8"`  |
 | `rgb24`      | `128`  | <code>[["r", "&vert;u1"], ["g", "&vert;u1"], ["b", "&vert;u1"]]</code> |
-| `int8`       | `256`  | `"|i1"` |
+| `int8`       | `256`  | <code>"&vert;i1"</code> |
 | `uint16`     | `512`  | `"u2"`  |
 | `uint32`     | `768`  | `"u4"`  |
 | `int64`      | `1024` | `"i8"`  |
@@ -86,7 +86,7 @@ as the adoption of compressed-NIfTI (`.nii.gz`).
 | `complex128` | `1792` | `"c16"` |
 | `complex256` | `2048` | `"c32"` |
 | `rgba32`     | `2304` | <code>[["r", "&vert;u1"], ["g", "&vert;u1"], ["b", "&vert;u1"], ["a", "&vert;u1"]]</code> |
-| `bool`       | 🛑 unsupported! | `"b1"` |
+| `bool`       | 🛑 unsupported! | <code>"&vert;b1"</code> |
 | `timedelta`  | 🛑 unsupported! | `"m8[{unit}]"` |
 | `time`       | 🛑 unsupported! | `"M8[{unit}]"` |
 
