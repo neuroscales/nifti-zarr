@@ -386,7 +386,7 @@ In OME-NGFF, units must be names from the UDUNITS-2 database.
 | None                      | `0`    | `"NONE"`                 | `0` | [] |
 | Correlation coefficient R | `2`    | `"CORREL"`               | `1` | [dof] |
 | Student t statistic       | `3`    | `"TTEST"`                | `1` | [dof] |
-| Fisher F statistic        | `4`    | `"FTEST"`                | `2` | [numerator dof, denominator dof] |
+| Fisher F statistic        | `4`    | `"FTEST"`                | `2` | [num dof, den dof] |
 | Standard normal           | `5`    | `"ZSCORE"`               | `0` | [] |
 | Chi-squared               | `6`    | `"CHISQ"`                | `1` | [dof] |
 | Beta distribution         | `7`    | `"BETA"`                 | `2` | [a, b] |
@@ -394,12 +394,12 @@ In OME-NGFF, units must be names from the UDUNITS-2 database.
 | Gamma distribution        | `9`    | `"GAMMA"`                | `2` | [shape, scale] |
 | Poisson distribution      | `10`   | `"POISSON"`              | `1` | [mean] |
 | Normal distribution       | `11`   | `"NORMAL"`               | `2` | [mean, standard deviation] |
-| Noncentral F statistic    | `12`   | `"FTEST_NONC"`           | `3` | [numerator dof, denominator dof, numerator noncentrality parameter] |
-| Noncentral chi-squared statistic | `13`  | `"CHISQ_NONC"`     | `2` | [dof, noncentrality parameter] |
+| Noncentral F statistic    | `12`   | `"FTEST_NONC"`           | `3` | [num dof, den dof, num noncentrality] |
+| Noncentral chi-squared statistic | `13`  | `"CHISQ_NONC"`     | `2` | [dof, noncentrality] |
 | Logistic distribution     | `14`   | `"LOGISTIC"`             | `2` | [location, scale] |
 | Laplace distribution      | `15`   | `"LAPLACE"`              | `2` | [location, scale] |
 | Uniform distribution      | `16`   | `"UNIFORM"`              | `2` | [lower end, upper end] |
-| Noncentral t statistic    | `17`   | `"TTEST_NONC"`           | `2` | [dof, noncentrality parameter] |
+| Noncentral t statistic    | `17`   | `"TTEST_NONC"`           | `2` | [dof, noncentrality] |
 | Weibull distribution      | `18`   | `"WEIBULL"`              | `3` | [location, scale, power] |
 | Chi distribution          | `19`   | `"CHI"`                  | `1` | [dof] |
 | Inverse Gaussian          | `20`   | `"INVGAUSS"`             | `2` | [mu, lambda] |
@@ -423,13 +423,17 @@ In OME-NGFF, units must be names from the UDUNITS-2 database.
 | Gifti RGB (3 values)      | `2003` | `"RGB_VECTOR"`           | `0` | [] |
 | Gifti RGBA (4 values)     | `2004` | `"RGBA_VECTOR"`          | `0` | [] |
 | Gifti shape               | `2005` | `"SHAPE"`                | `0` | [] |
-| FSL displacement field    | `2006` | `"FSL_FNIRT_DISPLACEMENT_FIELD"`      | `0` | [] |
-| FSL cubic spline          | `2007` | `"FSL_CUBIC_SPLINE_COEFFICIENTS"`     | `0` | [] |
-| FSL DCT coefficients      | `2008` | `"FSL_DCT_COEFFICIENTS"`              | `0` | [] |
-| FSL quad spline           | `2009` | `"FSL_QUADRATIC_SPLINE_COEFFICIENTS"` | `0` | [] |
-| FSL-TOPUP cubic spline    | `2016` | `"FSL_TOPUP_CUBIC_SPLINE_COEFFICIENTS"`     | `0` | [] |
-| FSL-TOPUP quad spline     | `2017` | `"FSL_TOPUP_QUADRATIC_SPLINE_COEFFICIENTS"` | `0` | [] |
-| FSL-TOPUP field           | `2018` | `"FSL_TOPUP_FIELD"`                         | `0` | [] |
+
+Additional FSL codes:
+| Intent                    | NIfTI  | NIfTI-Zarr's JSON header                    |
+| ------------------------- | ------ | ------------------------------------------- |
+| FSL displacement field    | `2006` | `"FSL_FNIRT_DISPLACEMENT_FIELD"`            |
+| FSL cubic spline          | `2007` | `"FSL_CUBIC_SPLINE_COEFFICIENTS"`           |
+| FSL DCT coefficients      | `2008` | `"FSL_DCT_COEFFICIENTS"`                    |
+| FSL quad spline           | `2009` | `"FSL_QUADRATIC_SPLINE_COEFFICIENTS"`       |
+| FSL-TOPUP cubic spline    | `2016` | `"FSL_TOPUP_CUBIC_SPLINE_COEFFICIENTS"`     |
+| FSL-TOPUP quad spline     | `2017` | `"FSL_TOPUP_QUADRATIC_SPLINE_COEFFICIENTS"` |
+| FSL-TOPUP field           | `2018` | `"FSL_TOPUP_FIELD"`                         |
 
 ### Table 4.5. Xforms
 
