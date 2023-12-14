@@ -95,22 +95,22 @@ Directory structure:
 ```python
 {
     "chunks": [
-        1,                  # number of time chunks
+        1,                  # Number of time chunks
         3,                  # Number of channel chunks
         1000,               # Number of z chunks
         1000,               # Number of y chunks
         1000,               # Number of x chunks
     ],
     "compressor": {         # Codec used to compress chunks
-        "id": "blosc",      # **MUST** be "blosc" or "zlib"
+        "id": "blosc",      # MUST be "blosc" or "zlib"
         "cname": "lz4",
         "clevel": 5,
         "shuffle": 1
     },
-    "dtype": "<f4",         # **SHOULD** be the same as zattrs["nifti"]["datatype"]
+    "dtype": "<f4",         # SHOULD be the same as zattrs["nifti"]["datatype"]
     "fill_value": "NaN",    # Value to use for missing chunks
-    "order": "F",           # **MUST** be "F"
-    "shape": [              # **SHOULD** be the same as zattrs["nifti"]["dim"][[3, 4, 2, 1, 0]]
+    "order": "F",           # MUST be "F"
+    "shape": [              # SHOULD be the same as zattrs["nifti"]["dim"][[3, 4, 2, 1, 0]]
         1,                  # T shape
         3,                  # C shape
         10000,              # Z shape
@@ -195,15 +195,15 @@ and JSON headers, the binary form **MUST** take precedence.
 ```python
 {
    "nifti": {
-      "base64": "...",               # **MUST** be present. Base64 encoding of the binary header.
+      "base64": "...",               # MUST be present. Base64 encoding of the binary header.
 
       # All other tags **MAY** contain JSON representations
       # of the nifti header. Not all fields are included.
       # This JSON representation is **optional** and has
       # a lower priority than the base64 header.
 
-      "magic": b"nz1\0",             # **MUST** be "nz1\0" or "nz2\0"
-      "dim" : [128, 128, 128, 1, 3], # **SHOULD** match .zarray["shape"][[4, 3, 2, 0, 1]]
+      "magic": b"nz1\0",             # MUST be "nz1\0" or "nz2\0"
+      "dim" : [128, 128, 128, 1, 3], # SHOULD match .zarray["shape"][[4, 3, 2, 0, 1]]
       "pixdim": [                    # XYZTC unit size, **SHOULD** match:
          1.5, 1.5, 1.5,              #   .zattrs["multiscales"][0]["datasets"][0]["coordinateTransformations"][-1]["scale"][2:5]
          0.1,                        #   .zattrs["multiscales"][0]["coordinateTransformations"][-1]["scale"][0]
@@ -213,15 +213,15 @@ and JSON headers, the binary form **MUST** take precedence.
          "space": "millimeter",      #   .zattrs["multiscales"][0]["axes"][2:]["unit"]
          "time": "second",           #   .zattrs["multiscales"][0]["axes"][0]["unit"]
       },
-      "datatype": "<f4",             # **MUST** be a zarr-compatible data type
-                                     # **SHOULD** match .zarray["dtype"]
+      "datatype": "<f4",             # MUST be a zarr-compatible data type
+                                     # SHOULD match .zarray["dtype"]
       "dim_info": {
-         "freq": 1,                  # **MUST** be one of {0, 1, 2, 3}
-         "phase": 2,                 # **MUST** be one of {0, 1, 2, 3}
-         "slice": 3                  # **MUST** be one of {0, 1, 2, 3}
+         "freq": 1,                  # MUST be one of {0, 1, 2, 3}
+         "phase": 2,                 # MUST be one of {0, 1, 2, 3}
+         "slice": 3                  # MUST be one of {0, 1, 2, 3}
       },
       "intent": {
-         "code": "DISPVECT",         # **MUST** be a valid intent code (see table 4.2)
+         "code": "DISPVECT",         # MUST be a valid intent code (see table 4.2)
          "name": "",                 # 'name' or meaning of data
          "p": []                     # Intent parameters (see table 4.2)
       },
@@ -230,7 +230,7 @@ and JSON headers, the binary form **MUST** take precedence.
          "inter": 0.0                # Data scaling: intercept
       },
       "slice": {                     # Slice timing order
-         "code": "SEQ_INC",          # **MUST** be a valid slice timing code (see table 4.6)
+         "code": "SEQ_INC",          # MUST be a valid slice timing code (see table 4.6)
          "start": 0 ,                # First slice index
          "end": 127,                 # Last slice index
          "duration": 1.0             # Time for 1 slice.
@@ -243,16 +243,16 @@ and JSON headers, the binary form **MUST** take precedence.
       "description": "An MRI",       # Any text you like
       "aux_file": "/path/to/aux",    # Auxiliary filename
       "qform": {
-         "code": "SCANNER_ANAT",     # **MUST** be a valid xform name (see table 4.5)
+         "code": "SCANNER_ANAT",     # MUST be a valid xform name (see table 4.5)
          "quatern": [b, c, d],       # Quaternion
          "offset": [tx, ty, tz]      # Translation
       },
       "sform": {
-         "code": "ALIGN_ANAT",       # **MUST** be a valid xform name (see table 4.5)
+         "code": "ALIGN_ANAT",       # MUST be a valid xform name (see table 4.5)
          "affine": [
-            [axx, axy, axz, tx],         # 1st row affine transform
-            [ayx, ayy, ayz, ty],         # 2nd row affine transform
-            [azx, azy, azz, tz],         # 3rd row affine transform
+            [axx, axy, axz, tx],     # 1st row affine transform
+            [ayx, ayy, ayz, ty],     # 2nd row affine transform
+            [azx, azy, azz, tz],     # 3rd row affine transform
          ]
       },
   }
@@ -293,7 +293,7 @@ zattrs["nifti"]["pixdim"][4]   ==  zattrs["multiscales"][0]["coordinateTransform
 As a reminder, the nifti1 header has the following structure:
 | Type       | Name             | NIFfI-1 usage                   | 
 | ---------- | ---------------- | ------------------------------- | 
-| `int`      | `sizeof_hdr`     | MUST be 348                     |
+| `int`      | `sizeof_hdr`     | **MUST** be 348                 |
 | `char`     | `data_type`      | ~~UNUSED~~                      |
 | `char`     | `db_name`        | ~~UNUSED~~                      |
 | `int`      | `extents`        | ~~UNUSED~~                      |
@@ -335,7 +335,7 @@ As a reminder, the nifti1 header has the following structure:
 | `float[4]` | `srow_y`         | 2nd row affine transform.       |
 | `float[4]` | `srow_z`         | 3rd row affine transform.       |
 | `char[16]` | `intent_name`    | 'name' or meaning of data.      |
-| `char[4]`  | `magic`          | MUST be `"ni1\0"` or `"n+1\0"`. |
+| `char[4]`  | `magic`          | **MUST** be `"ni1\0"` or `"n+1\0"`. |
 
 
 ### Table 4.2. Data types
