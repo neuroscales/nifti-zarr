@@ -47,7 +47,7 @@ gets adopted by the community. Its guiding principles are
 * __OME-NGFF compliant:__ any `nii.zarr` file should be a valid `ome.zarr` file.
 * __OME-NGFF minimal:__ only implements the minimum set of metadata necessary to describe [multi-resolution] neuroimaging data
 * __NIfTI-complicant:__ the binary nifti header should be stored in the [group-level] `.zattrs` object.
-* __NIfTI-priority:__ if metadata conflict across the nifti header and OME attributes, the nifti metadata should take precendence.
+* __NIfTI-priority:__ if metadata conflict across the nifti header and OME attributes, the nifti metadata should take precedence.
 
 The simplicity of these guiding principles should make the adoption of `nii.zarr` in cloud environments (almost) as straightforward 
 as the adoption of compressed-NIfTI (`.nii.gz`).
@@ -189,7 +189,7 @@ the group-level `.zattrs` under the `["nifti"]["base64"]` key:
 A JSON version  of the nifti header **MAY** be encoded under the `"nifti"` key.
 The JSON version is only provided for human-readability. Its values **SHOULD** be 
 compatible with those of the binary header. If values conflict between the binary 
-and JSON headers, the binary form **MUST** take precendence. 
+and JSON headers, the binary form **MUST** take precedence. 
 
 `.zattrs`
 ```python
