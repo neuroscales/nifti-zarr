@@ -53,113 +53,6 @@ The simplicity of these guiding principles should make the adoption of `nii.zarr
 as the adoption of compressed-NIfTI (`.nii.gz`).
 
 
-## Main differences with NIfTI and/or OME-NGFF
-
-* Following the OME-NGFF specifcation, dimensions are ordered as [T, C, Z, Y, X] (in C order)
-  as opposed to [C, T, Z, Y, X].
-* To conform with the NIfTI expectation, on load data should be returned as a [C, T, Z, Y, X] array
-  (in C order; [X, Y, Z, T, C] in F order).
-
-### NIfTI features that are not supported by NIfTI-Zarr
-
-* Any file with more than 5 dimensions
-
-### OME-NGFF features that are not supported by NIfTI-Zarr
-
-* Image collections
-* Image with labels
-* High-content screening data
-* OMERO metadata
-
-### NIfTI > OME-Zarr maps
-
-In Zarr, the byte order **MUST** be specified by prepending one of `{"|", "<", ">"}` to the data type string.
-| Data type    | NIfTI  | Zarr    |
-| ------------ | ------ | ------- |
-| `uint8`      | `2`    | <code>"&vert;u1"</code> |
-| `int16`      | `4`    | `"i2"`  |
-| `int32`      | `8`    | `"i4"`  |
-| `float32`    | `16`   | `"f4"`  |
-| `complex64`  | `32`   | `"c8"`  |
-| `float64`    | `64`   | `"f8"`  |
-| `rgb24`      | `128`  | <code>[["r", "&vert;u1"], ["g", "&vert;u1"], ["b", "&vert;u1"]]</code> |
-| `int8`       | `256`  | <code>"&vert;i1"</code> |
-| `uint16`     | `512`  | `"u2"`  |
-| `uint32`     | `768`  | `"u4"`  |
-| `int64`      | `1024` | `"i8"`  |
-| `uint64`     | `1280` | `"u8"`  |
-| `float128`   | `1536` | `"f16"` |
-| `complex128` | `1792` | `"c16"` |
-| `complex256` | `2048` | `"c32"` |
-| `rgba32`     | `2304` | <code>[["r", "&vert;u1"], ["g", "&vert;u1"], ["b", "&vert;u1"], ["a", "&vert;u1"]]</code> |
-| `bool`       | 🛑 unsupported! | <code>"&vert;b1"</code> |
-| `timedelta`  | 🛑 unsupported! | `"m8[{unit}]"` |
-| `time`       | 🛑 unsupported! | `"M8[{unit}]"` |
-
-In OME-NGFF, units must be names from the UDUNITS-2 database. 
-| Unit         | NIfTI  | UDUNITS-2       | OME-NGFF axis |
-| ------------ | ------ | --------------- | ------------- |
-| unknown      | `0`    | `""`            |               |
-| meter        | `1`    | `"meter"`       | `"space"`     |
-| millimeter   | `2`    | `"millimeter"`  | `"space"`     |
-| micron       | `3`    | `"micrometer"`  | `"space"`     |
-| second       | `8`    | `"second"`      | `"time"`      |
-| millisecond  | `16`   | `"millisecond"` | `"time"`      |
-| microsecond  | `24`   | `"microsecond"` | `"time"`      |
-| hertz        | `32`   | `"hertz"`       | `"channel"`   |
-| ppm          | `40`   | 🛑 unsupported! | `"channel"`   |
-| rad          | `48`   | `"radian"`      | `"channel"`   |
-
-| Intent                    | NIfTI  | NIfTI-Zarr's JSON header | `len(intent_p)` | Intent parameters |
-| ------------------------- | ------ | ------------------------ | --------------- | ----------------- |
-| None                      | `0`    | `"NONE"`                 | `0` | [] |
-| Correlation coefficient R | `2`    | `"CORREL"`               | `1` | [dof] |
-| Student t statistic       | `3`    | `"TTEST"`                | `1` | [dof] |
-| Fisher F statistic        | `4`    | `"FTEST"`                | `2` | [numerator dof, denominator dof] |
-| Standard normal           | `5`    | `"ZSCORE"`               | `0` | [] |
-| Chi-squared               | `6`    | `"CHISQ"`                | `1` | [dof] |
-| Beta distribution         | `7`    | `"BETA"`                 | `2` | [a, b] |
-| Binomial distribution     | `8`    | `"BINOM"`                | `2` | [nb trials, prob per trial] | 
-| Gamma distribution        | `9`    | `"GAMMA"`                | `2` | [shape, scale] |
-| Poisson distribution      | `10`   | `"POISSON"`              | `1` | [mean] |
-| Normal distribution       | `11`   | `"NORMAL"`               | `2` | [mean, standard deviation] |
-| Noncentral F statistic    | `12`   | `"FTEST_NONC"`           | `3` | [numerator dof, denominator dof, numerator noncentrality parameter] |
-| Noncentral chi-squared statistic | `13`  | `"CHISQ_NONC"`     | `2` | [dof, noncentrality parameter] |
-| Logistic distribution     | `14`   | `"LOGISTIC"`             | `2` | [location, scale] |
-| Laplace distribution      | `15`   | `"LAPLACE"`              | `2` | [location, scale] |
-| Uniform distribution      | `16`   | `"UNIFORM"`              | `2` | [lower end, upper end] |
-| Noncentral t statistic    | `17`   | `"TTEST_NONC"`           | `2` | [dof, noncentrality parameter] |
-| Weibull distribution      | `18`   | `"WEIBULL"`              | `3` | [location, scale, power] |
-| Chi distribution          | `19`   | `"CHI"`                  | `1` | [dof] |
-| Inverse Gaussian          | `20`   | `"INVGAUSS"`             | `2` | [mu, lambda] |
-| Extreme value type I      | `21`   | `"EXTVAL"`               | `2` | [location, scale] |
-| Data is a 'p-value'       | `22`   | `"PVAL"`                 | `0` | [] |
-| Data is ln(p-value)       | `23`   | `"LOGPVAL"`              | `0` | [] |
-| Data is log10(p-value)    | `24`   | `"LOG10PVAL"`            | `0` | [] | 
-| Parameter estimate        | `1001` | `"ESTIMATE"`             | `0` | [] |
-| Index into set of labels  | `1002` | `"LABEL"`                | `0` | [] |
-| Index into NeuroNames set | `1003` | `"NEURONAME"`            | `0` | [] |
-| MxN matrix at each voxel  | `1004` | `"GENMATRIX"`            | `2` | [M, N] |
-| NxN matrix at each voxel  | `1005` | `"SYMMATRIX"`            | `1` | [N] |
-| Displacement field        | `1006` | `"DISPVECT"`             | `0` | [] |
-| Vector field              | `1006` | `"VECTOR"`               | `0` | [] |
-| Spatial coordinate        | `1008` | `"POINTSET"`             | `0` | [] |
-| Triangle (3 indices)      | `1009` | `"TRIANGLE"`             | `0` | [] |
-| Quaternion (4 values)     | `1010` | `"QUATERNION"`           | `0` | [] |
-| Dimensionless value       | `1011` | `"DIMLESS"`              | `0` | [] |
-| Gifti time series         | `2001` | `"TIME_SERIES"`          | `0` | [] |
-| Gifti node index          | `2002` | `"NODE_INDEX"`           | `0` | [] |
-| Gifti RGB (3 values)      | `2003` | `"RGB_VECTOR"`           | `0` | [] |
-| Gifti RGBA (4 values)     | `2004` | `"RGBA_VECTOR"`          | `0` | [] |
-| Gifti shape               | `2005` | `"SHAPE"`                | `0` | [] |
-| FSL displacement field    | `2006` | `"FSL_FNIRT_DISPLACEMENT_FIELD"`      | `0` | [] |
-| FSL cubic spline          | `2007` | `"FSL_CUBIC_SPLINE_COEFFICIENTS"`     | `0` | [] |
-| FSL DCT coefficients      | `2008` | `"FSL_DCT_COEFFICIENTS"`              | `0` | [] |
-| FSL quad spline           | `2009` | `"FSL_QUADRATIC_SPLINE_COEFFICIENTS"` | `0` | [] |
-| FSL-TOPUP cubic spline    | `2016` | `"FSL_TOPUP_CUBIC_SPLINE_COEFFICIENTS"`     | `0` | [] |
-| FSL-TOPUP quad spline     | `2017` | `"FSL_TOPUP_QUADRATIC_SPLINE_COEFFICIENTS"` | `0` | [] |
-| FSL-TOPUP field           | `2018` | `"FSL_TOPUP_FIELD"`                         | `0` | [] |
-
 ## Format structure
 
 ### NIfTI header
@@ -198,73 +91,6 @@ between the binary and JSON headers, the binary form takes precendence.
 }
 ```
 
-
-As a reminder, the nifti1 header has the following structure:
-
-```C
-                        /*************************/  /************************/
-struct nifti_1_header { /* NIFTI-1 usage         */  /* ANALYZE 7.5 field(s) */
-                        /*************************/  /************************/
-
-                                           /*--- was header_key substruct ---*/
- int   sizeof_hdr;    /*!< MUST be 348           */  /* int sizeof_hdr;      */
- char  data_type[10]; /*!< ++UNUSED++            */  /* char data_type[10];  */
- char  db_name[18];   /*!< ++UNUSED++            */  /* char db_name[18];    */
- int   extents;       /*!< ++UNUSED++            */  /* int extents;         */
- short session_error; /*!< ++UNUSED++            */  /* short session_error; */
- char  regular;       /*!< ++UNUSED++            */  /* char regular;        */
- char  dim_info;      /*!< MRI slice ordering.   */  /* char hkey_un0;       */
-
-                                      /*--- was image_dimension substruct ---*/
- short dim[8];        /*!< Data array dimensions.*/  /* short dim[8];        */
- float intent_p1 ;    /*!< 1st intent parameter. */  /* short unused8;       */
-                                                     /* short unused9;       */
- float intent_p2 ;    /*!< 2nd intent parameter. */  /* short unused10;      */
-                                                     /* short unused11;      */
- float intent_p3 ;    /*!< 3rd intent parameter. */  /* short unused12;      */
-                                                     /* short unused13;      */
- short intent_code ;  /*!< NIFTI_INTENT_* code.  */  /* short unused14;      */
- short datatype;      /*!< Defines data type!    */  /* short datatype;      */
- short bitpix;        /*!< Number bits/voxel.    */  /* short bitpix;        */
- short slice_start;   /*!< First slice index.    */  /* short dim_un0;       */
- float pixdim[8];     /*!< Grid spacings.        */  /* float pixdim[8];     */
- float vox_offset;    /*!< Offset into .nii file */  /* float vox_offset;    */
- float scl_slope ;    /*!< Data scaling: slope.  */  /* float funused1;      */
- float scl_inter ;    /*!< Data scaling: offset. */  /* float funused2;      */
- short slice_end;     /*!< Last slice index.     */  /* float funused3;      */
- char  slice_code ;   /*!< Slice timing order.   */
- char  xyzt_units ;   /*!< Units of pixdim[1..4] */
- float cal_max;       /*!< Max display intensity */  /* float cal_max;       */
- float cal_min;       /*!< Min display intensity */  /* float cal_min;       */
- float slice_duration;/*!< Time for 1 slice.     */  /* float compressed;    */
- float toffset;       /*!< Time axis shift.      */  /* float verified;      */
- int   glmax;         /*!< ++UNUSED++            */  /* int glmax;           */
- int   glmin;         /*!< ++UNUSED++            */  /* int glmin;           */
-
-                                         /*--- was data_history substruct ---*/
- char  descrip[80];   /*!< any text you like.    */  /* char descrip[80];    */
- char  aux_file[24];  /*!< auxiliary filename.   */  /* char aux_file[24];   */
-
- short qform_code ;   /*!< NIFTI_XFORM_* code.   */  /*-- all ANALYZE 7.5 ---*/
- short sform_code ;   /*!< NIFTI_XFORM_* code.   */  /*   fields below here  */
-                                                     /*   are replaced       */
- float quatern_b ;    /*!< Quaternion b param.   */
- float quatern_c ;    /*!< Quaternion c param.   */
- float quatern_d ;    /*!< Quaternion d param.   */
- float qoffset_x ;    /*!< Quaternion x shift.   */
- float qoffset_y ;    /*!< Quaternion y shift.   */
- float qoffset_z ;    /*!< Quaternion z shift.   */
-
- float srow_x[4] ;    /*!< 1st row affine transform.   */
- float srow_y[4] ;    /*!< 2nd row affine transform.   */
- float srow_z[4] ;    /*!< 3rd row affine transform.   */
-
- char intent_name[16];/*!< 'name' or meaning of data.  */
-
- char magic[4] ;      /*!< MUST be "ni1\0" or "n+1\0". */
-
-} ;                   /**** 348 bytes total ****/
-```
 
 ### Single resolution
 
@@ -396,3 +222,179 @@ Directory structure:
     ]
 }
 ```
+
+
+## Main differences with NIfTI and/or OME-NGFF
+
+* Following the OME-NGFF specifcation, dimensions are ordered as [T, C, Z, Y, X] (in C order)
+  as opposed to [C, T, Z, Y, X].
+* To conform with the NIfTI expectation, on load data should be returned as a [C, T, Z, Y, X] array
+  (in C order; [X, Y, Z, T, C] in F order).
+
+### NIfTI features that are not supported by NIfTI-Zarr
+
+* Any file with more than 5 dimensions
+
+### OME-NGFF features that are not supported by NIfTI-Zarr
+
+* Image collections
+* Image with labels
+* High-content screening data
+* OMERO metadata
+
+### NIfTI header
+
+As a reminder, the nifti1 header has the following structure:
+```C
+                        /*************************/  /************************/
+struct nifti_1_header { /* NIFTI-1 usage         */  /* ANALYZE 7.5 field(s) */
+                        /*************************/  /************************/
+
+                                           /*--- was header_key substruct ---*/
+ int   sizeof_hdr;    /*!< MUST be 348           */  /* int sizeof_hdr;      */
+ char  data_type[10]; /*!< ++UNUSED++            */  /* char data_type[10];  */
+ char  db_name[18];   /*!< ++UNUSED++            */  /* char db_name[18];    */
+ int   extents;       /*!< ++UNUSED++            */  /* int extents;         */
+ short session_error; /*!< ++UNUSED++            */  /* short session_error; */
+ char  regular;       /*!< ++UNUSED++            */  /* char regular;        */
+ char  dim_info;      /*!< MRI slice ordering.   */  /* char hkey_un0;       */
+
+                                      /*--- was image_dimension substruct ---*/
+ short dim[8];        /*!< Data array dimensions.*/  /* short dim[8];        */
+ float intent_p1 ;    /*!< 1st intent parameter. */  /* short unused8;       */
+                                                     /* short unused9;       */
+ float intent_p2 ;    /*!< 2nd intent parameter. */  /* short unused10;      */
+                                                     /* short unused11;      */
+ float intent_p3 ;    /*!< 3rd intent parameter. */  /* short unused12;      */
+                                                     /* short unused13;      */
+ short intent_code ;  /*!< NIFTI_INTENT_* code.  */  /* short unused14;      */
+ short datatype;      /*!< Defines data type!    */  /* short datatype;      */
+ short bitpix;        /*!< Number bits/voxel.    */  /* short bitpix;        */
+ short slice_start;   /*!< First slice index.    */  /* short dim_un0;       */
+ float pixdim[8];     /*!< Grid spacings.        */  /* float pixdim[8];     */
+ float vox_offset;    /*!< Offset into .nii file */  /* float vox_offset;    */
+ float scl_slope ;    /*!< Data scaling: slope.  */  /* float funused1;      */
+ float scl_inter ;    /*!< Data scaling: offset. */  /* float funused2;      */
+ short slice_end;     /*!< Last slice index.     */  /* float funused3;      */
+ char  slice_code ;   /*!< Slice timing order.   */
+ char  xyzt_units ;   /*!< Units of pixdim[1..4] */
+ float cal_max;       /*!< Max display intensity */  /* float cal_max;       */
+ float cal_min;       /*!< Min display intensity */  /* float cal_min;       */
+ float slice_duration;/*!< Time for 1 slice.     */  /* float compressed;    */
+ float toffset;       /*!< Time axis shift.      */  /* float verified;      */
+ int   glmax;         /*!< ++UNUSED++            */  /* int glmax;           */
+ int   glmin;         /*!< ++UNUSED++            */  /* int glmin;           */
+
+                                         /*--- was data_history substruct ---*/
+ char  descrip[80];   /*!< any text you like.    */  /* char descrip[80];    */
+ char  aux_file[24];  /*!< auxiliary filename.   */  /* char aux_file[24];   */
+
+ short qform_code ;   /*!< NIFTI_XFORM_* code.   */  /*-- all ANALYZE 7.5 ---*/
+ short sform_code ;   /*!< NIFTI_XFORM_* code.   */  /*   fields below here  */
+                                                     /*   are replaced       */
+ float quatern_b ;    /*!< Quaternion b param.   */
+ float quatern_c ;    /*!< Quaternion c param.   */
+ float quatern_d ;    /*!< Quaternion d param.   */
+ float qoffset_x ;    /*!< Quaternion x shift.   */
+ float qoffset_y ;    /*!< Quaternion y shift.   */
+ float qoffset_z ;    /*!< Quaternion z shift.   */
+
+ float srow_x[4] ;    /*!< 1st row affine transform.   */
+ float srow_y[4] ;    /*!< 2nd row affine transform.   */
+ float srow_z[4] ;    /*!< 3rd row affine transform.   */
+
+ char intent_name[16];/*!< 'name' or meaning of data.  */
+
+ char magic[4] ;      /*!< MUST be "ni1\0" or "n+1\0". */
+
+} ;                   /**** 348 bytes total ****/
+```
+
+### NIfTI > OME-Zarr maps
+
+In Zarr, the byte order **MUST** be specified by prepending one of `{"|", "<", ">"}` to the data type string.
+| Data type    | NIfTI  | Zarr    |
+| ------------ | ------ | ------- |
+| `uint8`      | `2`    | <code>"&vert;u1"</code> |
+| `int16`      | `4`    | `"i2"`  |
+| `int32`      | `8`    | `"i4"`  |
+| `float32`    | `16`   | `"f4"`  |
+| `complex64`  | `32`   | `"c8"`  |
+| `float64`    | `64`   | `"f8"`  |
+| `rgb24`      | `128`  | <code>[["r", "&vert;u1"], ["g", "&vert;u1"], ["b", "&vert;u1"]]</code> |
+| `int8`       | `256`  | <code>"&vert;i1"</code> |
+| `uint16`     | `512`  | `"u2"`  |
+| `uint32`     | `768`  | `"u4"`  |
+| `int64`      | `1024` | `"i8"`  |
+| `uint64`     | `1280` | `"u8"`  |
+| `float128`   | `1536` | `"f16"` |
+| `complex128` | `1792` | `"c16"` |
+| `complex256` | `2048` | `"c32"` |
+| `rgba32`     | `2304` | <code>[["r", "&vert;u1"], ["g", "&vert;u1"], ["b", "&vert;u1"], ["a", "&vert;u1"]]</code> |
+| `bool`       | 🛑 unsupported! | <code>"&vert;b1"</code> |
+| `timedelta`  | 🛑 unsupported! | `"m8[{unit}]"` |
+| `time`       | 🛑 unsupported! | `"M8[{unit}]"` |
+
+In OME-NGFF, units must be names from the UDUNITS-2 database. 
+| Unit         | NIfTI  | UDUNITS-2       | OME-NGFF axis |
+| ------------ | ------ | --------------- | ------------- |
+| unknown      | `0`    | `""`            |               |
+| meter        | `1`    | `"meter"`       | `"space"`     |
+| millimeter   | `2`    | `"millimeter"`  | `"space"`     |
+| micron       | `3`    | `"micrometer"`  | `"space"`     |
+| second       | `8`    | `"second"`      | `"time"`      |
+| millisecond  | `16`   | `"millisecond"` | `"time"`      |
+| microsecond  | `24`   | `"microsecond"` | `"time"`      |
+| hertz        | `32`   | `"hertz"`       | `"channel"`   |
+| ppm          | `40`   | 🛑 unsupported! | `"channel"`   |
+| rad          | `48`   | `"radian"`      | `"channel"`   |
+
+| Intent                    | NIfTI  | NIfTI-Zarr's JSON header | `len(intent_p)` | Intent parameters |
+| ------------------------- | ------ | ------------------------ | --------------- | ----------------- |
+| None                      | `0`    | `"NONE"`                 | `0` | [] |
+| Correlation coefficient R | `2`    | `"CORREL"`               | `1` | [dof] |
+| Student t statistic       | `3`    | `"TTEST"`                | `1` | [dof] |
+| Fisher F statistic        | `4`    | `"FTEST"`                | `2` | [numerator dof, denominator dof] |
+| Standard normal           | `5`    | `"ZSCORE"`               | `0` | [] |
+| Chi-squared               | `6`    | `"CHISQ"`                | `1` | [dof] |
+| Beta distribution         | `7`    | `"BETA"`                 | `2` | [a, b] |
+| Binomial distribution     | `8`    | `"BINOM"`                | `2` | [nb trials, prob per trial] | 
+| Gamma distribution        | `9`    | `"GAMMA"`                | `2` | [shape, scale] |
+| Poisson distribution      | `10`   | `"POISSON"`              | `1` | [mean] |
+| Normal distribution       | `11`   | `"NORMAL"`               | `2` | [mean, standard deviation] |
+| Noncentral F statistic    | `12`   | `"FTEST_NONC"`           | `3` | [numerator dof, denominator dof, numerator noncentrality parameter] |
+| Noncentral chi-squared statistic | `13`  | `"CHISQ_NONC"`     | `2` | [dof, noncentrality parameter] |
+| Logistic distribution     | `14`   | `"LOGISTIC"`             | `2` | [location, scale] |
+| Laplace distribution      | `15`   | `"LAPLACE"`              | `2` | [location, scale] |
+| Uniform distribution      | `16`   | `"UNIFORM"`              | `2` | [lower end, upper end] |
+| Noncentral t statistic    | `17`   | `"TTEST_NONC"`           | `2` | [dof, noncentrality parameter] |
+| Weibull distribution      | `18`   | `"WEIBULL"`              | `3` | [location, scale, power] |
+| Chi distribution          | `19`   | `"CHI"`                  | `1` | [dof] |
+| Inverse Gaussian          | `20`   | `"INVGAUSS"`             | `2` | [mu, lambda] |
+| Extreme value type I      | `21`   | `"EXTVAL"`               | `2` | [location, scale] |
+| Data is a 'p-value'       | `22`   | `"PVAL"`                 | `0` | [] |
+| Data is ln(p-value)       | `23`   | `"LOGPVAL"`              | `0` | [] |
+| Data is log10(p-value)    | `24`   | `"LOG10PVAL"`            | `0` | [] | 
+| Parameter estimate        | `1001` | `"ESTIMATE"`             | `0` | [] |
+| Index into set of labels  | `1002` | `"LABEL"`                | `0` | [] |
+| Index into NeuroNames set | `1003` | `"NEURONAME"`            | `0` | [] |
+| MxN matrix at each voxel  | `1004` | `"GENMATRIX"`            | `2` | [M, N] |
+| NxN matrix at each voxel  | `1005` | `"SYMMATRIX"`            | `1` | [N] |
+| Displacement field        | `1006` | `"DISPVECT"`             | `0` | [] |
+| Vector field              | `1006` | `"VECTOR"`               | `0` | [] |
+| Spatial coordinate        | `1008` | `"POINTSET"`             | `0` | [] |
+| Triangle (3 indices)      | `1009` | `"TRIANGLE"`             | `0` | [] |
+| Quaternion (4 values)     | `1010` | `"QUATERNION"`           | `0` | [] |
+| Dimensionless value       | `1011` | `"DIMLESS"`              | `0` | [] |
+| Gifti time series         | `2001` | `"TIME_SERIES"`          | `0` | [] |
+| Gifti node index          | `2002` | `"NODE_INDEX"`           | `0` | [] |
+| Gifti RGB (3 values)      | `2003` | `"RGB_VECTOR"`           | `0` | [] |
+| Gifti RGBA (4 values)     | `2004` | `"RGBA_VECTOR"`          | `0` | [] |
+| Gifti shape               | `2005` | `"SHAPE"`                | `0` | [] |
+| FSL displacement field    | `2006` | `"FSL_FNIRT_DISPLACEMENT_FIELD"`      | `0` | [] |
+| FSL cubic spline          | `2007` | `"FSL_CUBIC_SPLINE_COEFFICIENTS"`     | `0` | [] |
+| FSL DCT coefficients      | `2008` | `"FSL_DCT_COEFFICIENTS"`              | `0` | [] |
+| FSL quad spline           | `2009` | `"FSL_QUADRATIC_SPLINE_COEFFICIENTS"` | `0` | [] |
+| FSL-TOPUP cubic spline    | `2016` | `"FSL_TOPUP_CUBIC_SPLINE_COEFFICIENTS"`     | `0` | [] |
+| FSL-TOPUP quad spline     | `2017` | `"FSL_TOPUP_QUADRATIC_SPLINE_COEFFICIENTS"` | `0` | [] |
+| FSL-TOPUP field           | `2018` | `"FSL_TOPUP_FIELD"`                         | `0` | [] |
