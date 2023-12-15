@@ -1,56 +1,94 @@
 # NIfTI-Zarr draft specification
 
 ## Abstract
-This document contains _draft_ nifti-zarr specifications for storing neuroimaging data in the cloud.
+This document contains _draft_ nifti-zarr specifications for storing
+neuroimaging data in the cloud.
 
 ## References
 
-* [__Zarr__](https://zarr.readthedocs.io) is a format for the storage of chunked, compressed, N-dimensional arrays inspired by HDF5, h5py and bcolz.
-* [__OME-NGFF__](https://ngff.openmicroscopy.org) (Next Generation File Format) is a format based on zarr for the storage of biomedical imaging data.
-* [__NIfTI__](https://nifti.nimh.nih.gov) (Neuroimaging Informatics Technology Initiative) is a single-file/single-resolution storage format for 3D+ neuroimaging data.
-* [__BIDS__](https://bids-specification.readthedocs.io) (Brain Imaging Data Structure) is a simple and intuitive way to organize and describe data.
+* [__Zarr__](https://zarr.readthedocs.io) is a format for the storage of
+  chunked, compressed, N-dimensional arrays inspired by HDF5, h5py and bcolz.
+* [__OME-NGFF__](https://ngff.openmicroscopy.org) (Next Generation File
+  Format) is a format based on zarr for the storage of biomedical imaging data.
+* [__NIfTI__](https://nifti.nimh.nih.gov) (Neuroimaging Informatics
+  Technology Initiative) is a single-file/single-resolution storage format
+  for 3D+ neuroimaging data.
+* [__BIDS__](https://bids-specification.readthedocs.io) (Brain Imaging
+  Data Structure) is a simple and intuitive way to organize and describe data.
 
 
 ## 1. Introduction
 
-As biomedical imaging scales up, it is making more and more use of remote storage, remote computing and remote visualization.
-Classical file formats—which store array data contiguously in a single file—are limited at large scales as
+As biomedical imaging scales up, it is making more and more use of remote
+storage, remote computing and remote visualization. Classical file
+formats—which store array data contiguously in a single file—are limited
+at large scales as
 1. They often do not store data at multiple resolutions;
 2. They do not offer efficient parallel access to data chunks.
-   
-These limits are very clear when it comes to visualizing very large data volumes, which cannot be loaded in full in memory.
-In this context, it is preferable to only load the data required to display the current view (either a large field-of-view
-at low-resolution, or a small field-of-view at high resolution).
 
-The zarr format was developed to bypass the limitations of single-file formats such as HDF5. 
-The microscopy community is currently developping its own standard for cloud-friendly biomedical imaging data: OME-NGFF. 
-It build on zarr and adds rules for storing multi-resolutions images and medical-specific metadata such as axis names 
-and voxel sizes. However, the microscopy community has needs in terms of metadata and coordinate-space description 
-that are relatively complex, as they need to conform to different organs, different acquisition systems, or different tissue 
-processing pipelines. This has drastically slowed down the adoption of a coordinate transform standard—the current version (0.5)
-only handles canonical scales and offsets—and has also made the future coordinate transform standard much more complicated.
+These limits are very clear when it comes to visualizing very large data
+volumes, which cannot be loaded in full in memory. In this context, it is
+preferable to only load the data required to display the current view (either
+a large field-of-view at low-resolution, or a small field-of-view at high
+resolution).
 
-In contrast, the neuroimaging community has adopted and used a standard "world" coordinate frame for decades, where
+The zarr format was developed to bypass the limitations of single-file formats
+such as HDF5. The microscopy community is currently developping its own
+standard for cloud-friendly biomedical imaging data: OME-NGFF. It build on
+zarr and adds rules for storing multi-resolutions images and medical-specific
+metadata such as axis names and voxel sizes. However, the microscopy community
+has needs in terms of metadata and coordinate-space description that are
+relatively complex, as they need to conform to different organs, different
+acquisition systems, or different tissue processing pipelines. This has
+drastically slowed down the adoption of a coordinate transform standard—the
+current version (0.5) only handles canonical scales and offsets—and has also
+made the future coordinate transform standard much more complicated.
+
+In contrast, the neuroimaging community has adopted and used a standard
+"world" coordinate frame for decades, where
 ```
 +x = left      -> right
 +y = posterior -> anterior
 +z = inferior  -> superior
 ```
-An affine transform is used to map from  the F-ordered voxel space (i, j, k) to world space (x, y, z). 
-The neuroimaging community has also created a simple data exchange format—NIfTI—that has been widely embraced and 
-is the mandatory file format in standardization efforts such as BIDS. However, the lack of multiresolution/chunk 
-support in NIfTI has lead BIDS to adopt OME-TIFF and OME-ZARR as standard format for its microscopy component.
+An affine transform is used to map from  the F-ordered voxel space (i, j, k)
+to world space (x, y, z). The neuroimaging community has also created a
+simple data exchange format—NIfTI—that has been widely embraced and is the
+mandatory file format in standardization efforts such as BIDS. However, the
+lack of multiresolution/chunk support in NIfTI has lead BIDS to adopt OME-TIFF
+and OME-ZARR as standard format for its microscopy component.
 
-The NIfTI-Zarr (`nii.zarr`) specification attempts to merge the best of both worlds, in the simplest possible way. 
-Like NIfTI, it aims to make the implementation of I/O libraries as simple as possible, to maximize chances that it 
-gets adopted by the community. Its guiding principles are
+The NIfTI-Zarr (`nii.zarr`) specification attempts to merge the best of
+both worlds, in the simplest possible way. Like NIfTI, it aims to make the
+implementation of I/O libraries as simple as possible, to maximize chances
+that it gets adopted by the community. Its guiding principles are
 * __OME-NGFF compliant:__ any `nii.zarr` file should be a valid `ome.zarr` file.
-* __OME-NGFF minimal:__ only implements the minimum set of metadata necessary to describe [multi-resolution] neuroimaging data
-* __NIfTI-complicant:__ the binary nifti header should be stored in the [group-level] `.zattrs` object.
-* __NIfTI-priority:__ if metadata conflict across the nifti header and OME attributes, the nifti metadata should take precedence.
+* __OME-NGFF minimal:__ only implements the minimum set of metadata necessary
+  to describe [multi-resolution] neuroimaging data
+* __NIfTI-complicant:__ the binary nifti header should be stored in the
+  [group-level] `.zattrs` object.
+* __NIfTI-priority:__ if metadata conflict across the nifti header and OME
+  attributes, the nifti metadata should take precedence.
 
-The simplicity of these guiding principles should make the adoption of `nii.zarr` in cloud environments (almost) as straightforward 
-as the adoption of compressed-NIfTI (`.nii.gz`).
+**NOTES**
+* Being OME-NGFF compliant does not mean (for now) that the OME-NGFF
+  transform and the NIfTI transform match. Currently, OME-NGFF only handles
+  scales (for voxel sizes) and shifts (for origin shifts caused by
+  pyramid methods). It is therefore impossible to encode an affine tranform -
+  or even swap axes - using the current OME-NGFF specification. What we
+  mean by OME-NGFF compliant is that any OME-NGFF viewer will correctly
+  display the content of the file _in scaled voxel space_.
+* OME-NGFF does not currently offer the possibility to store an intensity
+  transform. This means that OME-NGFF viewers will not use the intensity
+  affine transform encoded by `scl_slope` and `scl_inter` in the nifti header.
+* That said, the nifti layer added on top of OME-NGFF is light enough that
+  viewer developers may easily extend their software to handle
+  1. an affine geometric tranform, and
+  2. an affine intensity transform.
+
+The simplicity of these guiding principles should make the adoption of
+`nii.zarr` in cloud environments (almost) as straightforward as the adoption
+of compressed-NIfTI (`.nii.gz`).
 
 ## 2. Format specification
 
@@ -68,7 +106,7 @@ Directory structure:
     |                         # contains multi-scale arrays.
     │
     ├── 0                     # Each multiscale level is stored as a separate
-    |                         # Zarr array, which is a folder containing chunk 
+    |                         # Zarr array, which is a folder containing chunk
     │   ...                   # files which compose the array.
     |
     └── n                     # The name of the array is arbitrary with the
@@ -80,9 +118,9 @@ Directory structure:
         |                     # before spatial axes.
         │
         └─ t                  # Chunks are stored with the nested directory
-           └─ c               # layout. All but the last chunk element are stored 
+           └─ c               # layout. All but the last chunk element are stored
               └─ z            # as directories. The terminal chunk is a file.
-                 └─ y         # Together the directory and file names provide the 
+                 └─ y         # Together the directory and file names provide the
                     └─ x      # "chunk coordinate" (t, c, z, y, x), where the
                               # maximum coordinate will be dimension_size / chunk_size.
 ```
@@ -181,15 +219,15 @@ Directory structure:
 
 **REF**: https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h
 
-The nifti header ([v1](https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h) 
-or [v2](https://nifti.nimh.nih.gov/pub/dist/doc/nifti2.h)) **MUST** be encoded as 
-a string using [base64](https://en.wikipedia.org/wiki/Base64) encoding and saved in 
+The nifti header ([v1](https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h)
+or [v2](https://nifti.nimh.nih.gov/pub/dist/doc/nifti2.h)) **MUST** be encoded as
+a string using [base64](https://en.wikipedia.org/wiki/Base64) encoding and saved in
 the group-level `.zattrs` under the `["nifti"]["base64"]` key:
 
 A JSON version  of the nifti header **MAY** be encoded under the `"nifti"` key.
-The JSON version is only provided for human-readability. Its values **SHOULD** be 
-compatible with those of the binary header. If values conflict between the binary 
-and JSON headers, the binary form **MUST** take precedence. 
+The JSON version is only provided for human-readability. Its values **SHOULD** be
+compatible with those of the binary header. If values conflict between the binary
+and JSON headers, the binary form **MUST** take precedence.
 
 `.zattrs`
 ```python
@@ -291,8 +329,8 @@ zattrs["nifti"]["pixdim"][4]   ==  zattrs["multiscales"][0]["coordinateTransform
 ### Table 4.1. NIfTI header
 
 As a reminder, the nifti1 header has the following structure:
-| Type       | Name             | NIFfI-1 usage                   | 
-| ---------- | ---------------- | ------------------------------- | 
+| Type       | Name             | NIFfI-1 usage                   |
+| ---------- | ---------------- | ------------------------------- |
 | `int`      | `sizeof_hdr`     | **MUST** be 348                 |
 | `char`     | `data_type`      | ~~UNUSED~~                      |
 | `char`     | `db_name`        | ~~UNUSED~~                      |
@@ -365,7 +403,7 @@ In Zarr, the byte order **MUST** be specified by prepending one of `{"|", "<", "
 
 ### Table 4.3. Units
 
-In OME-NGFF, units must be names from the UDUNITS-2 database. 
+In OME-NGFF, units must be names from the UDUNITS-2 database.
 | Unit         | NIfTI  | UDUNITS-2       | OME-NGFF axis |
 | ------------ | ------ | --------------- | ------------- |
 | unknown      | `0`    | `""`            |               |
@@ -390,7 +428,7 @@ In OME-NGFF, units must be names from the UDUNITS-2 database.
 | Standard normal           | `5`    | `"ZSCORE"`               | `0` | [] |
 | Chi-squared               | `6`    | `"CHISQ"`                | `1` | [dof] |
 | Beta distribution         | `7`    | `"BETA"`                 | `2` | [a, b] |
-| Binomial distribution     | `8`    | `"BINOM"`                | `2` | [nb trials, prob per trial] | 
+| Binomial distribution     | `8`    | `"BINOM"`                | `2` | [nb trials, prob per trial] |
 | Gamma distribution        | `9`    | `"GAMMA"`                | `2` | [shape, scale] |
 | Poisson distribution      | `10`   | `"POISSON"`              | `1` | [mean] |
 | Normal distribution       | `11`   | `"NORMAL"`               | `2` | [mean, standard deviation] |
@@ -406,7 +444,7 @@ In OME-NGFF, units must be names from the UDUNITS-2 database.
 | Extreme value type I      | `21`   | `"EXTVAL"`               | `2` | [location, scale] |
 | Data is a 'p-value'       | `22`   | `"PVAL"`                 | `0` | [] |
 | Data is ln(p-value)       | `23`   | `"LOGPVAL"`              | `0` | [] |
-| Data is log10(p-value)    | `24`   | `"LOG10PVAL"`            | `0` | [] | 
+| Data is log10(p-value)    | `24`   | `"LOG10PVAL"`            | `0` | [] |
 | Parameter estimate        | `1001` | `"ESTIMATE"`             | `0` | [] |
 | Index into set of labels  | `1002` | `"LABEL"`                | `0` | [] |
 | Index into NeuroNames set | `1003` | `"NEURONAME"`            | `0` | [] |
@@ -457,3 +495,30 @@ Additional FSL codes:
 | alternating decreasing    | `4`   | `"ALT_DEC"`              |
 | alternating increasing #2 | `5`   | `"ALT_INC2"`             |
 | alternating decreasing #2 | `6`   | `"ALT_DEC2"`             |
+
+
+## 5. Reference implementations
+
+We implemented software to convert data between `.nii[.gz]` and `.nii.zarr`.
+
+**WARNING**: Work-in-progress.
+It is currently broken because the ome-zarr pyramid builder does not
+downsample across Z. I'll have to implement my own Scaler.
+
+### 5.1. Python
+
+`python/niizarr`
+```python
+from niizarr import nii2zarr, zarr2nii
+
+# convert from nii.gz to nii.zarr
+nii2zarr('/path/to/mri.nii.gz', '/path/to/mri.nii.zarr')
+
+# convert from nii.zarr to nii.gz
+zarr2nii('/path/to/mri.nii.zarr', '/path/to/mri.nii.gz')
+zarr2nii('/path/to/mri.nii.zarr', '/path/to/mri_2x.nii.gz', level=1)
+
+# Return a nibabel.Nifti1Image or nibabel.Nifti2Image, whose dataobj is
+# a dask array
+img = zarr2nii('/path/to/mri.nii.zarr')
+```
