@@ -90,12 +90,14 @@ def zarr2nii(inp, out=None, level=0):
         niiheader.set_qform(qform, qcode)
         niiheader.set_sform(sform, scode)
 
-    # create nibabel image
+    # reorder/reshape array as needed
     array = dask.array.from_zarr(inp[f'{level}'])
     array = array.transpose([4, 3, 2, 0, 1])
     for _ in range(5 - header['dim'][0].item()):
         assert array.shape[-1] == 1
         array = array[..., 0]
+
+    # create nibabel image
     img = NiftiImage(array, None, niiheader)
 
     if out is not None:
