@@ -563,7 +563,7 @@ vox2phys[[0, 1, 2], [0, 1, 2]] = list(reversed(scale[2:]))
 vox2phys[:-1, -1] = list(reversed(shift[2:]))
 phys2world = vox2world @ permute @ np.linalg.inv(vox2phys)
 
-
+# define neuroglancer transform
 ras_space = ng.CoordinateSpace(
     names=["x", "y", "z"],
     units="mm",
@@ -590,10 +590,9 @@ with viewer.txn() as state:
         name="mri",
         layer=ng.ImageLayer(
                 source=ng.LayerDataSource(
-                url="zarr2://" + URL,
+                url="zarr://" + URL,
                 transform=transform
             )
         )
     )
 ```
-URL
