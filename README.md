@@ -34,6 +34,7 @@ formats—which store array data contiguously in a single file—are limited
 at large scales as
 1. They often do not store data at multiple resolutions;
 2. They do not offer efficient parallel access to data chunks.
+3. They do not efficiently compress 3D raster data
 
 These limits are very clear when it comes to visualizing very large data
 volumes, which cannot be loaded in full in memory. In this context, it is
