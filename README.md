@@ -4,7 +4,16 @@
 This document contains _draft_ nifti-zarr specifications for storing
 neuroimaging data in the cloud.
 
-## References
+# Table of Content
+
+0. [References](#0-references)
+1. [Introduction](#1-introduction)
+2. [Format Specification](#2-format-specification)
+3. [Main differences with NIfTI and/or OME-NGFF](#3-main-differences-with-nifti-andor-ome-ngff)
+4. [Conversion tables](#4-conversion-tables)
+5. [Reference implementations](#5-reference-implementations)
+
+## 0. References
 
 * [__Zarr__](https://zarr.readthedocs.io) is a format for the storage of
   chunked, compressed, N-dimensional arrays inspired by HDF5, h5py and bcolz.
