@@ -16,6 +16,19 @@ except (ImportError, ModuleNotFoundError):
     fsspec = None
 
 
+def bin2nii(buffer):
+    header = np.frombuffer(buffer, dtype=HEADERTYPE1, count=1)[0]
+    if header['magic'].decode() not in ('ni1', 'n+1', 'nz1'):
+        header = header.newbyteorder()
+    if header['magic'].decode() not in ('ni1', 'n+1', 'nz1'):
+        header = np.frombuffer(buffer, dtype=HEADERTYPE2, count=1)[0]
+        if header['magic'].decode() not in ('ni2', 'n+2', 'nz2'):
+            header = header.newbyteorder()
+        if header['magic'].decode() not in ('ni2', 'n+2', 'nz2'):
+            raise ValueError('Is this a nifti header?')
+    return header
+
+
 def zarr2nii(inp, out=None, level=0):
     """
     Convert a nifti-zarr to nifti
@@ -45,15 +58,7 @@ def zarr2nii(inp, out=None, level=0):
 
     # build structured header
     binheader = base64.b64decode(inp.attrs['nifti']['base64'])
-    header = np.frombuffer(binheader, dtype=HEADERTYPE1, count=1)[0]
-    if header['magic'].decode() not in ('ni1', 'n+1', 'nz1'):
-        header = header.newbyteorder()
-    if header['magic'].decode() not in ('ni1', 'n+1', 'nz1'):
-        header = np.frombuffer(binheader, dtype=HEADERTYPE2, count=1)[0]
-        if header['magic'].decode() not in ('ni2', 'n+2', 'nz2'):
-            header = header.newbyteorder()
-        if header['magic'].decode() not in ('ni2', 'n+2', 'nz2'):
-            raise ValueError('Is this a nifti header?')
+    header = bin2nii(binheader)
 
     # create nibabel header (useful to convert quat 2 affine, etc)
     header = header.copy()
@@ -77,13 +82,13 @@ def zarr2nii(inp, out=None, level=0):
         phys0 = np.eye(4)
         phys0[[0, 1, 2], [0, 1, 2]] = list(reversed(xfrm0[0]['scale'][2:]))
         if len(xfrm0) > 1:
-            phys0[:3, -1] = list(reversed(xfrm0[1]['shift'][2:]))
+            phys0[:3, -1] = list(reversed(xfrm0[1]['translation'][2:]))
 
         xfrm1 = datasets[level]['coordinateTransformations']
         phys1 = np.eye(4)
         phys1[[0, 1, 2], [0, 1, 2]] = list(reversed(xfrm1[0]['scale'][2:]))
         if len(xfrm1) > 1:
-            phys1[:3, -1] = list(reversed(xfrm1[1]['shift'][2:]))
+            phys1[:3, -1] = list(reversed(xfrm1[1]['translation'][2:]))
 
         qform = qform @ (np.linalg.inv(phys0) @ phys1)
         sform = sform @ (np.linalg.inv(phys0) @ phys1)

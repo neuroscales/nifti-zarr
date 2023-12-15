@@ -1,12 +1,13 @@
 import sys
 import json
+import math
 import base64
 import zarr.hierarchy
 import zarr.storage
 import numpy as np
 import numcodecs
-from ome_zarr.writer import write_image
-from ome_zarr.scale import Scaler
+from skimage.transform import pyramid_gaussian, pyramid_laplacian
+from ome_zarr.writer import write_multiscale
 from nibabel import Nifti1Image, load
 from ._header import (
     UNITS, DTYPES, INTENTS, INTENTS_P, SLICEORDERS, XFORMS,
@@ -94,6 +95,10 @@ def nii2json(header):
             "affine": header["sform"].tolist(),
         },
     }
+    if not math.isfinite(jsonheader["scl"]["slope"]):
+        jsonheader["scl"]["slope"] = 0.0
+    if not math.isfinite(jsonheader["scl"]["inter"]):
+        jsonheader["scl"]["inter"] = 0.0
 
     # Fix data type
     byteorder = header['sizeof_hdr'].dtype.byteorder
@@ -130,9 +135,43 @@ def _make_compressor(name, **prm):
     return Compressor(**prm)
 
 
+def _make_pyramid5d(
+        data5d, nb_levels, pyramid_fn=pyramid_gaussian, label=False
+):
+    nt, nc, *nxyz = data5d.shape
+    data5d = data5d.reshape((-1, *nxyz))
+    max_layer = nb_levels - 1 if nb_levels > 0 else -1
+
+    def pyramid_values(x):
+        return pyramid_fn(x, max_layer, 2, preserve_range=True)
+
+    def pyramid_labels(x):
+        yield x
+        layer = 0
+        while layer != max_layer:
+            layer += 1
+            out, pval = None, 0
+            for label in np.unique(x):
+                p1 = x == label
+                pyr = pyramid_fn(p1, max_layer, 2, preserve_range=True)
+                next(pyr)
+                p1 = next(pyr)
+                if out is None:
+                    out, pval = np.full(p1.shape, label, dtype=x.dtype)
+                else:
+                    pval = np.maximum(pval, p1)
+                    out[p1 > pval] = label
+            yield out
+
+    pyramid = pyramid_labels if label else pyramid_values
+
+    for level in zip(*map(pyramid, data5d)):
+        yield np.stack(level).reshape((nt, nc) + level[0].shape)
+
+
 def nii2zarr(inp, out, *,
              chunk=64,
-             nb_levels=4,
+             nb_levels=-1,
              method='gaussian',
              label=None,
              fill_value=float('nan'),
@@ -157,12 +196,11 @@ def nii2zarr(inp, out, *,
         * The outer list allows different chunk sizes to be used at
           different pyramid levels.
     nb_levels : int
-        Number of levels in the pyramid.
-    method : {'gaussian', 'laplacian', 'local_mean', 'nearest', 'zoom'}
+        Number of levels in the pyramid. Default: all possible levels.
+    method : {'gaussian', 'laplacian'}
         Method used to compute the pyramid.
     label : bool
-        Whether this is a label volume.
-        If `None`, guess from intent code.
+        Is this is a label volume?  If `None`, guess from intent code.
     fill_value : number
         Value to use for missing tiles
     compressor : {'blosc', 'zlib'}
@@ -170,46 +208,31 @@ def nii2zarr(inp, out, *,
     compressor_options : dict
         Compressor options
     """
-
+    # Open nifti image with nibabel
     if not isinstance(inp, Nifti1Image):
         if hasattr(inp, 'read'):
             inp = Nifti1Image.from_stream(inp)
         else:
             inp = load(inp)
 
+    # Open zarr group
     if not isinstance(out, zarr.hierarchy.Group):
         if not isinstance(out, zarr.storage.Store):
             if fsspec:
                 out = zarr.storage.FSStore(out)
             else:
                 out = zarr.storage.DirectoryStore(out)
-        out = zarr.group(store=out)
+        out = zarr.group(store=out, overwrite=True)
 
+    # Parse nifti header
     v = int(inp.header.structarr['magic'].tobytes().decode()[2])
     header = np.frombuffer(inp.header.structarr.tobytes(), count=1,
                            dtype=HEADERTYPE1 if v == 1 else HEADERTYPE2)[0]
-    if header['magic'].tobytes().decode() not in ('ni1', 'n+1', 'ni2', 'n+2'):
+    if header['magic'].decode() not in ('ni1', 'n+1', 'ni2', 'n+2'):
         header = header.newbyteorder()
     jsonheader = nii2json(header)
 
-    if label is None:
-        label = jsonheader["intent"]["code"] == "LABEL"
-    pixdim = jsonheader["pixdim"]
-    pixdim += [1.] * max(0, 5 - len(pixdim))
-    pixdim = [pixdim[i] for i in [3, 4, 2, 1, 0]]
-    pixtrf = [{
-        'type': 'scale',
-        'scale': pixdim,
-    }]
-    for _ in range(1, nb_levels):
-        pixtrf += [{
-            'type': 'scale',
-            'scale':
-                pixtrf[-1]['scale'][:2] +
-                [s*2 for s in pixtrf[-1]['scale'][2:]],
-        }]
-    pixtrf = [[t] for t in pixtrf]
-
+    # Fix array shape
     data = np.asarray(inp.dataobj)
     while data.ndim < 5:
         data = data[..., None]
@@ -217,11 +240,16 @@ def nii2zarr(inp, out, *,
         raise ValueError('Too many dimensions for conversion to nii.zarr')
     data = data.transpose([3, 4, 2, 1, 0])
 
-    axes = ('t', 'c', 'z', 'x', 'y')
-    scaler = Scaler(max_layer=nb_levels-1, method=method, labeled=label)
+    # Compute image pyramid
+    if label is None:
+        label = jsonheader["intent"]["code"] == "LABEL"
+    pyramid_fn = pyramid_gaussian if method[0] == 'g' else pyramid_laplacian
+    data = list(_make_pyramid5d(data, nb_levels, pyramid_fn, label))
+    nb_levels = len(data)
+    shapes = [d.shape[2:] for d in data]
 
+    # Prepare array metadata at each level
     compressor = _make_compressor(compressor, **compressor_options)
-
     if not isinstance(chunk, (list, tuple)):
         chunk = [chunk]
     chunk = list(chunk)
@@ -235,21 +263,25 @@ def nii2zarr(inp, out, *,
         'chunks': c,
         'dimension_separator': r'/',
         'order': 'F',
+        'dtype': jsonheader['datatype'],
         'fill_value': fill_value,
         'compressor': compressor,
     } for c in chunk]
     chunk = chunk + chunk[-1:] * max(0, nb_levels - len(chunk))
 
-    write_image(
+    # Write zarr arrays
+    write_multiscale(
         data, out,
-        scaler=scaler,
-        axes=axes,
-        coordinate_transformations=pixtrf,
+        axes=('t', 'c', 'z', 'x', 'y'),
         storage_options=chunk
     )
 
     # Write nifti attributes
     out.attrs["nifti"] = jsonheader
+
+    # write xarray metadata
+    for i in range(5):
+        out[i].attrs['_ARRAY_DIMENSIONS'] = ['time', 'channel', 'z', 'y', 'x']
 
     # Ensure that OME attributes are compatible
     multiscales = out.attrs["multiscales"]
@@ -279,10 +311,33 @@ def nii2zarr(inp, out, *,
             "unit": jsonheader["units"]["space"],
         }
     ]
+    for n, level in enumerate(multiscales[0]["datasets"]):
+        # skimage pyramid_gaussian/pyramid_laplace use
+        # scipy.ndimage.zoom(..., grid_mode=True)
+        # so the effective scaling is the shape ratio, and there is
+        # a half voxel shift wrt to the "center of first voxel" frame
+        level["coordinateTransformations"][0]["scale"] = [
+            1.0,
+            1.0,
+            (shapes[0][0]/shapes[n][0])*jsonheader["pixdim"][2],
+            (shapes[0][1]/shapes[n][1])*jsonheader["pixdim"][1],
+            (shapes[0][2]/shapes[n][2])*jsonheader["pixdim"][0],
+        ]
+        level["coordinateTransformations"].append({
+            "type": "translation",
+            "translation": [
+                1.0,
+                1.0,
+                (shapes[0][0]/shapes[n][0] - 1)*jsonheader["pixdim"][2]*0.5,
+                (shapes[0][1]/shapes[n][1] - 1)*jsonheader["pixdim"][1]*0.5,
+                (shapes[0][2]/shapes[n][2] - 1)*jsonheader["pixdim"][0]*0.5,
+            ]
+        })
     multiscales[0]["coordinateTransformations"] = [
         {
             "scale": [
-                jsonheader["pixdim"][3],
+                jsonheader["pixdim"][3]
+                if len(jsonheader["pixdim"]) > 3 else 1.0,
                 1.0,
                 1.0,
                 1.0,

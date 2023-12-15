@@ -83,7 +83,7 @@ that it gets adopted by the community. Its guiding principles are
 **NOTES**
 * Being OME-NGFF compliant does not mean (for now) that the OME-NGFF
   transform and the NIfTI transform match. Currently, OME-NGFF only handles
-  scales (for voxel sizes) and shifts (for origin shifts caused by
+  scales (for voxel sizes) and translation (for origin shifts caused by
   pyramid methods). It is therefore impossible to encode an affine tranform -
   or even swap axes - using the current OME-NGFF specification. What we
   mean by OME-NGFF compliant is that any OME-NGFF viewer will correctly
@@ -511,10 +511,6 @@ Additional FSL codes:
 
 We implemented software to convert data between `.nii[.gz]` and `.nii.zarr`.
 
-**WARNING**: Work-in-progress.
-It is currently broken because the ome-zarr pyramid builder does not
-downsample across Z. I'll have to implement my own Scaler.
-
 ### 5.1. Python
 
 `python/niizarr`
@@ -532,3 +528,72 @@ zarr2nii('/path/to/mri.nii.zarr', '/path/to/mri_2x.nii.gz', level=1)
 # a dask array
 img = zarr2nii('/path/to/mri.nii.zarr')
 ```
+
+Example script loading a nii.zarr in a neuroglancer instance and
+setting the correct affine.
+```python
+import neuroglancer as ng
+import zarr
+import nibabel
+import niizarr
+import io
+import base64
+import numpy as np
+import fsspec
+import json
+
+URL = 'https://path/to/mri.nii.zarr'
+
+with fsspec.open(URL + '/.zattrs', 'r') as f:
+    zattrs = json.load(f)
+
+# parse header with nibabel (we must fix magic string first)
+hdr = niizarr.bin2nii(base64.b64decode(zattrs["nifti"]["base64"])).copy()
+hdr["magic"] = "n+1"
+hdr = nibabel.Nifti1Header.from_fileobj(io.BytesIO(hdr))
+
+# compute matrices
+permute = np.eye(4)
+permute[:-1, :-1] = permute[:-1, [2, 1, 0]]
+vox2world = hdr.get_best_affine()
+vox2phys = np.eye(4)
+scale = zattrs["multiscales"][0]["datasets"][0]["coordinateTransformations"][0]["scale"]
+shift = zattrs["multiscales"][0]["datasets"][0]["coordinateTransformations"][-1]["translation"]
+vox2phys[[0, 1, 2], [0, 1, 2]] = list(reversed(scale[2:]))
+vox2phys[:-1, -1] = list(reversed(shift[2:]))
+phys2world = vox2world @ permute @ np.linalg.inv(vox2phys)
+
+
+ras_space = ng.CoordinateSpace(
+    names=["x", "y", "z"],
+    units="mm",
+    scales=[1]*3,
+)
+phys_space = ng.CoordinateSpace(
+    names=["z", "y", "x"],
+    units="mm",
+    scales=scale[2:],
+)
+transform = ng.CoordinateSpaceTransform(
+    matrix=phys2world[:3, :4],
+    input_dimensions=phys_space,
+    output_dimensions=ras_space,
+)
+
+# launch neuroglancer instance
+viewer = ng.Viewer()
+print(viewer.get_viewer_url())
+
+# load volume and transform
+with viewer.txn() as state:
+    state.layers.append(
+        name="mri",
+        layer=ng.ImageLayer(
+                source=ng.LayerDataSource(
+                url="zarr2://" + URL,
+                transform=transform
+            )
+        )
+    )
+```
+URL
