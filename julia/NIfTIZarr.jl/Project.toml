@@ -1,0 +1,13 @@
+name = "NIfTIZarr"
+uuid = ""  # todo
+authors = ["Yael Balbastre <ybalbastre@mgh.harvard.edu>"]
+version = "0.1.0"
+
+[deps]
+Zarr = "0a941bbe-ad1d-11e8-39d9-ab76183a1d99"
+NIfTI = "a3a9e032-41b5-5fc4-967a-a6b7a19844d3"
+
+[compat]       # to check
+Zarr = "0.9"
+NIfTI = "0.6"
+julia = "1.3"
