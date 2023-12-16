@@ -272,7 +272,7 @@ def nii2zarr(inp, out, *,
     # Write zarr arrays
     write_multiscale(
         data, out,
-        axes=('t', 'c', 'z', 'x', 'y'),
+        axes=('t', 'c', 'z', 'y', 'x'),
         storage_options=chunk
     )
 
@@ -280,7 +280,7 @@ def nii2zarr(inp, out, *,
     out.attrs["nifti"] = jsonheader
 
     # write xarray metadata
-    for i in range(5):
+    for i in range(len(data)):
         out[i].attrs['_ARRAY_DIMENSIONS'] = ['time', 'channel', 'z', 'y', 'x']
 
     # Ensure that OME attributes are compatible
@@ -301,12 +301,12 @@ def nii2zarr(inp, out, *,
             "unit": jsonheader["units"]["space"],
         },
         {
-            "name": "x",
+            "name": "y",
             "type": "space",
             "unit": jsonheader["units"]["space"],
         },
         {
-            "name": "y",
+            "name": "x",
             "type": "space",
             "unit": jsonheader["units"]["space"],
         }
