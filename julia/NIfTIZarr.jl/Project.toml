@@ -1,13 +1,18 @@
 name = "NIfTIZarr"
-uuid = ""  # todo
+uuid = "37a98a6a-6d49-420d-b818-2675248c7c06"
 authors = ["Yael Balbastre <ybalbastre@mgh.harvard.edu>"]
 version = "0.1.0"
 
 [deps]
+Base64 = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 Zarr = "0a941bbe-ad1d-11e8-39d9-ab76183a1d99"
 NIfTI = "a3a9e032-41b5-5fc4-967a-a6b7a19844d3"
+EnumX = "4e289a0a-7415-4d19-859d-a7e5c4648b56"
+Images = "916415d5-f1e6-5110-898d-aaa5f9f070e0"
 
 [compat]       # to check
 Zarr = "0.9"
 NIfTI = "0.6"
-julia = "1.3"
+EnumX = "1.0"
+Images = ">=0.8"
+julia = "1.6"
