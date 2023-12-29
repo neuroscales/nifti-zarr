@@ -1,8 +1,16 @@
 import Base: @kwdef
 import EnumX: @enumx
 import Formatting: printfmt
+import Base64: base64encode
+import NIfTI
+
+
+"""A generic IO type"""
+IOType = Union{IO,AbstractString}
+
 
 abstract type NiftiHeader end
+
 
 function Base.show(x::NiftiHeader)
     fieldlength = maximum( map(f->length(string(f)), fieldnames(typeof(x))) ) + 1
@@ -11,6 +19,13 @@ function Base.show(x::NiftiHeader)
         printfmt("    {:$(fieldlength)s} => $(reprfield(getproperty(x, field)))\n", field)
     end
 end
+
+"""
+    ztuple(n::Integer)
+
+Create a NTuple of zeros
+"""
+ztuple(n) = ntuple(x->0, n)
 
 # Valid magic strings
 MAGIC1 = UInt8.(('n', 'i', '1', '\0'))   # single file
@@ -34,9 +49,9 @@ https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h
     regular::UInt8 = UInt8('r')                 # ++UNUSED++
     dim_info::UInt8 = 0                         # MRI slice ordering.
     dim::NTuple{8,Int16} = ztuple(8)            # Data array dimensions.
-    intent_p::NTuple{3,Float64} = ztuple(3)     # Intent parameters.
+    intent_p::NTuple{3,Float32} = ztuple(3)     # Intent parameters.
     intent_code::Int16 = 0                      # NIFTI_INTENT_* code.
-    datatype::NiftiDataType = 0                 # Defines data type!
+    datatype::Int16 = 0                         # Defines data type!
     bitpix::Int16 = 0                           # Number bits/voxel.
     slice_start::Int16 = 0                      # First slice index.
     pixdim::NTuple{8,Float32} = ztuple(8)       # Grid spacings.
@@ -73,7 +88,7 @@ https://nifti.nimh.nih.gov/pub/dist/doc/nifti2.h
 @kwdef mutable struct Nifti2Header <: NiftiHeader
     sizeof_hdr::Int32 = 540                     # MUST be 540
     magic::NTuple{8,UInt8} = MAGIC2             # MUST be valid signature.
-    datatype::NiftiDataType = 0                 # Defines data type!
+    datatype::Int16 = 0                         # Defines data type!
     bitpix::Int16 = 0                           # Number bits/voxel.
     dim::NTuple{8,Int64} = ztuple(8)            # Data array dimensions.
     intent_p::NTuple{3,Float64} = ztuple(3)     # Intent parameters.
@@ -146,6 +161,20 @@ function write(io::IOType, header::NiftiHeader, bswap::Bool=false)
     return io
 end
 
+# Convert from NIfTI.jl to ours
+function convert(::Type{Nifti1Header}, x::NIfTI.NIfTI1Header)
+    ptr = reinterpret(Ptr{UInt8}, pointer_from_objref(x))
+    vec = unsafe_wrap(Vector{UInt8}, ptr, sizeof(x), own=false)
+    read(IOBuffer(vec), Nifti1Header)
+end
+
+# base64encode
+function base64encode(x::NiftiHeader)
+    ptr = reinterpret(Ptr{UInt8}, pointer_from_objref(x))
+    vec = unsafe_wrap(Vector{UInt8}, ptr, sizeof(x), own=false)
+    base64encode(vec)
+end
+
 @enumx DataTypeCode begin
     u1 = 2
     i2 = 4
@@ -161,7 +190,7 @@ end
     f16 = 1536
     c16 = 1792
     c32 = 2048
-    rgb1 = 2304
+    rgba = 2304
 end
 
 @enumx UnitCode begin
@@ -179,7 +208,7 @@ end
 
 @enumx IntentCode begin
     NONE = 0
-    CORRL = 2
+    CORREL = 2
     TTEST = 3
     FTEST = 4
     ZSCORE = 5
@@ -214,7 +243,7 @@ end
     QUATERNION = 1010
     DIMLESS = 1011
     TIME_SERIES = 2001
-    NODE_INDEX - 2002
+    NODE_INDEX = 2002
     RGB_VECTOR = 2003
     RGBA_VECTOR = 2004
     SHAPE = 2005
@@ -271,16 +300,16 @@ end
     ALT_DEC2 = 6
 end
 
-UnitRecoder(x <: Integer) = string(UnitCode.T(x))
-UnitRecoder(x <: String) = getproperty(UnitCode, Symbol(x))
-IntentRecoder(x <: Integer) = string(IntentCode.T(x))
-IntentRecoder(x <: String) = getproperty(IntentCode, Symbol(x))
-XFormRecoder(x <: Integer) = string(XFormCode.T(x))
-XFormRecoder(x <: String) = getproperty(XFormCode, Symbol(x))
-SliceOrderRecoder(x <: Integer) = string(SliceOrderCode.T(x))
-SliceOrderRecoder(x <: String) = getproperty(SliceOrderCode, Symbol(x))
+UnitRecoder(x::Integer) = string(UnitCode.T(x))
+UnitRecoder(x::String) = getproperty(UnitCode, Symbol(x))
+IntentRecoder(x::Integer) = string(IntentCode.T(x))
+IntentRecoder(x::String) = getproperty(IntentCode, Symbol(x))
+XFormRecoder(x::Integer) = string(XFormCode.T(x))
+XFormRecoder(x::String) = getproperty(XFormCode, Symbol(x))
+SliceOrderRecoder(x::Integer) = string(SliceOrderCode.T(x))
+SliceOrderRecoder(x::String) = getproperty(SliceOrderCode, Symbol(x))
 
-function DataTypeRecoder(x <: Integer)
+function DataTypeRecoder(x::Integer)
     if x == DataTypeCode.rgb
         (("r", "u1"), ("g", "u1"), ("b", "u1"))
     elseif x == DataTypeCode.rgba
@@ -289,8 +318,8 @@ function DataTypeRecoder(x <: Integer)
         string(DataTypeCode.T(x))
     end
 end
-DataTypeRecoder(x <: String) = getproperty(DataTypeCode, Symbol(x))
-function DataTypeRecoder(x <: Tuple)
+DataTypeRecoder(x::String) = getproperty(DataTypeCode, Symbol(x))
+function DataTypeRecoder(x::Tuple)
     if x == (("r", "u1"), ("g", "u1"), ("b", "u1"))
         DataTypeRecoder("rgb")
     elseif x == (("r", "u1"), ("g", "u1"), ("b", "u1"), ("a", "u1"))
@@ -299,6 +328,6 @@ function DataTypeRecoder(x <: Tuple)
         error("unsupported data type")
     end
 end
-function DataTypeRecoder(x <: Array)
+function DataTypeRecoder(x::Array)
     DataTypeRecoder(map(Tuple, Tuple(x)))
 end
