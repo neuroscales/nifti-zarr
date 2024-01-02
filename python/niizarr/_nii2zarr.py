@@ -106,7 +106,7 @@ def nii2json(header):
         byteorder = SYS_BYTEORDER
     if isinstance(jsonheader["datatype"], tuple):
         jsonheader["datatype"] = [
-            [x[0], '|' + x[1]] for x in jsonheader["datatype"]
+            [field, '|' + dtype] for field, dtype in jsonheader["datatype"]
         ]
     elif jsonheader["datatype"].endswith('1'):
         jsonheader["datatype"] = '|' + jsonheader["datatype"]
@@ -147,21 +147,20 @@ def _make_pyramid5d(
 
     def pyramid_labels(x):
         yield x
-        layer = 0
-        while layer != max_layer:
-            layer += 1
-            out, pval = None, 0
-            for label in np.unique(x):
-                p1 = x == label
-                pyr = pyramid_fn(p1, max_layer, 2, preserve_range=True)
-                next(pyr)
-                p1 = next(pyr)
-                if out is None:
-                    out, pval = np.full(p1.shape, label, dtype=x.dtype)
-                else:
-                    pval = np.maximum(pval, p1)
-                    out[p1 > pval] = label
-            yield out
+        labels = np.unique(x)
+        pyrmaxprob = list(pyramid_values(x == labels[0]))[1:]
+        pyramid = [
+            np.zeros_like(level, dtype=x.dtype) for level in pyrmaxprob
+        ]
+        for label in labels[1:]:
+            pyrprob = list(pyramid_values(x == label))[1:]
+            for (value, prob, maxprob) in zip(pyramid, pyrprob, pyrmaxprob):
+                mask = prob > maxprob
+                value[mask] = label[mask]
+                maxprob[mask] = prob[mask]
+
+        for level in pyramid:
+            yield level
 
     pyramid = pyramid_labels if label else pyramid_values
 
@@ -326,8 +325,8 @@ def nii2zarr(inp, out, *,
         level["coordinateTransformations"].append({
             "type": "translation",
             "translation": [
-                1.0,
-                1.0,
+                0.0,
+                0.0,
                 (shapes[0][0]/shapes[n][0] - 1)*jsonheader["pixdim"][2]*0.5,
                 (shapes[0][1]/shapes[n][1] - 1)*jsonheader["pixdim"][1]*0.5,
                 (shapes[0][2]/shapes[n][2] - 1)*jsonheader["pixdim"][0]*0.5,
