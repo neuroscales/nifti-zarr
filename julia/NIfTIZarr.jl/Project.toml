@@ -10,8 +10,11 @@ NIfTI = "a3a9e032-41b5-5fc4-967a-a6b7a19844d3"
 EnumX = "4e289a0a-7415-4d19-859d-a7e5c4648b56"
 Images = "916415d5-f1e6-5110-898d-aaa5f9f070e0"
 Formatting = "59287772-0a20-5a39-b81b-1366585eb4c0"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+GZip = "92fee26a-97fe-5a0c-ad85-20a5f3185b63"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
-[compat]       # to check
+[compat]            # to check
 Zarr = "0.7"        # storage API change (added path)
 NIfTI = "0.6"
 EnumX = "1.0"

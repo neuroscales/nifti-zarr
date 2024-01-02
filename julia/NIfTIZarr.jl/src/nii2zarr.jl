@@ -1,5 +1,4 @@
 import EnumX: @enumx
-import Base64: base64encode
 import Images: gaussian_pyramid
 import NIfTI
 import Zarr
@@ -118,7 +117,12 @@ function _make_pyramid5d(data5d::AbstractArray, nb_levels::Integer, label::Bool=
     end
     max_layer = nb_levels - 1
 
-    pyramid_values(x::AbstractArray) = gaussian_pyramid(x, max_layer, 2, 1.5)
+    # I would really prefer to use sigma = 0.42, which corresponds to a
+    # full-width at half-maximum of 1 (which, assuming that the signal at
+    # the previous resolution has a PSF of 1 pixel, ensures that the filtered
+    # image has a PSF of 2 voxels, matching the downsampling rate).
+    # However, gaussian_pyramid uses a IIF filter and complains when sigma < 1
+    pyramid_values(x::AbstractArray) = gaussian_pyramid(x, max_layer, 2, 1.0)
 
     function pyramid_labels(x::AbstractArray)
         labels = unique(x)
@@ -267,8 +271,8 @@ function _nii2zarr_ome_attrs(shapes, niiheader)
             Dict(
                 "type" => "translation",
                 "translation" => [
-                    1.0,
-                    1.0,
+                    0.0,
+                    0.0,
                     (shapes[1][1]/shapes[n][1] - 1)*niiheader["pixdim"][3]*0.5,
                     (shapes[1][2]/shapes[n][2] - 1)*niiheader["pixdim"][2]*0.5,
                     (shapes[1][3]/shapes[n][3] - 1)*niiheader["pixdim"][1]*0.5,
@@ -382,13 +386,14 @@ function nii2zarr(inp::NIfTI.NIVolume, out::Zarr.ZGroup;
     ) for c in chunk]
 
     # Write group attributes
-    Zarr.writeattrs(out.storage, Zarr.zname(out), attrs)
+    Zarr.writeattrs(out.storage, out.path, attrs)
 
     # Write zarr arrays
     shapes = [size(d) for d in data]
     for n in eachindex(shapes)
         subarray = Zarr.zcreate(
             eltype(data[n]), out, string(n-1), shapes[n]...;
+            fill_as_missing=false,
             attrs = Dict("_ARRAY_DIMENSIONS" => ["time", "channel", "z", "y", "x"]),
             chunk[n]...
         )

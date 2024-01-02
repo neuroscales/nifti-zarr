@@ -1,8 +1,9 @@
-import Base: @kwdef
+import Base: @kwdef, read, write
 import EnumX: @enumx
 import Formatting: printfmt
-import Base64: base64encode
+import Base64: base64encode, Base64DecodePipe
 import NIfTI
+import GZip
 
 
 """A generic IO type"""
@@ -132,7 +133,7 @@ needs_swap(h::Nifti2Header) = (bswap(h.sizeof_hdr) == 540)
 _stream(io::IO) = io
 function _stream(io::AbstractString, mode="r")
     io = lowercase(io)
-    io.endswith(".gz") && return GZip.open(io, mode)
+    endswith(io, ".gz") && return GZip.open(io, mode)
     rawio = open(io, mode)
     return read(rawio, UInt16 == 0x8b1f) ? GZip.open(io, mode) : rawio
 end
@@ -150,14 +151,16 @@ end
 _read(io::IOType, type::Type{<:NiftiHeader}) = _read!(io, type())
 
 # Read header and bswap (only return header)
-read!(io, header::NiftiHeader) = _read!(io, header)[:header]
-read(io, type::Type{<:NiftiHeader}) = _read!(io, type())[:header]
+read!(io::IO, header::NiftiHeader) = _read!(io, header)[:header]
+read(io::IO, type::Type{<:NiftiHeader}) = _read!(io, type())[:header]
+read!(io::AbstractString, header::NiftiHeader) = _read!(io, header)[:header]
+read(io::AbstractString, type::Type{<:NiftiHeader}) = _read!(io, type())[:header]
 
 # Write header
 function write(io::IOType, header::NiftiHeader, bswap::Bool=false)
     io = _stream(io, 'w')
     header = bswap ? smap(Base.bswap, header) : header
-    Base.write(io, Ref(header))
+    write(io, Ref(header))
     return io
 end
 
@@ -168,11 +171,21 @@ function convert(::Type{Nifti1Header}, x::NIfTI.NIfTI1Header)
     read(IOBuffer(vec), Nifti1Header)
 end
 
-# base64encode
+# Convert from ours to NIfTI.jl
+function convert(::Type{NIfTI.NIfTI1Header}, x::Nifti1Header)
+    ptr = reinterpret(Ptr{UInt8}, pointer_from_objref(x))
+    vec = unsafe_wrap(Vector{UInt8}, ptr, sizeof(x), own=false)
+    read(IOBuffer(vec), NIfTI.NIfTI1Header)[1]
+end
+
 function base64encode(x::NiftiHeader)
     ptr = reinterpret(Ptr{UInt8}, pointer_from_objref(x))
     vec = unsafe_wrap(Vector{UInt8}, ptr, sizeof(x), own=false)
     base64encode(vec)
+end
+
+function base64decode(x::AbstractString, T::Type{<:NiftiHeader})
+    read(Base64DecodePipe(IOBuffer(x)), T)
 end
 
 @enumx DataTypeCode begin
