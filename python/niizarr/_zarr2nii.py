@@ -4,6 +4,7 @@ import zarr.hierarchy
 import zarr.storage
 import numpy as np
 import dask.array
+import argparse
 from nibabel import (Nifti1Image, Nifti1Header, Nifti2Image, Nifti2Header,
                      save, load)
 from ._header import HEADERTYPE1, HEADERTYPE2
@@ -80,15 +81,15 @@ def zarr2nii(inp, out=None, level=0):
 
         xfrm0 = datasets[0]['coordinateTransformations']
         phys0 = np.eye(4)
-        phys0[[0, 1, 2], [0, 1, 2]] = list(reversed(xfrm0[0]['scale'][2:]))
+        phys0[[0, 1, 2], [0, 1, 2]] = list(reversed(xfrm0[0]['scale'][-3:]))
         if len(xfrm0) > 1:
-            phys0[:3, -1] = list(reversed(xfrm0[1]['translation'][2:]))
+            phys0[:3, -1] = list(reversed(xfrm0[1]['translation'][-3:]))
 
         xfrm1 = datasets[level]['coordinateTransformations']
         phys1 = np.eye(4)
-        phys1[[0, 1, 2], [0, 1, 2]] = list(reversed(xfrm1[0]['scale'][2:]))
+        phys1[[0, 1, 2], [0, 1, 2]] = list(reversed(xfrm1[0]['scale'][-3:]))
         if len(xfrm1) > 1:
-            phys1[:3, -1] = list(reversed(xfrm1[1]['translation'][2:]))
+            phys1[:3, -1] = list(reversed(xfrm1[1]['translation'][-3:]))
 
         qform = qform @ (np.linalg.inv(phys0) @ phys1)
         sform = sform @ (np.linalg.inv(phys0) @ phys1)
@@ -97,8 +98,13 @@ def zarr2nii(inp, out=None, level=0):
 
     # reorder/reshape array as needed
     array = dask.array.from_zarr(inp[f'{level}'])
-    array = array.transpose([4, 3, 2, 0, 1])
-    for _ in range(5 - header['dim'][0].item()):
+    if array.ndim == 5:
+        array = array.transpose([4, 3, 2, 0, 1])
+    elif array.ndim == 4:
+        array = array.transpose([3, 2, 1, 0])[..., None, :]
+    elif array.ndim == 3:
+        array = array.transpose([2, 1, 0])
+    while array.ndim > header['dim'][0].item():
         assert array.shape[-1] == 1
         array = array[..., 0]
 
@@ -114,3 +120,19 @@ def zarr2nii(inp, out=None, level=0):
             img = load(out)
 
     return img
+
+
+def cli(args):
+    """Command-line entrypoint"""
+    parser = argparse.ArgumentParse(
+        'zarr2nii', description='Convert nifti to nifti-zarr')
+    parser.add_argument(
+        'input', description='Input zarr directory')
+    parser.add_argument(
+        'output', description='Output nifti file')
+    parser.add_argument(
+        '--level', type=int, default=0,
+        description='Pyramid level to extract (default: 0 = coarsest)')
+
+    args = parser.parse_args(args)
+    zarr2nii(args.input, args.output, args.level)

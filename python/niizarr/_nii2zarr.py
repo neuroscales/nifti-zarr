@@ -6,6 +6,7 @@ import zarr.hierarchy
 import zarr.storage
 import numpy as np
 import numcodecs
+import argparse
 from skimage.transform import pyramid_gaussian, pyramid_laplacian
 from ome_zarr.writer import write_multiscale
 from nibabel import Nifti1Image, load
@@ -346,3 +347,39 @@ def nii2zarr(inp, out, *,
         }
     ]
     out.attrs["multiscales"] = multiscales
+
+
+def cli(args):
+    """Command-line entrypoint"""
+    parser = argparse.ArgumentParse(
+        'nii2zarr', description='Convert nifti to nifti-zarr')
+    parser.add_argument(
+        'input', description='Input nifti file')
+    parser.add_argument(
+        'output', description='Output zarr directory')
+    parser.add_argument(
+        '--chunk', type=int, default=64, description='Chunk size')
+    parser.add_argument(
+        '--levels', type=int, default=-1,
+        description='Number of levels in the pyramid. If -1 (default), use '
+                    'as many levels as possible')
+    parser.add_argument(
+        '--method', choices=('gaussian', 'laplacian'), default='gaussian',
+        description='Pyramid method')
+    parser.add_argument(
+        '--fill', type=float, default=float('nan'),
+        description='Missing value')
+    parser.add_argument(
+        '--compressor', choices=('blosc', 'zlib'), default='blosc',
+        description='Compressor')
+
+    args = parser.parse_args(args)
+
+    nii2zarr(
+        args.input, args.output,
+        chunk=args.chunk,
+        nb_levels=args.levels,
+        method=args.method,
+        fill_value=args.fill,
+        compressor=args.compressor,
+    )
