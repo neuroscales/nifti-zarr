@@ -122,7 +122,7 @@ def zarr2nii(inp, out=None, level=0):
     return img
 
 
-def cli(args):
+def cli():
     """Command-line entrypoint"""
     parser = argparse.ArgumentParse(
         'zarr2nii', description='Convert nifti to nifti-zarr')
@@ -134,5 +134,5 @@ def cli(args):
         '--level', type=int, default=0,
         description='Pyramid level to extract (default: 0 = coarsest)')
 
-    args = parser.parse_args(args)
+    args = parser.parse_args()
     zarr2nii(args.input, args.output, args.level)
