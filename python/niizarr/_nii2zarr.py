@@ -351,27 +351,27 @@ def nii2zarr(inp, out, *,
 
 def cli(args=None):
     """Command-line entrypoint"""
-    parser = argparse.ArgumentParse(
+    parser = argparse.ArgumentParser(
         'nii2zarr', description='Convert nifti to nifti-zarr')
     parser.add_argument(
-        'input', description='Input nifti file')
+        'input', help='Input nifti file')
     parser.add_argument(
-        'output', description='Output zarr directory')
+        'output', help='Output zarr directory')
     parser.add_argument(
-        '--chunk', type=int, default=64, description='Chunk size')
+        '--chunk', type=int, default=64, help='Chunk size')
     parser.add_argument(
         '--levels', type=int, default=-1,
-        description='Number of levels in the pyramid. If -1 (default), use '
-                    'as many levels as possible')
+        help='Number of levels in the pyramid. If -1 (default), use '
+             'as many levels as possible')
     parser.add_argument(
         '--method', choices=('gaussian', 'laplacian'), default='gaussian',
-        description='Pyramid method')
+        help='Pyramid method')
     parser.add_argument(
         '--fill', type=float, default=float('nan'),
-        description='Missing value')
+        help='Missing value')
     parser.add_argument(
         '--compressor', choices=('blosc', 'zlib'), default='blosc',
-        description='Compressor')
+        help='Compressor')
 
     args = args or sys.argv[1:]
     args = parser.parse_args(args)

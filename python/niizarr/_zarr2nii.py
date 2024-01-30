@@ -125,15 +125,15 @@ def zarr2nii(inp, out=None, level=0):
 
 def cli(args=None):
     """Command-line entrypoint"""
-    parser = argparse.ArgumentParse(
+    parser = argparse.ArgumentParser(
         'zarr2nii', description='Convert nifti to nifti-zarr')
     parser.add_argument(
-        'input', description='Input zarr directory')
+        'input', help='Input zarr directory')
     parser.add_argument(
-        'output', description='Output nifti file')
+        'output', help='Output nifti file')
     parser.add_argument(
         '--level', type=int, default=0,
-        description='Pyramid level to extract (default: 0 = coarsest)')
+        help='Pyramid level to extract (default: 0 = coarsest)')
 
     args = args or sys.argv[1:]
     args = parser.parse_args(args)
