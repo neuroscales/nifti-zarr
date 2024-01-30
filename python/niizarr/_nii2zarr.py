@@ -349,7 +349,7 @@ def nii2zarr(inp, out, *,
     out.attrs["multiscales"] = multiscales
 
 
-def cli():
+def cli(args=None):
     """Command-line entrypoint"""
     parser = argparse.ArgumentParse(
         'nii2zarr', description='Convert nifti to nifti-zarr')
@@ -373,7 +373,8 @@ def cli():
         '--compressor', choices=('blosc', 'zlib'), default='blosc',
         description='Compressor')
 
-    args = parser.parse_args()
+    args = args or sys.argv[1:]
+    args = parser.parse_args(args)
 
     nii2zarr(
         args.input, args.output,

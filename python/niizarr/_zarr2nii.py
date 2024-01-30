@@ -1,5 +1,6 @@
 import base64
 import io
+import sys
 import zarr.hierarchy
 import zarr.storage
 import numpy as np
@@ -122,7 +123,7 @@ def zarr2nii(inp, out=None, level=0):
     return img
 
 
-def cli():
+def cli(args=None):
     """Command-line entrypoint"""
     parser = argparse.ArgumentParse(
         'zarr2nii', description='Convert nifti to nifti-zarr')
@@ -134,5 +135,6 @@ def cli():
         '--level', type=int, default=0,
         description='Pyramid level to extract (default: 0 = coarsest)')
 
-    args = parser.parse_args()
+    args = args or sys.argv[1:]
+    args = parser.parse_args(args)
     zarr2nii(args.input, args.output, args.level)
