@@ -42,18 +42,22 @@ preferable to only load the data required to display a given scene (either
 a large field-of-view at low-resolution, or a small field-of-view at high
 resolution).
 
-The Zarr format was developed to bypass the limitations of single-file formats
-such as HDF5. The microscopy community is currently developping its own
-standard for cloud-friendly biomedical imaging data (OME-NGFF), which builds on
-Zarr and adds rules for storing multi-resolutions images and medical-specific
+The [Zarr](https://zarr.readthedocs.io) format was developed to bypass
+the limitations of single-file formats such as [HDF5](https://www.hdfgroup.org/).
+The microscopy community is currently developping its own standard for
+cloud-friendly biomedical imaging data
+([OME-NGFF]((https://ngff.openmicroscopy.org)))—with a Zarr-based implementation
+([OME-Zarr]((https://ngff.openmicroscopy.org/0.4/index.html#on-disk)))—
+and adds rules for storing multi-resolutions images and medical-specific
 metadata such as axis names and voxel sizes. However, this community
 has needs in terms of metadata and coordinate-space description that are
 relatively complex, as they need to conform to different organs, a wide range
 of acquisition systems, and different tissue processing pipelines. This has
 drastically slowed down the adoption of a coordinate transform standard,
 which hampers the use of OME-NGFF with neuroimaging data in two ways:
-1. the current version  of the format (0.4) only handles canonical scales
-   and offsets
+1. at the time of this writing, the current version of the format
+   ([0.4](https://ngff.openmicroscopy.org/0.4/index.html)) only handles
+   canonical scales and offsets;
 2. the coordinate transform standard being drafted is more flexible
    than required for pure neuroimaging applications, which may prevent its
    widespread adoption by the neuroimaging community.
@@ -72,15 +76,19 @@ mandatory file format in standardization efforts such as BIDS. However, the
 lack of multiresolution and/or chunk support in NIfTI has lead BIDS to
 adopt OME-TIFF and OME-ZARR as mandatory formats for its microscopy component.
 
+Let us further add that OME-NGFF is mostly oriented towards microscopy,
+whereas neuroimaging formats focus on magnetic resonance imaging (MRI),
+computed tomography (CT), and/or positon emission tomography (PET).
+
 The NIfTI-Zarr (`nii.zarr`) specification attempts to merge the best of
 both worlds, in the simplest possible way. Like NIfTI, it aims to make the
 implementation of I/O libraries as simple as possible, to maximize chances
 that it gets adopted by the community. Its guiding principles are
-* __OME-NGFF compliant:__ any `nii.zarr` file should be a valid `ome.zarr` file.
-* __OME-NGFF minimal:__ only implements the minimum set of metadata necessary
-  to describe [multi-resolution] neuroimaging data
-* __NIfTI-compliant:__ the binary nifti header should be stored in the
-  [group-level] `.zattrs` object.
+* __OME-Zarr compliant:__ any `nii.zarr` file should be a valid `ome.zarr` file;
+* __OME-Zarr minimal:__ only implements the minimum set of metadata necessary
+  to describe [multi-resolution] neuroimaging data;
+* __NIfTI-compliant:__ the binary nifti header should be stored in its raw
+  form in an additional `nifti` zarr array;
 * __NIfTI-priority:__ if metadata conflict across the nifti header and OME
   attributes, the nifti metadata should take precedence.
 
@@ -112,30 +120,36 @@ of compressed-NIfTI (`.nii.gz`).
 ## 2. Format specification
 
 A NIfTI-Zarr file **MUST** be a valid
-[OME-NGFF 0.4 multi-resolution image](https://ngff.openmicroscopy.org/latest/#image-layout),
+[OME-Zarr 0.4 multi-resolution image](https://ngff.openmicroscopy.org/latest/#image-layout)
+(and therefore also a valid
+[Zarr v2 dataset](https://zarr.readthedocs.io/en/stable/spec/v2.html)),
 whose directory structure and metadata are described in sections
 [2.1](#2.1.-directory-structure), [2.2](#2.2-zarr-metadata) and
 [2.3](#2.3.-OME-NGFF-metadata).
 
 In addition, it **MUST** store the nifti header corresponding to the finest
-level of the pyramid under the `"nifti"` metadata key, within the
-group-level `.zattrs` JSON file, as described in section
-[2.4](#2.4.-nifti-header).
+level of the pyramid as a Zarr array with the `"nifti"` key, as described
+in section [2.4](#2.4.-nifti-header).
 
 ### 2.1. Directory structure
 
 **REF:** https://ngff.openmicroscopy.org/0.4/#image-layout
 
 ```
-└── mri.nii.zarr              # A nifti volume converted to Zarr.
+└── mri.nii.zarr              # A NIfTI volume converted to Zarr.
     │
     ├── .zgroup               # Each volume is a Zarr group, of arrays.
     ├── .zattrs               # Group level attributes are stored in the .zattrs
-    |                         # file and include "multiscales" and "nifti" (see
-    |                         # below). In addition, the group level attributes
+    |                         # file include the OME "multiscales" key.
+    |                         # In addition, the group level attributes
     │                         # may also contain "_ARRAY_DIMENSIONS" for
     |                         # compatibility with xarray if this group directly
     |                         # contains multi-scale arrays.
+    |
+    ├── nifti                 # The NIfTI header is stored as a raw array
+    │   ├── .zarray           # of bytes, with an optional JSON form stored in
+    │   ├── .zattrs           # the associated .zattrs file.
+    │   └── 0
     │
     ├── 0                     # Each multiscale level is stored as a separate
     |                         # Zarr array, which is a folder containing chunk
@@ -157,12 +171,12 @@ group-level `.zattrs` JSON file, as described in section
                               # maximum coordinate will be dimension_size / chunk_size.
 ```
 
-### 2.2. Zarr metadata
+### 2.2. Chunks metadata
 
 **REF:** https://zarr.readthedocs.io/en/stable/spec/v2.html#arrays
 
-`.zarray`
-```python
+`filename.nii.zarr/{0..n}/.zarray`
+```yaml
 {
     "chunks": [
         1,                  # Number of time chunks
@@ -187,7 +201,7 @@ group-level `.zattrs` JSON file, as described in section
         10000,              # Y shape
         10000               # X shape
     ],
-    "zarr_format": 2
+    "zarr_format": 2        # MUST be 2
 }
 ```
 
@@ -195,8 +209,8 @@ group-level `.zattrs` JSON file, as described in section
 
 **REF:** https://ngff.openmicroscopy.org/0.4/#multiscale-md
 
-`.zattrs`
-```python
+`filename.nii.zarr/.zattrs`
+```yaml
 {
     "multiscales": [
         {
@@ -257,94 +271,116 @@ be accepted.
 
 ### 2.4. NIfTI header
 
-**REF**: https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h
+**REF**:
+- https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h
+- https://zarr.readthedocs.io/en/stable/spec/v2.html#arrays
 
 The nifti header ([v1](https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h)
-or [v2](https://nifti.nimh.nih.gov/pub/dist/doc/nifti2.h)) **MUST** be encoded as
-a string using [base64](https://en.wikipedia.org/wiki/Base64) encoding and saved in
-the group-level `.zattrs` under the `["nifti"]["base64"]` key:
+or [v2](https://nifti.nimh.nih.gov/pub/dist/doc/nifti2.h)) **MUST** be encoded
+as a single-chunk zarr array if bytes under the `nifti` key:
 
-A JSON version  of the nifti header **MAY** be encoded under the `"nifti"` key.
+```
+└── mri.nii.zarr
+    │
+    └── nifti                 # The NIfTI header is stored as a raw array
+        ├── .zarray           # of bytes, with an optional JSON form stored in
+        ├── .zattrs           # the associated .zattrs file.
+        └── 0
+```
+
+`filename.nii.zarr/nifti/.zarray`
+```yaml
+{
+    "zarr_format": 2,       # MUST be 2
+    "shape": [348],         # MUST be header length if `dtype="u1"` else 1
+    "compressor": {
+        "id": "zlib",       # MUST be `{"id": "zlib", "level": 0..9}` or `null`
+        "level": 9          # MUST be in 0..9, if "zlib"
+    },
+    "dtype": "u1",          # MUST be "u1" or "S{length:d}"
+    "order": "C",           # UNUSED ("F" or "C")
+    "chunks": [1],          # MUST be 1
+    "fill_value": null,     # UNUSED
+}
+```
+
+A JSON version  of the nifti header **MAY** be encoded in the `.zattrs` file.
 The JSON version is only provided for human-readability. Its values **SHOULD** be
 compatible with those of the binary header. If values conflict between the binary
 and JSON headers, the binary form **MUST** take precedence.
 
-`.zattrs`
-```python
+`filename.nii.zarr/nifti/.zattrs`
+```yaml
 {
-    "nifti": {
-        "base64": "...",               # MUST be present. Base64 encoding of the binary header.
+    # ------------------------------------------------------------------
+    # All other tags **MAY** contain JSON representations of the nifti
+    # header. Not all fields are included. This JSON representation is
+    # OPTIONAL and has a lower priority than the base64 header.
+    # ------------------------------------------------------------------
 
-        # ---------------------------------------------------------------------
-        # All other tags **MAY** contain JSON representations of the nifti
-        # header. Not all fields are included. This JSON representation is
-        # OPTIONAL and has a lower priority than the base64 header.
-        # ---------------------------------------------------------------------
-
-        "magic": b"nz1\0",              # MUST be "nz1\0" or "nz2\0"
-        "dim" : [128, 128, 128, 1, 3],  # SHOULD match .zarray["shape"][[4, 3, 2, 0, 1]]
-        "pixdim": [                     # xtztc unit size, SHOULD match:
-            1.5, 1.5, 1.5,              #   .zattrs["multiscales"][0]["datasets"][0]["coordinateTransformations"][0]["scale"][2:5][::-1]
-            0.1,                        #   .zattrs["multiscales"][0]["coordinateTransformations"][0]["scale"][0]
-            1.0,                        #   .zattrs["multiscales"][0]["coordinateTransformations"][0]["scale"][1]
-        ],
-        "units": {                      # xyzt unit, SHOULD match
-            "space": "millimeter",      #   .zattrs["multiscales"][0]["axes"][2:]["unit"]
-            "time": "second",           #   .zattrs["multiscales"][0]["axes"][0]["unit"]
-        },
-        "datatype": "<f4",              # MUST be a zarr-compatible data type
-                                        # SHOULD match .zarray["dtype"]
-        "dim_info": {
-            "freq": 1,                  # MUST be one of {0, 1, 2, 3}
-            "phase": 2,                 # MUST be one of {0, 1, 2, 3}
-            "slice": 3                  # MUST be one of {0, 1, 2, 3}
-        },
-        "intent": {
-            "code": "DISPVECT",         # MUST be a valid intent code (see table 4.2)
-            "name": "",                 # 'name' or meaning of data
-            "p": []                     # Intent parameters (see table 4.2)
-        },
-        "scl": {
-            "slope": 1.0,               # Data scaling: slope
-            "inter": 0.0                # Data scaling: intercept
-        },
-        "slice": {                      # Slice timing order
-            "code": "SEQ_INC",          # MUST be a valid slice timing code (see table 4.6)
-            "start": 0 ,                # First slice index
-            "end": 127,                 # Last slice index
-            "duration": 1.0             # Time for 1 slice.
-        },
-        "cal": {
-            "min": 0.0,                 # Min display intensity
-            "max": 1.0                  # Max display intensity
-        },
-        "toffset": 0.0,                 # Time axis shift
-        "description": "An MRI",        # Any text you like
-        "aux_file": "/path/to/aux",     # Auxiliary filename
-        "qform": {
-            "code": "SCANNER_ANAT",     # MUST be a valid xform name (see table 4.5)
-            "quatern": [b, c, d],       # Quaternion
-            "offset": [tx, ty, tz]      # Translation
-        },
-        "sform": {
-            "code": "ALIGN_ANAT",       # MUST be a valid xform name (see table 4.5)
-            "affine": [
-                [axx, axy, axz, tx],    # 1st row affine transform
-                [ayx, ayy, ayz, ty],    # 2nd row affine transform
-                [azx, azy, azz, tz],    # 3rd row affine transform
-            ]
-        },
+    "magic": b"nz1\0",              # MUST be "nz1\0" or "nz2\0"
+    "dim" : [128, 128, 128, 1, 3],  # SHOULD match filename.nii.zarr/0/.zarray["shape"][[4, 3, 2, 0, 1]]
+    "pixdim": [                     # xtztc unit size, SHOULD match:
+        1.5, 1.5, 1.5,              #   filename.nii.zarr/.zattrs["multiscales"][0]["datasets"][0]["coordinateTransformations"][0]["scale"][2:5][::-1]
+        0.1,                        #   filename.nii.zarr/.zattrs["multiscales"][0]["coordinateTransformations"][0]["scale"][0]
+        1.0,                        #   filename.nii.zarr/.zattrs["multiscales"][0]["coordinateTransformations"][0]["scale"][1]
+    ],
+    "units": {                      # xyzt unit, SHOULD match
+        "space": "millimeter",      #   filename.nii.zarr/.zattrs["multiscales"][0]["axes"][2:]["unit"]
+        "time": "second",           #   filename.nii.zarr/.zattrs["multiscales"][0]["axes"][0]["unit"]
+    },
+    "datatype": "<f4",              # MUST be a zarr-compatible data type
+                                    # SHOULD match .zarray["dtype"]
+    "dim_info": {
+        "freq": 1,                  # MUST be one of {0, 1, 2, 3}
+        "phase": 2,                 # MUST be one of {0, 1, 2, 3}
+        "slice": 3                  # MUST be one of {0, 1, 2, 3}
+    },
+    "intent": {
+        "code": "DISPVECT",         # MUST be a valid intent code (see table 4.2)
+        "name": "",                 # 'name' or meaning of data
+        "p": []                     # Intent parameters (see table 4.2)
+    },
+    "scl": {
+        "slope": 1.0,               # Data scaling: slope
+        "inter": 0.0                # Data scaling: intercept
+    },
+    "slice": {                      # Slice timing order
+        "code": "SEQ_INC",          # MUST be a valid slice timing code (see table 4.6)
+        "start": 0 ,                # First slice index
+        "end": 127,                 # Last slice index
+        "duration": 1.0             # Time for 1 slice.
+    },
+    "cal": {
+        "min": 0.0,                 # Min display intensity
+        "max": 1.0                  # Max display intensity
+    },
+    "toffset": 0.0,                 # Time axis shift
+    "description": "An MRI",        # Any text you like
+    "aux_file": "/path/to/aux",     # Auxiliary filename
+    "qform": {
+        "code": "SCANNER_ANAT",     # MUST be a valid xform name (see table 4.5)
+        "quatern": [b, c, d],       # Quaternion
+        "offset": [tx, ty, tz]      # Translation
+    },
+    "sform": {
+        "code": "ALIGN_ANAT",       # MUST be a valid xform name (see table 4.5)
+        "affine": [
+            [axx, axy, axz, tx],    # 1st row affine transform
+            [ayx, ayy, ayz, ty],    # 2nd row affine transform
+            [azx, azy, azz, tz],    # 3rd row affine transform
+        ]
     }
 }
 ```
 
 Some fields **SHOULD** be equivalent to their OME-Zarr counterparts:
 ```python
-zattrs["nifti"]["dim"]         ==  zarray["shape"][[4, 3, 2, 0, 1]]   # Level 0 zarray
-zattrs["nifti"]["datatype"]    ==  zarray["dtype"]                    # All zarrays
-zattrs["nifti"]["pixdim"][:3]  ==  zattrs["multiscales"][0]["datasets"][0]["coordinateTransformations"][0]["scale"][2:5][::-1]
-zattrs["nifti"]["pixdim"][3]   ==  zattrs["multiscales"][0]["coordinateTransformations"][0]["scale"][0]
-zattrs["nifti"]["pixdim"][4]   ==  zattrs["multiscales"][0]["coordinateTransformations"][0]["scale"][1]
+nifti.zattrs["dim"]                  ==  0.zarray["shape"][[4, 3, 2, 0, 1]]   # Level 0 zarray
+nifti.zattrs["nifti"]["datatype"]    ==  *.zarray["dtype"]                    # All zarrays
+nifti.zattrs["nifti"]["pixdim"][:3]  ==  zattrs["multiscales"][0]["datasets"][0]["coordinateTransformations"][0]["scale"][2:5][::-1]
+nifti.zattrs["nifti"]["pixdim"][3]   ==  zattrs["multiscales"][0]["coordinateTransformations"][0]["scale"][0]
+nifti.zattrs["nifti"]["pixdim"][4]   ==  zattrs["multiscales"][0]["coordinateTransformations"][0]["scale"][1]
 ```
 
 ## 3. Main differences with NIfTI and/or OME-NGFF
