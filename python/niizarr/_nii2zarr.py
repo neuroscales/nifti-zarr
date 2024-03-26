@@ -1,7 +1,6 @@
 import sys
 import json
 import math
-import base64
 import zarr.hierarchy
 import zarr.storage
 import numpy as np
@@ -113,9 +112,6 @@ def nii2json(header):
         jsonheader["datatype"] = '|' + jsonheader["datatype"]
     else:
         jsonheader["datatype"] = byteorder + jsonheader["datatype"]
-
-    # Dump the binary header
-    jsonheader["base64"] = base64.b64encode(header.tobytes()).decode()
 
     # Check that the dictionary is serializable
     json.dumps(jsonheader)
@@ -229,8 +225,10 @@ def nii2zarr(inp, out, *,
     header = np.frombuffer(inp.header.structarr.tobytes(), count=1,
                            dtype=HEADERTYPE1 if v == 1 else HEADERTYPE2)[0]
     if header['magic'].decode() not in ('ni1', 'n+1', 'ni2', 'n+2'):
-        header = header.newbyteorder()
-    jsonheader = nii2json(header)
+        swappedheader = header.newbyteorder()
+    else:
+        swappedheader = header
+    jsonheader = nii2json(swappedheader)
 
     # Fix array shape
     data = np.asarray(inp.dataobj)
@@ -291,8 +289,22 @@ def nii2zarr(inp, out, *,
         storage_options=chunk
     )
 
-    # Write nifti attributes
-    out.attrs["nifti"] = jsonheader
+    # Write nifti header (binary)
+    binheader = np.frombuffer(header.tobytes(), dtype='u1')
+    out.create_dataset(
+        'nifti',
+        data=binheader,
+        shape=[len(binheader)],
+        chunks=1,
+        dtype='u1',
+        compressor=None,
+        fill_value=None,
+        dimension_separator='/',
+        overwrite=True,
+    )
+
+    # Write nifti header (JSON)
+    out['nifti'].attrs.update(jsonheader)
 
     # write xarray metadata
     for i in range(len(data)):

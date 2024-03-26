@@ -1,4 +1,3 @@
-import base64
 import io
 import sys
 import zarr.hierarchy
@@ -58,21 +57,19 @@ def zarr2nii(inp, out=None, level=0):
                 inp = zarr.storage.DirectoryStore(inp)
         inp = zarr.group(store=inp)
 
-    # build structured header
-    binheader = base64.b64decode(inp.attrs['nifti']['base64'])
-    header = bin2nii(binheader)
+    # read binary header
+    header = bin2nii(np.asarray(inp['nifti']).tobytes())
 
     # create nibabel header (useful to convert quat 2 affine, etc)
-    header = header.copy()
     magic = header['magic'].decode()
-    header['magic'] = 'n+1' if magic[-1] == '1' else 'n+2'
     if magic[-1] == '1':
         NiftiHeader = Nifti1Header
         NiftiImage = Nifti1Image
     else:
         NiftiHeader = Nifti2Header
         NiftiImage = Nifti2Image
-    niiheader = NiftiHeader.from_fileobj(io.BytesIO(header.tobytes()))
+    niiheader = NiftiHeader.from_fileobj(io.BytesIO(header.tobytes()),
+                                         check=False)
 
     # create affine at current resolution
     if level != 0:
