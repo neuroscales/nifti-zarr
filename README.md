@@ -70,8 +70,8 @@ In contrast, the neuroimaging community has adopted and used a standard
 +y = posterior -> anterior
 +z = inferior  -> superior
 ```
-An affine transform is used to map from  the F-ordered voxel space (i, j, k)
-to world space (x, y, z). The neuroimaging community has also created a
+An affine transform is used to map from  the F-ordered voxel space $(i, j, k)$
+to world space $(x, y, z)$. The neuroimaging community has also created a
 simple data exchange format—[NIfTI](https://nifti.nimh.nih.gov)—that is
 widely embraced and is the mandatory file format in standardization
 efforts such as [BIDS](https://bids-specification.readthedocs.io).
@@ -95,26 +95,26 @@ that it gets adopted by the community. Its guiding principles are
 * __NIfTI-priority:__ if metadata conflict across the nifti header and OME
   attributes, the nifti metadata should take precedence.
 
-**NOTES**
-* Being OME-NGFF compliant does not mean (for now) that the OME-NGFF
-  transform and the NIfTI transform match. Currently, OME-NGFF only handles
-  scales (for voxel sizes) and translations (for origin shifts caused by
-  pyramid methods). It is therefore impossible to encode an affine tranform -
-  or even swap axes - using the current OME-NGFF specification. What we
-  mean by OME-NGFF compliant is that any OME-NGFF viewer will correctly
-  display the content of the file _in scaled voxel space_.
-* OME-NGFF does not currently offer the possibility to store an intensity
-  transform. This means that OME-NGFF viewers will not use the intensity
-  affine transform encoded by `scl_slope` and `scl_inter` in the nifti header.
-* That said, the nifti layer added on top of OME-NGFF is light enough that
-  viewer developers may easily extend their software to handle
-  1. an affine geometric tranform, and
-  2. an affine intensity transform.
-* In modern languages such as Python and Julia, a virtual array
-  that points to the raw data can easily be encapsulated in a high-level
-  class that applies the intensity transform on the fly. This is
-  examplified in our Python and Julia reference implementations, which
-  respectively leverage `nibabel`'s `Nifti1Image` and `NIfTI.jl`'s `NIVolume`.
+> [!NOTE] 
+> * Being OME-NGFF compliant does not mean (for now) that the OME-NGFF
+>   transform and the NIfTI transform match. Currently, OME-NGFF only handles
+>   scales (for voxel sizes) and translations (for origin shifts caused by
+>   pyramid methods). It is therefore impossible to encode an affine tranform -
+>   or even swap axes - using the current OME-NGFF specification. What we
+>   mean by OME-NGFF compliant is that any OME-NGFF viewer will correctly
+>   display the content of the file _in scaled voxel space_.
+> * OME-NGFF does not currently offer the possibility to store an intensity
+>   transform. This means that OME-NGFF viewers will not use the intensity
+>   affine transform encoded by `scl_slope` and `scl_inter` in the nifti header.
+> * That said, the nifti layer added on top of OME-NGFF is light enough that
+>   viewer developers may easily extend their software to handle
+>   1. an affine geometric tranform, and
+>   2. an affine intensity transform.
+> * In modern languages such as Python and Julia, a virtual array
+>   that points to the raw data can easily be encapsulated in a high-level
+>   class that applies the intensity transform on the fly. This is
+>   examplified in our Python and Julia reference implementations, which
+>   respectively leverage `nibabel`'s `Nifti1Image` and `NIfTI.jl`'s `NIVolume`.
 
 The simplicity of these guiding principles should make the adoption of
 `nii.zarr` in cloud environments (almost) as straightforward as the adoption
@@ -127,12 +127,12 @@ A NIfTI-Zarr file **MUST** be a valid
 (and therefore also a valid
 [Zarr v2 dataset](https://zarr.readthedocs.io/en/stable/spec/v2.html)),
 whose directory structure and metadata are described in sections
-[2.1](#2.1.-directory-structure), [2.2](#2.2-zarr-metadata) and
-[2.3](#2.3.-OME-NGFF-metadata).
+[2.1](#21-directory-structure), [2.2](#22-multiresolution-metadata) and
+[2.3](#23-ome-ngff-metadata).
 
 In addition, it **MUST** store the nifti header corresponding to the finest
 level of the pyramid as a Zarr array with the `"nifti"` key, as described
-in section [2.4](#2.4.-nifti-header).
+in section [2.4](#24-nifti-header).
 
 ### 2.1. Directory structure
 
@@ -174,12 +174,12 @@ in section [2.4](#2.4.-nifti-header).
                               # maximum coordinate will be dimension_size / chunk_size.
 ```
 
-### 2.2. Chunks metadata
+### 2.2. Multiresolution metadata
 
 **REF:** https://zarr.readthedocs.io/en/stable/spec/v2.html#arrays
 
-`filename.nii.zarr/{0..n}/.zarray`
 ```yaml
+# {filename}.nii.zarr/{0..n}/.zarray
 {
     "chunks": [
         1,                  # Number of time chunks
@@ -212,8 +212,9 @@ in section [2.4](#2.4.-nifti-header).
 
 **REF:** https://ngff.openmicroscopy.org/0.4/#multiscale-md
 
-`filename.nii.zarr/.zattrs`
+
 ```yaml
+# {filename}.nii.zarr/.zattrs
 {
     "multiscales": [
         {
@@ -291,8 +292,8 @@ as a single-chunk zarr array if bytes under the `nifti` key:
         └── 0
 ```
 
-`filename.nii.zarr/nifti/.zarray`
 ```yaml
+# {filename}.nii.zarr/nifti/.zarray
 {
     "zarr_format": 2,       # MUST be 2
     "shape": [348],         # MUST be header length if `dtype="u1"` else 1
@@ -312,8 +313,8 @@ The JSON version is only provided for human-readability. Its values **SHOULD** b
 compatible with those of the binary header. If values conflict between the binary
 and JSON headers, the binary form **MUST** take precedence.
 
-`filename.nii.zarr/nifti/.zattrs`
 ```yaml
+# filename.nii.zarr/nifti/.zattrs
 {
     # ------------------------------------------------------------------
     # All other tags **MAY** contain JSON representations of the nifti
