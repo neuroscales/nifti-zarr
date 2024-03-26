@@ -58,7 +58,8 @@ which hampers the use of OME-NGFF with neuroimaging data in two ways:
 1. at the time of this writing, the current version of the format
    ([0.4](https://ngff.openmicroscopy.org/0.4/index.html)) only handles
    canonical scales and offsets;
-2. the coordinate transform standard being drafted is more flexible
+2. the coordinate transform standard
+   [being drafted](https://github.com/ome/ngff/pull/138) is more flexible
    than required for pure neuroimaging applications, which may prevent its
    widespread adoption by the neuroimaging community.
 
@@ -71,10 +72,12 @@ In contrast, the neuroimaging community has adopted and used a standard
 ```
 An affine transform is used to map from  the F-ordered voxel space (i, j, k)
 to world space (x, y, z). The neuroimaging community has also created a
-simple data exchange format—NIfTI—that is widely embraced and is the
-mandatory file format in standardization efforts such as BIDS. However, the
-lack of multiresolution and/or chunk support in NIfTI has lead BIDS to
-adopt OME-TIFF and OME-ZARR as mandatory formats for its microscopy component.
+simple data exchange format—[NIfTI](https://nifti.nimh.nih.gov)—that is
+widely embraced and is the mandatory file format in standardization
+efforts such as [BIDS](https://bids-specification.readthedocs.io).
+However, the lack of multiresolution and/or chunk support in NIfTI has
+led BIDS to adopt OME-TIFF and OME-ZARR as mandatory formats for its
+microscopy component.
 
 Let us further add that OME-NGFF is mostly oriented towards microscopy,
 whereas neuroimaging formats focus on magnetic resonance imaging (MRI),
