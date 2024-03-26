@@ -46,8 +46,8 @@ The [Zarr](https://zarr.readthedocs.io) format was developed to bypass
 the limitations of single-file formats such as [HDF5](https://www.hdfgroup.org/).
 The microscopy community is currently developping its own standard for
 cloud-friendly biomedical imaging data
-([OME-NGFF]((https://ngff.openmicroscopy.org)))—with a Zarr-based implementation
-([OME-Zarr]((https://ngff.openmicroscopy.org/0.4/index.html#on-disk)))—
+([OME-NGFF](https://ngff.openmicroscopy.org))—with a Zarr-based implementation
+([OME-Zarr](https://ngff.openmicroscopy.org/0.4/index.html#on-disk))—
 and adds rules for storing multi-resolutions images and medical-specific
 metadata such as axis names and voxel sizes. However, this community
 has needs in terms of metadata and coordinate-space description that are
