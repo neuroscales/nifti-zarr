@@ -136,11 +136,11 @@ def _make_compressor(name, **prm):
     return Compressor(**prm)
 
 
-def _make_pyramid5d(
-        data5d, nb_levels, pyramid_fn=pyramid_gaussian, label=False
+def _make_pyramid3d(
+        data3d, nb_levels, pyramid_fn=pyramid_gaussian, label=False
 ):
-    nt, nc, *nxyz = data5d.shape
-    data5d = data5d.reshape((-1, *nxyz))
+    batch, nxyz = data3d.shape[:-3], data3d.shape[-3:]
+    data3d = data3d.reshape((-1, *nxyz))
     max_layer = nb_levels - 1 if nb_levels > 0 else -1
 
     def pyramid_values(x):
@@ -165,8 +165,8 @@ def _make_pyramid5d(
 
     pyramid = pyramid_labels if label else pyramid_values
 
-    for level in zip(*map(pyramid, data5d)):
-        yield np.stack(level).reshape((nt, nc) + level[0].shape)
+    for level in zip(*map(pyramid, data3d)):
+        yield np.stack(level).reshape(batch + level[0].shape)
 
 
 def nii2zarr(inp, out, *,
@@ -234,19 +234,34 @@ def nii2zarr(inp, out, *,
 
     # Fix array shape
     data = np.asarray(inp.dataobj)
-    while data.ndim < 5:
-        data = data[..., None]
-    if data.ndim > 5:
+    if data.ndim == 5:
+        nbatch = 2
+        perm = [3, 4, 2, 1, 0]
+        axes = ['t', 'c', 'z', 'y', 'x']
+        ARRAY_DIMENSIONS = ['time', 'channel', 'z', 'y', 'x']
+    elif data.ndim == 4:
+        nbatch = 1
+        perm = [3, 2, 1, 0]
+        axes = ['t', 'z', 'y', 'x']
+        ARRAY_DIMENSIONS = ['time', 'z', 'y', 'x']
+    elif data.ndim == 3:
+        nbatch = 0
+        perm = [2, 1, 0]
+        axes = ['z', 'y', 'x']
+        ARRAY_DIMENSIONS = ['z', 'y', 'x']
+    elif data.ndim > 5:
         raise ValueError('Too many dimensions for conversion to nii.zarr')
-    data = data.transpose([3, 4, 2, 1, 0])
+    else:
+        raise ValueError('Too few dimensions, this is weird')
+    data = data.transpose(perm)
 
     # Compute image pyramid
     if label is None:
         label = jsonheader["intent"]["code"] == "LABEL"
     pyramid_fn = pyramid_gaussian if method[0] == 'g' else pyramid_laplacian
-    data = list(_make_pyramid5d(data, nb_levels, pyramid_fn, label))
+    data = list(_make_pyramid3d(data, nb_levels, pyramid_fn, label))
     nb_levels = len(data)
-    shapes = [d.shape[2:] for d in data]
+    shapes = [d.shape[-3:] for d in data]
 
     # Prepare array metadata at each level
     compressor = _make_compressor(compressor, **compressor_options)
@@ -257,8 +272,8 @@ def nii2zarr(inp, out, *,
         chunk = [chunk]
     chunk = list(map(list, chunk))
     chunk = [c + c[-1:] * max(0, 3 - len(c)) for c in chunk]
-    chunk = [c + [1] * max(0, 5 - len(c)) for c in chunk]
-    chunk = [[c[i] for i in [3, 4, 2, 1, 0]] for c in chunk]
+    chunk = [c + [1] * max(0, 3 + nbatch - len(c)) for c in chunk]
+    chunk = [[c[i] for i in perm] for c in chunk]
     chunk = [{
         'chunks': c,
         'dimension_separator': r'/',
@@ -272,7 +287,7 @@ def nii2zarr(inp, out, *,
     # Write zarr arrays
     write_multiscale(
         data, out,
-        axes=('t', 'c', 'z', 'y', 'x'),
+        axes=axes,
         storage_options=chunk
     )
 
@@ -281,20 +296,11 @@ def nii2zarr(inp, out, *,
 
     # write xarray metadata
     for i in range(len(data)):
-        out[i].attrs['_ARRAY_DIMENSIONS'] = ['time', 'channel', 'z', 'y', 'x']
+        out[i].attrs['_ARRAY_DIMENSIONS'] = ARRAY_DIMENSIONS
 
     # Ensure that OME attributes are compatible
     multiscales = out.attrs["multiscales"]
     multiscales[0]["axes"] = [
-        {
-            "name": "t",
-            "type": "time",
-            "unit": jsonheader["units"]["time"],
-        },
-        {
-            "name": "c",
-            "type": "channel"
-        },
         {
             "name": "z",
             "type": "space",
@@ -311,23 +317,30 @@ def nii2zarr(inp, out, *,
             "unit": jsonheader["units"]["space"],
         }
     ]
+    if nbatch >= 2:
+        multiscales[0]["axes"].insert(0, {
+            "name": "c",
+            "type": "channel"
+        })
+    if nbatch >= 1:
+        multiscales[0]["axes"].insert(0, {
+            "name": "t",
+            "type": "time",
+            "unit": jsonheader["units"]["time"],
+        })
     for n, level in enumerate(multiscales[0]["datasets"]):
         # skimage pyramid_gaussian/pyramid_laplace use
         # scipy.ndimage.zoom(..., grid_mode=True)
         # so the effective scaling is the shape ratio, and there is
         # a half voxel shift wrt to the "center of first voxel" frame
-        level["coordinateTransformations"][0]["scale"] = [
-            1.0,
-            1.0,
+        level["coordinateTransformations"][0]["scale"] = [1.0] * nbatch + [
             (shapes[0][0]/shapes[n][0])*jsonheader["pixdim"][2],
             (shapes[0][1]/shapes[n][1])*jsonheader["pixdim"][1],
             (shapes[0][2]/shapes[n][2])*jsonheader["pixdim"][0],
         ]
         level["coordinateTransformations"].append({
             "type": "translation",
-            "translation": [
-                0.0,
-                0.0,
+            "translation": [0.0] * nbatch + [
                 (shapes[0][0]/shapes[n][0] - 1)*jsonheader["pixdim"][2]*0.5,
                 (shapes[0][1]/shapes[n][1] - 1)*jsonheader["pixdim"][1]*0.5,
                 (shapes[0][2]/shapes[n][2] - 1)*jsonheader["pixdim"][0]*0.5,
@@ -335,17 +348,17 @@ def nii2zarr(inp, out, *,
         })
     multiscales[0]["coordinateTransformations"] = [
         {
-            "scale": [
-                jsonheader["pixdim"][3]
-                if len(jsonheader["pixdim"]) > 3 else 1.0,
-                1.0,
-                1.0,
-                1.0,
-                1.0
-            ],
+            "scale": [1.0] * 3,
             "type": "scale"
         }
     ]
+    if nbatch >= 2:
+        multiscales[0]["coordinateTransformations"][0]['scale'].insert(
+            0, 1.0)
+    if nbatch >= 1:
+        multiscales[0]["coordinateTransformations"][0]['scale'].insert(
+            0, jsonheader["pixdim"][3])
+
     out.attrs["multiscales"] = multiscales
 
 
