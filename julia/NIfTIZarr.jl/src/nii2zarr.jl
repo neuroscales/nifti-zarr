@@ -2,6 +2,7 @@ import EnumX: @enumx
 import Images: gaussian_pyramid
 import NIfTI
 import Zarr
+import Base: delete!
 
 @enumx CompressorType no = raw = 0 blosc zlib
 @enumx PyramidMethod gaussian
@@ -78,7 +79,7 @@ function nii2json(header::NiftiHeader, byteorder::ByteOrder.T)
         ),
         "sform" => Dict(
             "intent" => XFormRecoder(header.sform_code),
-            "affine" => [header.srow_x... ; header.srow_y... ; header.srow_z...]
+            "affine" => [[header.srow_x...] [header.srow_y...] [header.srow_z...]]
         )
     )
     if !isfinite(jsonheader["scl"]["slope"])
@@ -101,16 +102,14 @@ function nii2json(header::NiftiHeader, byteorder::ByteOrder.T)
         jsonheader["datatype"] = bo * jsonheader["datatype"]
     end
 
-    # Dump the binary header
-    jsonheader["base64"] = base64encode(header)
-
     return jsonheader
 end
 
 
-function _make_pyramid5d(data5d::AbstractArray, nb_levels::Integer, label::Bool=false)
-    (nt, nc, nxyz...) = size(data5d)
-    data4d = reshape(data5d, (nt*nc, nxyz...))
+function _make_pyramid3d(data3d::AbstractArray, nb_levels::Integer, label::Bool=false)
+    (nbatch..., nx, ny, nz) = size(data3d)
+    nxyz = (nx, ny, nz)
+    data4d = reshape(data3d, (prod(nbatch), nxyz...))
     if nb_levels < 0
         T = typeof(nb_levels)
         nb_levels = min(T.(floor.(log2.(nxyz) .- 2))...)
@@ -144,12 +143,12 @@ function _make_pyramid5d(data5d::AbstractArray, nb_levels::Integer, label::Bool=
 
     level0 = map(x->reshape(x[begin], (1, size(x[begin])...)), pyramids3d)
     level0 = reduce(vcat, level0)
-    level0 = reshape(level0, (nt, nc, size(level0)[2:end]...))
+    level0 = reshape(level0, (nbatch..., size(level0)[2:end]...))
     levels = [level0]
 
     for n in 2:length(pyramids3d[1])
         level = reduce(vcat, map(x->reshape(x[n], (1, size(x[n])...)), pyramids3d))
-        level = reshape(level, (nt, nc, size(level)[2:end]...))
+        level = reshape(level, (nbatch..., size(level)[2:end]...))
         push!(levels, level)
     end
 
@@ -159,6 +158,7 @@ end
 _compressor_map = Dict(
     CompressorType.no => Zarr.NoCompressor,
     CompressorType.blosc => Zarr.BloscCompressor,
+    CompressorType.zlib => Zarr.ZlibCompressor,
 )
 _make_compressor(x; kwargs...) = x
 _make_compressor(name::CompressorType.T; kwargs...) = _compressor_map[name](;kwargs...)
@@ -205,48 +205,39 @@ function _nii2zarr_prepare_chunk(x::Array, nb_levels)
     end
 end
 
-_ensure5d(::AbstractArray) = error("Too many dimensions for conversion to nii.zarr")
-_ensure5d(x::AbstractArray{T, 5} where T) = x
-_ensure5d(x::AbstractArray{T, 4} where T) = reshape(x, (size(x)..., 1))
-_ensure5d(x::AbstractArray{T, 3} where T) = reshape(x, (size(x)..., 1, 1))
-_ensure5d(x::AbstractArray{T, 2} where T) = reshape(x, (size(x)..., 1, 1, 1))
-_ensure5d(x::AbstractArray{T, 1} where T) = reshape(x, (size(x)..., 1, 1, 1, 1))
-_ensure5d(x::AbstractArray{T, 0} where T) = reshape(x, (1, 1, 1, 1, 1))
 
-
-function _nii2zarr_ome_attrs(shapes, niiheader)
+function _nii2zarr_ome_attrs(axes, shapes, niiheader)
     attrs = Dict(
-        "nifti" => niiheader,
         "multiscales" => [Dict()]
     )
     multiscales = attrs["multiscales"][1]
 
-    multiscales["axes"] = [
-        Dict(
-            "name" => "t",
-            "type" => "time",
-            "unit" => niiheader["units"]["time"],
-        ),
-        Dict(
-            "name" => "c",
-            "type" => "channel"
-        ),
-        Dict(
-            "name" => "z",
-            "type" => "space",
-            "unit" => niiheader["units"]["space"],
-        ),
-        Dict(
-            "name" => "y",
-            "type" => "space",
-            "unit" => niiheader["units"]["space"],
-        ),
-        Dict(
-            "name" => "x",
-            "type" => "space",
-            "unit" => niiheader["units"]["space"],
+    typemap = Dict(
+        "t" => "time",
+        "c" => "channel",
+        "z" => "space",
+        "y" => "space",
+        "x" => "space",
+    )
+    idxmap = Dict(
+        "x" => 1,
+        "y" => 2,
+        "z" => 3,
+        "t" => 4,
+    )
+
+    multiscales["axes"] = [(
+        typemap[axis] == "channel"
+        ? Dict(
+            "name" => axis,
+            "type" => typemap[axis]
         )
-    ]
+        : Dict(
+            "name" => axis,
+            "type" => typemap[axis],
+            "unit" => niiheader["units"][typemap[axis]]
+        )
+    ) for axis in axes]
 
     multiscales["datasets"] = [Dict() for _ in 1:length(shapes)]
     for n in eachindex(shapes)
@@ -260,36 +251,30 @@ function _nii2zarr_ome_attrs(shapes, niiheader)
         level["coordinateTransformations"] = [
             Dict(
                 "type" => "scale",
-                "scale" => [
-                    1.0,
-                    1.0,
-                    (shapes[1][1]/shapes[n][1])*niiheader["pixdim"][3],
-                    (shapes[1][2]/shapes[n][2])*niiheader["pixdim"][2],
-                    (shapes[1][3]/shapes[n][3])*niiheader["pixdim"][1],
-                ]
+                "scale" => [(
+                    typemap[axis] == "spatial"
+                    ? (shapes[1][i]/shapes[n][i])*niiheader["pixdim"][idxmap[axis]]
+                    : 1.0
+                ) for (i, axis) in enumerate(axes)]
             ),
             Dict(
                 "type" => "translation",
-                "translation" => [
-                    0.0,
-                    0.0,
-                    (shapes[1][1]/shapes[n][1] - 1)*niiheader["pixdim"][3]*0.5,
-                    (shapes[1][2]/shapes[n][2] - 1)*niiheader["pixdim"][2]*0.5,
-                    (shapes[1][3]/shapes[n][3] - 1)*niiheader["pixdim"][1]*0.5,
-                ]
+                "translation" => [(
+                    typemap[axis] == "spatial"
+                    ? (shapes[1][i]/shapes[n][i] - 1)*niiheader["pixdim"][idxmap[axis]]*0.5
+                    : 0.0
+                ) for (i, axis) in enumerate(axes)]
             ),
         ]
     end
 
     # time scale
     multiscales["coordinateTransformations"] = [Dict(
-        "scale" => [
-            length(niiheader["pixdim"]) > 3 ? niiheader["pixdim"][4] : 1.0,
-            1.0,
-            1.0,
-            1.0,
-            1.0
-        ],
+        "scale" => [(
+            typemap[axis] == "time"
+            ? niiheader["pixdim"][idxmap[axis]]
+            : 1.0
+        )  for (i, axis) in enumerate(axes)],
         "type" => "scale"
     )]
 
@@ -331,6 +316,7 @@ Convert a nifti file to nifti-zarr directory.
       each dimension.
     * The outer array allows different chunk sizes to be used at
       different pyramid levels.
+    * By default, the chunk size for axes "t" and "c" is one.
 - `nb_levels`: Number of levels in the pyramid. Default: all possible levels.
 - `method`: Method used to compute the pyramid. Only gaussian supported.
 - `label`: Is this is a label volume?  By default, guess from intent code.
@@ -357,8 +343,27 @@ function nii2zarr(inp::NIfTI.NIVolume, out::Zarr.ZGroup;
     jsonheader = nii2json(header)
 
     # Fix array shape
-    data = _ensure5d(inp.raw)
-    data = PermutedDimsArray(data, [4, 5, 3, 2, 1])
+    if ndims(inp.raw) == 3
+        nbatch = 0
+        perm = [3, 2, 1]
+        axes = ["z", "y", "x"]
+        ARRAY_DIMENSIONS = ["z", "y", "x"]
+    elseif ndims(inp.raw) == 4
+        nbatch = 1
+        perm = [4, 3, 2, 1]
+        axes = ["t", "z", "y", "x"]
+        ARRAY_DIMENSIONS = ["time", "z", "y", "x"]
+    elseif ndims(inp.raw) == 5
+        nbatch = 2
+        perm = [4, 5, 3, 2, 1]
+        axes = ["t", "c", "z", "y", "x"]
+        ARRAY_DIMENSIONS = ["time", "channel", "z", "y", "x"]
+    elseif ndims(inp.raw) > 5
+        error("Too many dimensions for conversion to nii.zarr")
+    else
+        error("Too few dimensions for conversion to nii.zarr. Is this really an image?")
+    end
+    data = PermutedDimsArray(inp.raw, perm)
 
     # Compute image pyramid
     bool_label = jsonheader["intent"]["code"] in ("LABEL", "NEURONAMES")
@@ -368,36 +373,56 @@ function nii2zarr(inp::NIfTI.NIVolume, out::Zarr.ZGroup;
         bool_label = false
     end
 
-    data = _make_pyramid5d(data, nb_levels, bool_label)
+    data = _make_pyramid3d(data, nb_levels, bool_label)
     nb_levels = length(data)
-    shapes = [size(d)[3:end] for d in data]
-    attrs = _nii2zarr_ome_attrs(shapes, jsonheader)
+    shapes = [size(d) for d in data]
+    attrs = _nii2zarr_ome_attrs(axes, shapes, jsonheader)
 
     # Prepare array metadata at each level
     compressor = _make_compressor(compressor; compressor_options...)
     chunk = _nii2zarr_prepare_chunk(chunk, nb_levels)
-    chunk = map(x->(x[4], x[5], x[3], x[2], x[1]), chunk)
-    chunk = [Dict(
-        :chunks => c,
-        # :dimension_separator => '/',
-        # :order => 'F',
-        :fill_value => fill_value,
-        :compressor => compressor
-    ) for c in chunk]
+    chunk = map(x->Dict("x"=>x[1], "y"=>x[2], "z"=>x[3], "t"=>x[4], "c"=>x[5]), chunk)
+    chunk = map(x->Tuple(x[axis] for axis in axes), chunk)
+
+    # Write nifti header
+    header.magic = MAGIC1Z
+    binheader = bytesencode(header)
+    delete!(out.storage, "", "nifti")
+    header_array = Zarr.zcreate(
+        eltype(binheader), out, "nifti", length(binheader);
+        chunks=(length(binheader),),
+        fill_as_missing=false,
+        fill_value=nothing,
+        compressor=Zarr.NoCompressor(),
+        attrs=jsonheader
+    )
+    # header_array[:] = binheader
+    copy!(header_array, binheader)
 
     # Write group attributes
     Zarr.writeattrs(out.storage, out.path, attrs)
 
     # Write zarr arrays
-    shapes = [size(d) for d in data]
     for n in eachindex(shapes)
+        delete!(out.storage, "", string(n-1))
         subarray = Zarr.zcreate(
             eltype(data[n]), out, string(n-1), shapes[n]...;
+            chunks=chunk[n],
             fill_as_missing=false,
-            attrs = Dict("_ARRAY_DIMENSIONS" => ["time", "channel", "z", "y", "x"]),
-            chunk[n]...
+            fill_value=nothing,
+            compressor=compressor,
+            # dimension_separator='/',
+            # order='F',
+            attrs = Dict("_ARRAY_DIMENSIONS" => ARRAY_DIMENSIONS)
         )
-        subarray[:,:,:,:,:] = data[n]
+        # subarray[:,:,:] = data[n]
+        copy!(subarray, data[n])
     end
 
 end
+
+
+# Fix delete! from Zarr.jl, which implements it as:
+#   Base.delete!(s::DirectoryStore, k::String) = isfile(joinpath(s.folder, k)) && rm(joinpath(s.folder, k))
+# Their version only deletes files, and not directories.
+delete!(s::Zarr.DirectoryStore, k::String) = rm(joinpath(s.folder, k); force=true, recursive=true)

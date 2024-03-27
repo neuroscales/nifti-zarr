@@ -3,12 +3,17 @@ import EnumX: @enumx
 import Formatting: printfmt
 import Base64: base64encode, Base64DecodePipe
 import NIfTI
-import GZip
+# import GZip
+import CodecZlib: GzipCompressorStream, GzipDecompressorStream
 
 
 """A generic IO type"""
 IOType = Union{IO,AbstractString}
 
+struct OpenedStream{T<:IO}
+    stream::T
+    mine::Vector{<:IO}
+end
 
 abstract type NiftiHeader end
 
@@ -29,11 +34,11 @@ Create a NTuple of zeros
 ztuple(n) = ntuple(x->0, n)
 
 # Valid magic strings
-MAGIC1 = UInt8.(('n', 'i', '1', '\0'))   # single file
-MAGIC1P = UInt8.(('n', '+', '1', '\0'))  # two file
+MAGIC1 = UInt8.(('n', 'i', '1', '\0'))   # two files
+MAGIC1P = UInt8.(('n', '+', '1', '\0'))  # single file
 MAGIC1Z = UInt8.(('n', 'z', '1', '\0'))  # zarr folder
-MAGIC2 = UInt8.(('n', 'i', '1', '\0', '\0', '\0', '\0', '\0'))   # single file
-MAGIC2P = UInt8.(('n', '+', '1', '\0', '\0', '\0', '\0', '\0'))  # two file
+MAGIC2 = UInt8.(('n', 'i', '1', '\0', '\0', '\0', '\0', '\0'))   # two files
+MAGIC2P = UInt8.(('n', '+', '1', '\0', '\0', '\0', '\0', '\0'))  # single file
 MAGIC2Z = UInt8.(('n', 'z', '1', '\0', '\0', '\0', '\0', '\0'))  # zarr folder
 
 """
@@ -130,18 +135,46 @@ needs_swap(h::Nifti2Header) = (bswap(h.sizeof_hdr) == 540)
 
 
 # Open stream if needed, using the correct opener
-_stream(io::IO) = io
-function _stream(io::AbstractString, mode="r")
-    io = lowercase(io)
-    endswith(io, ".gz") && return GZip.open(io, mode)
-    rawio = open(io, mode)
-    return read(rawio, UInt16 == 0x8b1f) ? GZip.open(io, mode) : rawio
+function _open_stream(path::AbstractString, mode="r")
+    io = open(path, mode)
+    if endswith(lowercase(path), ".gz")
+        stream = mode == "r" ? GzipDecompressorStream(io) : GzipCompressorStream(io)
+        return OpenedStream(stream, [stream, io])
+    else
+        return _open_stream(OpenedStream(io, [io]))
+    end
 end
+
+function _open_stream(io::IO, mode="r")
+    if mode == "r" && startswith(io, GZIP_MAGIC)
+        stream = GzipDecompressorStream(io)
+        return OpenedStream(stream, [stream])
+    else
+        return OpenedStream(io, IO[])
+    end
+end
+
+GZIP_MAGIC = 0x8b1f
+GZIP_MAGIC = String(UInt8[GZIP_MAGIC >>> 8, GZIP_MAGIC & 0xff])
+
+function _open_stream(io::OpenedStream, mode="r")
+    if mode == "r" && startswith(io.stream, GZIP_MAGIC)
+        stream = GzipDecompressorStream(io.stream)
+        return OpenedStream(stream, [io.stream; io.mine])
+    else
+        return io
+    end
+end
+
+_open_stream(io::OpenedStream{GzipDecompressorStream}, mode="r") = io
+_open_stream(io::OpenedStream{GzipCompressorStream}, mode="w") = io
+
 
 # Read header, bswap and tell if bswap needed
 function _read!(io::IOType, header::NiftiHeader)
-    io = _stream(io)
-    Base.read!(io, Ref(header))
+    io = _open_stream(io)
+    Base.read!(io.stream, Ref(header))
+    map(close, io.mine)
     do_swap = needs_swap(header)
     if do_swap
         smap!(bswap, header)
@@ -160,8 +193,9 @@ read(io::AbstractString, type::Type{<:NiftiHeader}) = _read!(io, type())[:header
 function write(io::IOType, header::NiftiHeader, bswap::Bool=false)
     io = _stream(io, 'w')
     header = bswap ? smap(Base.bswap, header) : header
-    write(io, Ref(header))
-    return io
+    write(io.stream, Ref(header))
+    map(close, io.mine)
+    return io.stream
 end
 
 # Convert from NIfTI.jl to ours
@@ -176,6 +210,19 @@ function convert(::Type{NIfTI.NIfTI1Header}, x::Nifti1Header)
     ptr = reinterpret(Ptr{UInt8}, pointer_from_objref(x))
     vec = unsafe_wrap(Vector{UInt8}, ptr, sizeof(x), own=false)
     read(IOBuffer(vec), NIfTI.NIfTI1Header)[1]
+end
+
+function bytesencode(x::NiftiHeader)
+    ptr = reinterpret(Ptr{UInt8}, pointer_from_objref(x))
+    vec = unsafe_wrap(Vector{UInt8}, ptr, sizeof(x), own=false)
+end
+
+function bytesdecode(::Type{Nifti1Header}, x::Vector{UInt8})
+    read(IOBuffer(x), Nifti1Header)
+end
+
+function bytesdecode(::Type{NIfTI.NIfTI1Header}, x::Vector{UInt8})
+    read(IOBuffer(x), NIfTI.NIfTI1Header)[1]
 end
 
 function base64encode(x::NiftiHeader)

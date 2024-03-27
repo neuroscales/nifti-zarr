@@ -4,9 +4,9 @@ import StaticArrays: SVector
 import NIfTI: NIVolume
 
 
-_zarr2nii_prepare_out(x::AbstractString) = _stream(x, "w")
-_zarr2nii_prepare_out(x::IO) = x
+_zarr2nii_prepare_out(x) = _open_stream(x, "w")
 _zarr2nii_prepare_out(x::Nothing) = x
+_zarr2nii_prepare_out(x::OpenedStream) = x
 _zarr2nii_prepare_inp(x) = Zarr.zopen(x)
 _zarr2nii_prepare_inp(x::Zarr.ZGroup) = x
 
@@ -19,9 +19,16 @@ zarr2nii(inp, out=nothing; level::Integer=0) = zarr2nii(
 )
 
 # version that writes out a nifti file
-function zarr2nii(inp::Zarr.ZGroup, out::IO; level::Integer=0)
+function zarr2nii(inp::Zarr.ZGroup, out::OpenedStream; level::Integer=0)
     vol = zarr2nii(inp; level=level)
-    write(out, vol)
+    # We have to load it in contiguous memory, otherwise bytes are written
+    # all shuffled (i.e., julia writes the contiguous bytes in the array,
+    # wether or not their data are F-ordered). Since we use permutedims
+    # in the main function, our data is never F-ordered so we always
+    # need to make a copy before writing to disk.
+    vol = NIVolume(vol.header, vol.extensions, copy(vol.raw))
+    write(out.stream, vol)
+    map(close, out.mine)
     return vol
 end
 
@@ -42,10 +49,10 @@ This function always returns a `NIfTI.NIVolume`.
 function zarr2nii(inp::Zarr.ZGroup, ::Nothing=nothing; level::Integer=0)
 
     # build structured header
-    header = base64decode(inp.attrs["nifti"]["base64"], Nifti1Header)
-
-    # create nibabel header (useful to convert quat 2 affine, etc)
-    niiheader = convert(NIfTI.NIfTI1Header, header)
+    binheader = zeros(UInt8, length(inp.arrays["nifti"]))
+    copy!(binheader, inp.arrays["nifti"])
+    niiheader = bytesdecode(NIfTI.NIfTI1Header, binheader)
+    niiheader.magic = MAGIC1P
 
     # create affine at current resolution
     if level != 0
@@ -85,11 +92,17 @@ function zarr2nii(inp::Zarr.ZGroup, ::Nothing=nothing; level::Integer=0)
 
     # reorder/reshape array as needed
     nbdim = niiheader.dim[1]
+    if nbdim == 3
+        perm = (3, 2, 1)
+    elseif nbdim == 4
+        perm = (4, 3, 2, 1)
+    elseif nbdim == 5
+        perm = (5, 4, 3, 1, 2)
+    else
+        error("Array should have 3 to 5 dimensions")
+    end
     niiarray = inp.arrays[string(level)]
-    niiarray = permutedims(niiarray, (5, 4, 3, 1, 2))
-    slicer = (Tuple(Colon() for _ in 1:nbdim)...,
-              Tuple(1 for _ in 1:(5-nbdim))...)
-    niiarray = niiarray[slicer...]
+    niiarray = permutedims(niiarray, perm)
 
     # create NIVolume
     return NIVolume(niiheader, niiarray)
