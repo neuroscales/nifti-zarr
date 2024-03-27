@@ -95,7 +95,7 @@ that it gets adopted by the community. Its guiding principles are
 * __NIfTI-priority:__ if metadata conflict across the nifti header and OME
   attributes, the nifti metadata should take precedence.
 
-> [!NOTE] 
+> [!NOTE]
 > * Being OME-NGFF compliant does not mean (for now) that the OME-NGFF
 >   transform and the NIfTI transform match. Currently, OME-NGFF only handles
 >   scales (for voxel sizes) and translations (for origin shifts caused by
@@ -323,7 +323,7 @@ and JSON headers, the binary form **MUST** take precedence.
     # ------------------------------------------------------------------
 
     "magic": b"nz1\0",              # MUST be "nz1\0" or "nz2\0"
-    "dim" : [128, 128, 128, 1, 3],  # SHOULD match filename.nii.zarr/0/.zarray["shape"][[4, 3, 2, 0, 1]]
+    "dim": [128, 128, 128, 1, 3],   # SHOULD match filename.nii.zarr/0/.zarray["shape"][[4, 3, 2, 0, 1]]
     "pixdim": [                     # xtztc unit size, SHOULD match:
         1.5, 1.5, 1.5,              #   filename.nii.zarr/.zattrs["multiscales"][0]["datasets"][0]["coordinateTransformations"][0]["scale"][2:5][::-1]
         0.1,                        #   filename.nii.zarr/.zattrs["multiscales"][0]["coordinateTransformations"][0]["scale"][0]
