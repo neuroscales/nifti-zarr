@@ -1,0 +1,235 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema",
+    "$id": "https://raw.githubusercontent.com/neuroscales/nifti-zarr/main/nifti-zarr-schema-0.2.json",
+    "title": "NIfTI-Zarr v0.2 - NIfTI header in JSON form",
+    "type": "object",
+    "properties": {
+        "magic": {
+            "description": "NIfTI magic string",
+            "enum": ["ni1", "n+1", "nz1", "ni2", "n+2", "nz2"]
+        },
+        "pixdim": {
+            "description": "Spacing between elements for each dimension",
+            "type": "array",
+            "items": {"type": "number", "minimum": 0},
+            "minItems": 3,
+            "maxItems": 5
+        },
+        "units": {
+            "description": "Space and time units",
+            "type": "object",
+            "properties": {
+                "space": { "enum": ["", "meter",  "millimeter", "micrometer"] },
+                "time": { "enum": [ "", "second", "millisecond", "microsecond"] }
+            }
+        },
+        "datatype": {
+            "description": "Data type, in numpy format",
+            "type": "string"
+        },
+        "dim_info": {
+            "type": "object",
+            "properties": {
+                "freq": { "enum": [0, 1, 2, 3] },
+                "phase": { "enum": [0, 1, 2, 3] },
+                "slice": { "enum": [0, 1, 2, 3] }
+            }
+        },
+        "intent": {
+            "description": "Data intent or meaning",
+            "type": "object",
+            "properties": {
+                "code": {
+                    "description": "A valid intent code (see table 4.2)",
+                    "anyOf": [
+                        {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 65535
+                        },
+                        {
+                            "enum": [
+                                "NONE",
+                                "CORREL",
+                                "TTEST",
+                                "FTEST",
+                                "ZSCORE",
+                                "CHISQ",
+                                "BETA",
+                                "BINOM",
+                                "GAMMA",
+                                "POISSON",
+                                "NORMAL",
+                                "FTEST_NONC",
+                                "LOGISTIC",
+                                "LAPLACE",
+                                "UNIFORM",
+                                "TTEST_NONC",
+                                "WEIBULL",
+                                "CHI",
+                                "INVGAUSS",
+                                "CHISQ_NONC",
+                                "EXTVAL",
+                                "PVAL",
+                                "LOGPVAL",
+                                "LOG10PVAL",
+                                "ESTIMATE",
+                                "LABEL",
+                                "NEURONAME",
+                                "GENMATRIX",
+                                "SYMMATRIX",
+                                "DISPVECT",
+                                "VECTOR",
+                                "POINTSET",
+                                "TRIANGLE",
+                                "QUATERNION",
+                                "DIMLESS",
+                                "TIME_SERIES",
+                                "NODE_INDEX",
+                                "RGB_VECTOR",
+                                "RGBA_VECTOR",
+                                "SHAPE",
+                                "FSL_FNIRT_DISPLACEMENT_FIELD",
+                                "FSL_CUBIC_SPLINE_COEFFICIENTS",
+                                "FSL_DCT_COEFFICIENTS",
+                                "FSL_QUADRATIC_SPLINE_COEFFICIENTS",
+                                "FSL_TOPUP_CUBIC_SPLINE_COEFFICIENTS",
+                                "FSL_TOPUP_QUADRATIC_SPLINE_COEFFICIENTS",
+                                "FSL_TOPUP_FIELD"
+                            ]
+                        }
+                    ]
+                },
+                "name": {
+                    "description": "'name' or meaning of data",
+                    "type": "string"
+                },
+                "p": {
+                    "description": "Intent parameters (see table 4.2)",
+                    "type": "array",
+                    "items": {"type": "number"}
+                }
+            }
+        },
+        "scl": {
+            "description": "Intensity transform",
+            "type": "object",
+            "properties": {
+                "slope": { "type": "number" },
+                "inter": { "type": "number" }
+            }
+        },
+        "slice": {
+            "description": "Slice timing order",
+            "type": "object",
+            "properties": {
+                "code": {
+                    "description": "A valid slice timing code (see table 4.6)",
+                    "enum": [
+                        "UNKNOWN",
+                        "SEQ_INC",
+                        "SEQ_DEC",
+                        "ALT_INC",
+                        "ALT_DEC",
+                        "ALT_INC2",
+                        "ALT_DEC2"
+                    ]
+                },
+                "start": {
+                    "description": "First slice index",
+                    "type": "integer"
+                },
+                "end": {
+                    "description": "Last slice index",
+                    "type": "integer"
+                },
+                "duration": {
+                    "description": "Time for 1 slice",
+                    "type": "number"
+                }
+            }
+        },
+        "cal": {
+            "description": "Min/max display intensity",
+            "type": "object",
+            "properties": {
+                "min": { "type": "number" },
+                "max": { "type": "number" }
+            }
+        },
+        "toffset": {
+            "description": "Time axis shift",
+            "type": "number"
+        },
+        "description": {
+            "description": "Any text you like",
+            "type": "string",
+            "maxLength": 80
+        },
+        "aux_file": {
+            "description": "Auxiliary filename",
+            "type": "string",
+            "maxLength": 24
+        },
+        "qform": {
+            "description": "Affine transform encoded by quaternions",
+            "type": "object",
+            "properties": {
+                "code": {
+                    "description": "A valid xform name (see table 4.5)",
+                    "enum": [
+                        "UNKNOWN",
+                        "SCANNER_ANAT",
+                        "ALIGNED_ANAT",
+                        "TALAIRACH",
+                        "MNI",
+                        "TEMPLATE_OTHER"
+                    ]
+                },
+                "quatern": {
+                    "description": "Quaternion",
+                    "type": "array",
+                    "items": { "type": "number" },
+                    "minItems": 3,
+                    "maxItems": 3
+                },
+                "offset": {
+                    "description": "Translation",
+                    "type": "array",
+                    "items": { "type": "number" },
+                    "minItems": 3,
+                    "maxItems": 3
+                }
+            }
+        },
+        "sform": {
+            "description": "Affine transform encoded by a matrix",
+            "type": "object",
+            "properties": {
+                "code": {
+                    "description": "A valid xform name (see table 4.5)",
+                    "enum": [
+                        "UNKNOWN",
+                        "SCANNER_ANAT",
+                        "ALIGNED_ANAT",
+                        "TALAIRACH",
+                        "MNI",
+                        "TEMPLATE_OTHER"
+                    ]
+                },
+                "affine": {
+                    "description": "3x4 Matrix",
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": { "type": "number" },
+                        "minItems": 4,
+                        "maxItems": 4
+                    },
+                    "minItems": 3,
+                    "maxItems": 3
+                }
+            }
+        }
+    }
+}
