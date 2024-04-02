@@ -303,7 +303,7 @@ as a single-chunk zarr array if bytes under the `nifti` key:
     },
     "dtype": "u1",          # MUST be "u1" or "S{length:d}"
     "order": "C",           # UNUSED ("F" or "C")
-    "chunks": [1],          # MUST be 1
+    "chunks": [348],        # MUST be same as `"shape"`
     "fill_value": null,     # UNUSED
 }
 ```
