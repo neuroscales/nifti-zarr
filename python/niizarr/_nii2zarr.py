@@ -395,6 +395,9 @@ def cli(args=None):
         '--fill', type=float, default=float('nan'),
         help='Missing value')
     parser.add_argument(
+        '--label', default=None, action='store_true'
+        help='Segmentation file')
+    parser.add_argument(
         '--compressor', choices=('blosc', 'zlib'), default='blosc',
         help='Compressor')
 
@@ -408,4 +411,5 @@ def cli(args=None):
         method=args.method,
         fill_value=args.fill,
         compressor=args.compressor,
+        label=args.label,
     )
