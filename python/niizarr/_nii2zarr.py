@@ -153,7 +153,7 @@ def _make_pyramid3d(
             pyrprob = list(pyramid_values(x == label))[1:]
             for (value, prob, maxprob) in zip(pyramid, pyrprob, pyrmaxprob):
                 mask = prob > maxprob
-                value[mask] = label[mask]
+                value[mask] = label
                 maxprob[mask] = prob[mask]
 
         for level in pyramid:
