@@ -167,10 +167,13 @@ def _make_pyramid3d(
 
 def nii2zarr(inp, out, *,
              chunk=64,
+             chunk_channel=1,
+             chunk_time=1,
              nb_levels=-1,
              method='gaussian',
              label=None,
-             fill_value=float('nan'),
+             no_time=False,
+             fill_value=None,
              compressor='blosc',
              compressor_options={}):
     """
@@ -185,18 +188,27 @@ def nii2zarr(inp, out, *,
 
     Other Parameters
     ----------------
-    chunk : [list of [list of]] int
-        Chunk size, per x/y/z/t/c, per level.
-        * The inner list allows different chunk sizes to be used along
+    chunk : [list of [tuple of]] int
+        Chunk size of the spatial dimensions, per x/y/z, per level.
+        * The inner tuple allows different chunk sizes to be used along
           each dimension.
         * The outer list allows different chunk sizes to be used at
           different pyramid levels.
+    chunk_channel : int
+        Chunk size of the channel dimension. If 0, combine all channels
+        in a single chunk.
+    chunk_time : int
+        Chunk size of the time dimension. If 0, combine all timepoints
+        in a single chunk.
     nb_levels : int
         Number of levels in the pyramid. Default: all possible levels.
     method : {'gaussian', 'laplacian'}
         Method used to compute the pyramid.
     label : bool
         Is this is a label volume?  If `None`, guess from intent code.
+    no_time : bool
+        If True, there is no time dimension so the 4th dimension
+        (if it exists) should be interpreted as the channel dimensions.
     fill_value : number
         Value to use for missing tiles
     compressor : {'blosc', 'zlib'}
@@ -220,6 +232,9 @@ def nii2zarr(inp, out, *,
                 out = zarr.storage.DirectoryStore(out)
         out = zarr.group(store=out, overwrite=True)
 
+    if no_time and len(inp.shape) > 3:
+        inp = Nifti1Image(inp.dataobj[:, :, :, None], inp.affine, inp.header)
+
     # Parse nifti header
     v = int(inp.header.structarr['magic'].tobytes().decode()[2])
     header = np.frombuffer(inp.header.structarr.tobytes(), count=1,
@@ -230,23 +245,40 @@ def nii2zarr(inp, out, *,
         swappedheader = header
     jsonheader = nii2json(swappedheader)
 
-    # Fix array shape
     data = np.asarray(inp.dataobj)
+
+    if fill_value:
+        if np.issubdtype(data.dtype, np.complexfloating):
+            fill_value = complex(fill_value)
+        elif np.issubdtype(data.dtype, np.floating):
+            fill_value = float(fill_value)
+        elif np.issubdtype(data.dtype, np.integer):
+            fill_value = int(fill_value)
+        elif np.issubdtype(data.dtype, np.bool_):
+            fill_value = bool(fill_value)
+
+    # Fix array shape
     if data.ndim == 5:
         nbatch = 2
         perm = [3, 4, 2, 1, 0]
         axes = ['t', 'c', 'z', 'y', 'x']
         ARRAY_DIMENSIONS = ['time', 'channel', 'z', 'y', 'x']
+        chunk_tc = (
+            chunk_time or data.shape[3],
+            chunk_channel or data.shape[4]
+        )
     elif data.ndim == 4:
         nbatch = 1
         perm = [3, 2, 1, 0]
         axes = ['t', 'z', 'y', 'x']
         ARRAY_DIMENSIONS = ['time', 'z', 'y', 'x']
+        chunk_tc = (chunk_time or data.shape[3],)
     elif data.ndim == 3:
         nbatch = 0
         perm = [2, 1, 0]
         axes = ['z', 'y', 'x']
         ARRAY_DIMENSIONS = ['z', 'y', 'x']
+        chunk_tc = tuple()
     elif data.ndim > 5:
         raise ValueError('Too many dimensions for conversion to nii.zarr')
     else:
@@ -255,7 +287,7 @@ def nii2zarr(inp, out, *,
 
     # Compute image pyramid
     if label is None:
-        label = jsonheader["intent"]["code"] == "LABEL"
+        label = jsonheader["intent"]["code"] in ("LABEL", "NEURONAMES")
     pyramid_fn = pyramid_gaussian if method[0] == 'g' else pyramid_laplacian
     data = list(_make_pyramid3d(data, nb_levels, pyramid_fn, label))
     nb_levels = len(data)
@@ -263,15 +295,12 @@ def nii2zarr(inp, out, *,
 
     # Prepare array metadata at each level
     compressor = _make_compressor(compressor, **compressor_options)
-    if not isinstance(chunk, (list, tuple)):
+    if not isinstance(chunk, list):
         chunk = [chunk]
-    chunk = list(chunk)
-    if not isinstance(chunk[0], (list, tuple)):
-        chunk = [chunk]
-    chunk = list(map(list, chunk))
-    chunk = [c + c[-1:] * max(0, 3 - len(c)) for c in chunk]
-    chunk = [c + [1] * max(0, 3 + nbatch - len(c)) for c in chunk]
-    chunk = [[c[i] for i in perm] for c in chunk]
+    chunk = [tuple(c) if isinstance(c, (list, tuple)) else (c,) for c in chunk]
+    chunk = [c + c[-1:] * max(0, 3 - len(c)) + chunk_tc for c in chunk]
+    chunk = [tuple(c[i] for i in perm) for c in chunk]
+    chunk = chunk + chunk[-1:] * max(0, nb_levels - len(chunk))
     chunk = [{
         'chunks': c,
         'dimension_separator': r'/',
@@ -280,7 +309,6 @@ def nii2zarr(inp, out, *,
         'fill_value': fill_value,
         'compressor': compressor,
     } for c in chunk]
-    chunk = chunk + chunk[-1:] * max(0, nb_levels - len(chunk))
 
     # Write zarr arrays
     write_multiscale(
@@ -369,7 +397,7 @@ def nii2zarr(inp, out, *,
             0, 1.0)
     if nbatch >= 1:
         multiscales[0]["coordinateTransformations"][0]['scale'].insert(
-            0, jsonheader["pixdim"][3])
+            0, jsonheader["pixdim"][3] or 1.0)
 
     out.attrs["multiscales"] = multiscales
 
@@ -383,7 +411,19 @@ def cli(args=None):
     parser.add_argument(
         'output', help='Output zarr directory')
     parser.add_argument(
-        '--chunk', type=int, default=64, help='Chunk size')
+        '--chunk', type=int, default=64, help='Spatial chunk size')
+    parser.add_argument(
+        '--unchunk-channels', action='store_true',
+        help='Save all chanels in a single chunk. '
+        'Unchunk if you want to display all channels as a single RGB '
+        'layer in neuroglancer. Chunked by default, unless datatype is RGB.'
+    )
+    parser.add_argument(
+        '--unchunk-time', action='store_true',
+        help='Save all timepoints in a single chunk.'
+        'Unchunk if you want to display all timepoints as a single RGB '
+        'layer in neuroglancer. Chunked by default. '
+    )
     parser.add_argument(
         '--levels', type=int, default=-1,
         help='Number of levels in the pyramid. If -1 (default), use '
@@ -392,11 +432,18 @@ def cli(args=None):
         '--method', choices=('gaussian', 'laplacian'), default='gaussian',
         help='Pyramid method')
     parser.add_argument(
-        '--fill', type=float, default=float('nan'),
-        help='Missing value')
+        '--fill', default=None, help='Missing value')
     parser.add_argument(
         '--compressor', choices=('blosc', 'zlib'), default='blosc',
         help='Compressor')
+    parser.add_argument(
+        '--label', action='store_true', default=None,
+        help='Segmentation volume')
+    parser.add_argument(
+        '--no-label', action='store_false', dest='label',
+        help='Not a segmentation volume')
+    parser.add_argument(
+        '--no-time', action='store_true',  help='No time dimension')
 
     args = args or sys.argv[1:]
     args = parser.parse_args(args)
@@ -404,8 +451,12 @@ def cli(args=None):
     nii2zarr(
         args.input, args.output,
         chunk=args.chunk,
+        chunk_channel=0 if args.unchunk_channels else 1,
+        chunk_time=0 if args.unchunk_time else 1,
         nb_levels=args.levels,
         method=args.method,
         fill_value=args.fill,
         compressor=args.compressor,
+        label=args.label,
+        no_time=args.no_time,
     )
