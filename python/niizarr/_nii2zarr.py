@@ -133,14 +133,24 @@ def _make_compressor(name, **prm):
 
 
 def _make_pyramid3d(
-        data3d, nb_levels, pyramid_fn=pyramid_gaussian, label=False
+        data3d, nb_levels, pyramid_fn=pyramid_gaussian, label=False,
+        no_pyramid_axis=None,
 ):
+    no_pyramid_axis = {
+        'x': 0,
+        'y': 1,
+        'z': 2,
+    }.get(no_pyramid_axis, no_pyramid_axis)
+    if isinstance(no_pyramid_axis, str):
+        no_pyramid_axis = int(no_pyramid_axis)
+
     batch, nxyz = data3d.shape[:-3], data3d.shape[-3:]
     data3d = data3d.reshape((-1, *nxyz))
     max_layer = nb_levels - 1 if nb_levels > 0 else -1
 
     def pyramid_values(x):
-        return pyramid_fn(x, max_layer, 2, preserve_range=True)
+        return pyramid_fn(x, max_layer, 2, preserve_range=True,
+                          channel_axis=no_pyramid_axis)
 
     def pyramid_labels(x):
         yield x
@@ -173,6 +183,7 @@ def nii2zarr(inp, out, *,
              method='gaussian',
              label=None,
              no_time=False,
+             no_pyramid_axis=None,
              fill_value=None,
              compressor='blosc',
              compressor_options={}):
@@ -209,6 +220,9 @@ def nii2zarr(inp, out, *,
     no_time : bool
         If True, there is no time dimension so the 4th dimension
         (if it exists) should be interpreted as the channel dimensions.
+    no_pyramid_axis : int or {'x', 'y', 'z'}
+        Axis that should not be downsampled. If None, downsample
+        across all three dimensions.
     fill_value : number
         Value to use for missing tiles
     compressor : {'blosc', 'zlib'}
@@ -289,7 +303,8 @@ def nii2zarr(inp, out, *,
     if label is None:
         label = jsonheader["intent"]["code"] in ("LABEL", "NEURONAMES")
     pyramid_fn = pyramid_gaussian if method[0] == 'g' else pyramid_laplacian
-    data = list(_make_pyramid3d(data, nb_levels, pyramid_fn, label))
+    data = list(_make_pyramid3d(data, nb_levels, pyramid_fn, label,
+                                no_pyramid_axis))
     nb_levels = len(data)
     shapes = [d.shape[-3:] for d in data]
 
@@ -444,6 +459,10 @@ def cli(args=None):
         help='Not a segmentation volume')
     parser.add_argument(
         '--no-time', action='store_true',  help='No time dimension')
+    parser.add_argument(
+        '--no-pyramid-axis',
+        help='Thick slice axis that should not be downsampled'
+    )
 
     args = args or sys.argv[1:]
     args = parser.parse_args(args)
@@ -459,4 +478,5 @@ def cli(args=None):
         compressor=args.compressor,
         label=args.label,
         no_time=args.no_time,
+        no_pyramid_axis=args.no_pyramid_axis,
     )
