@@ -137,9 +137,9 @@ def _make_pyramid3d(
         no_pyramid_axis=None,
 ):
     no_pyramid_axis = {
-        'x': 0,
+        'x': 2,
         'y': 1,
-        'z': 2,
+        'z': 0,
     }.get(no_pyramid_axis, no_pyramid_axis)
     if isinstance(no_pyramid_axis, str):
         no_pyramid_axis = int(no_pyramid_axis)
@@ -220,7 +220,7 @@ def nii2zarr(inp, out, *,
     no_time : bool
         If True, there is no time dimension so the 4th dimension
         (if it exists) should be interpreted as the channel dimensions.
-    no_pyramid_axis : int or {'x', 'y', 'z'}
+    no_pyramid_axis : {'x', 'y', 'z'}
         Axis that should not be downsampled. If None, downsample
         across all three dimensions.
     fill_value : number
@@ -460,7 +460,7 @@ def cli(args=None):
     parser.add_argument(
         '--no-time', action='store_true',  help='No time dimension')
     parser.add_argument(
-        '--no-pyramid-axis',
+        '--no-pyramid-axis', choices=('x', 'y', 'z'),
         help='Thick slice axis that should not be downsampled'
     )
 
