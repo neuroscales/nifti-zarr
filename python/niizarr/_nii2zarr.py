@@ -11,7 +11,7 @@ from ome_zarr.writer import write_multiscale
 from nibabel import Nifti1Image, load
 from ._header import (
     UNITS, DTYPES, INTENTS, INTENTS_P, SLICEORDERS, XFORMS,
-    HEADERTYPE1, HEADERTYPE2,get_magic_string
+    get_magic_string, bin2nii
 )
 
 
@@ -250,18 +250,9 @@ def nii2zarr(inp, out, *,
     if no_time and len(inp.shape) > 3:
         inp = Nifti1Image(inp.dataobj[:, :, :, None], inp.affine, inp.header)
 
-    # Parse nifti header
-    v = int(inp.header.structarr['magic'].tobytes().decode()[2])
+    header = bin2nii(inp.header.structarr.tobytes())
 
-    header = np.frombuffer(inp.header.structarr.tobytes(), count=1,
-                           dtype=HEADERTYPE1 if v == 1 else HEADERTYPE2)[0]
-
-    if get_magic_string(header) not in ('ni1', 'n+1', 'ni2', 'n+2'):
-        swappedheader = header.newbyteorder()
-    else:
-        swappedheader = header
-
-    jsonheader = nii2json(swappedheader)
+    jsonheader = nii2json(header)
 
     data = np.asarray(inp.dataobj)
 

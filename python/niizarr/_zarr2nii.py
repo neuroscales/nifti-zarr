@@ -7,7 +7,7 @@ import dask.array
 import argparse
 from nibabel import (Nifti1Image, Nifti1Header, Nifti2Image, Nifti2Header,
                      save, load)
-from ._header import HEADERTYPE1, HEADERTYPE2, get_magic_string, NIFTI_1_HEADER_SIZE, NIFTI_2_HEADER_SIZE
+from ._header import bin2nii
 
 # If fsspec available, use fsspec
 try:
@@ -15,34 +15,6 @@ try:
     open = fsspec.open
 except (ImportError, ModuleNotFoundError):
     fsspec = None
-
-
-def bin2nii(buffer):
-    header = np.frombuffer(buffer, dtype=HEADERTYPE1, count=1)[0]
-    if header['sizeof_hdr'] == NIFTI_1_HEADER_SIZE:
-        return header
-    header = header.newbyteorder()
-    if header['sizeof_hdr'] == NIFTI_1_HEADER_SIZE:
-        return header
-
-    header = np.frombuffer(buffer, dtype=HEADERTYPE2, count=1)[0]
-    if header['sizeof_hdr'] == NIFTI_2_HEADER_SIZE:
-        return header
-    header = header.newbyteorder()
-    if header['sizeof_hdr'] == NIFTI_2_HEADER_SIZE:
-        return header
-    raise ValueError('Is this a nifti header?')
-
-    # if get_magic_string(header) not in ('ni1', 'n+1', 'nz1'):
-    #     header = header.newbyteorder()
-    # if get_magic_string(header) not in ('ni1', 'n+1', 'nz1'):
-    #     header = np.frombuffer(buffer, dtype=HEADERTYPE2, count=1)[0]
-    #     if get_magic_string(header) not in ('ni2', 'n+2', 'nz2'):
-    #         header = header.newbyteorder()
-    #     if get_magic_string(header) not in ('ni2', 'n+2', 'nz2'):
-    #         raise ValueError('Is this a nifti header?')
-    # return header
-
 
 def zarr2nii(inp, out=None, level=0):
     """

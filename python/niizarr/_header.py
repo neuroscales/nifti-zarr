@@ -110,7 +110,7 @@ class Recoder:
         for key, value in key_values.items():
             self[key] = value
 
-
+# TODO: JNifTI has the following convention but it is not supported by numpy
 # DTYPES = Recoder([
 #     (2, "uint8"),  # unsigned char (8 bits)
 #     (4, "int16"),  # signed short (16 bits)
@@ -316,3 +316,19 @@ SLICEORDERS = Recoder([
 import re
 def get_magic_string(header):
     return re.sub(r'[\x00-\x1f]+', '', header['magic'].decode())
+
+def bin2nii(buffer):
+    header = np.frombuffer(buffer, dtype=HEADERTYPE1, count=1)[0]
+    if header['sizeof_hdr'] == NIFTI_1_HEADER_SIZE:
+        return header
+    header = header.newbyteorder()
+    if header['sizeof_hdr'] == NIFTI_1_HEADER_SIZE:
+        return header
+
+    header = np.frombuffer(buffer, dtype=HEADERTYPE2, count=1)[0]
+    if header['sizeof_hdr'] == NIFTI_2_HEADER_SIZE:
+        return header
+    header = header.newbyteorder()
+    if header['sizeof_hdr'] == NIFTI_2_HEADER_SIZE:
+        return header
+    raise ValueError('Is this a nifti header?')
