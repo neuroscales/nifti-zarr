@@ -1,4 +1,5 @@
 import numpy as np
+import re
 
 NIFTI_1_HEADER_SIZE = 348
 NIFTI_2_HEADER_SIZE = 540
@@ -313,22 +314,32 @@ SLICEORDERS = Recoder([
     (6, "alt2-")
 ])
 
-import re
+
 def get_magic_string(header):
     return re.sub(r'[\x00-\x1f]+', '', header['magic'].decode())
 
 def bin2nii(buffer):
+
     header = np.frombuffer(buffer, dtype=HEADERTYPE1, count=1)[0]
     if header['sizeof_hdr'] == NIFTI_1_HEADER_SIZE:
+        validate_magic(header, 1)
         return header
     header = header.newbyteorder()
     if header['sizeof_hdr'] == NIFTI_1_HEADER_SIZE:
+        validate_magic(header, 1)
         return header
 
     header = np.frombuffer(buffer, dtype=HEADERTYPE2, count=1)[0]
     if header['sizeof_hdr'] == NIFTI_2_HEADER_SIZE:
+        validate_magic(header, 2)
         return header
     header = header.newbyteorder()
     if header['sizeof_hdr'] == NIFTI_2_HEADER_SIZE:
+        validate_magic(header, 2)
         return header
     raise ValueError('Is this a nifti header?')
+
+def validate_magic(header, version):
+    magic_string = get_magic_string(header)
+    if magic_string not in (f"n+{version}", f"ni{version}"):
+        raise ValueError(f"Magic String {magic_string} does not match NIFTI version {version}")
