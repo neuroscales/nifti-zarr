@@ -7,7 +7,7 @@ import dask.array
 import argparse
 from nibabel import (Nifti1Image, Nifti1Header, Nifti2Image, Nifti2Header,
                      save, load)
-from ._header import HEADERTYPE1, HEADERTYPE2
+from ._header import HEADERTYPE1, HEADERTYPE2, get_magic_string
 
 # If fsspec available, use fsspec
 try:
@@ -19,13 +19,13 @@ except (ImportError, ModuleNotFoundError):
 
 def bin2nii(buffer):
     header = np.frombuffer(buffer, dtype=HEADERTYPE1, count=1)[0]
-    if header['magic'].decode() not in ('ni1', 'n+1', 'nz1'):
+    if get_magic_string(header) not in ('ni1', 'n+1', 'nz1'):
         header = header.newbyteorder()
-    if header['magic'].decode() not in ('ni1', 'n+1', 'nz1'):
+    if get_magic_string(header) not in ('ni1', 'n+1', 'nz1'):
         header = np.frombuffer(buffer, dtype=HEADERTYPE2, count=1)[0]
-        if header['magic'].decode() not in ('ni2', 'n+2', 'nz2'):
+        if get_magic_string(header) not in ('ni2', 'n+2', 'nz2'):
             header = header.newbyteorder()
-        if header['magic'].decode() not in ('ni2', 'n+2', 'nz2'):
+        if get_magic_string(header) not in ('ni2', 'n+2', 'nz2'):
             raise ValueError('Is this a nifti header?')
     return header
 
@@ -96,12 +96,14 @@ def zarr2nii(inp, out=None, level=0):
 
     # reorder/reshape array as needed
     array = dask.array.from_zarr(inp[f'{level}'])
+
     if array.ndim == 5:
         array = array.transpose([4, 3, 2, 0, 1])
     elif array.ndim == 4:
         array = array.transpose([3, 2, 1, 0])[..., None, :]
     elif array.ndim == 3:
         array = array.transpose([2, 1, 0])
+
     while array.ndim > header['dim'][0].item():
         assert array.shape[-1] == 1
         array = array[..., 0]

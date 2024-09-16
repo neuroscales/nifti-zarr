@@ -11,7 +11,7 @@ from ome_zarr.writer import write_multiscale
 from nibabel import Nifti1Image, load
 from ._header import (
     UNITS, DTYPES, INTENTS, INTENTS_P, SLICEORDERS, XFORMS,
-    HEADERTYPE1, HEADERTYPE2,
+    HEADERTYPE1, HEADERTYPE2,get_magic_string
 )
 
 
@@ -41,77 +41,108 @@ def nii2json(header):
         Nifti header in JSON form
     """
     # use nz1/nz2 instead of n+1/n+2
+    # still using the n+1/n+2 to comply with JNIfTI
     header = header.copy()
+
     magic = header["magic"].tobytes().decode()
-    magic = magic[:1] + 'z' + magic[2:]
+    # magic = magic[:1] + 'z' + magic[2:]
     header['magic'] = magic
 
     ndim = header["dim"][0].item()
     intent_code = INTENTS[header["intent_code"].item()]
+
+    # if "intent_p" in header:
+    intent_param = header["intent_p"][:INTENTS_P[intent_code]].tolist()
+    # else:
+        # intent_param = [header["intent_p1"], header["intent_p2"], header["intent_p3"]]
+    quatern = header["quatern"].tolist()
+    qoffset = header["qoffset"].tolist()
     jsonheader = {
-        "magic": header["magic"].tobytes().decode(),
-        "dim": header["dim"][1:1+ndim].tolist(),
-        "pixdim": header["pixdim"][1:1+ndim].tolist(),
-        "units": {
-            "space": UNITS[(header["xyzt_units"] & 0x07).item()],
-            "time": UNITS[(header["xyzt_units"] & 0x38).item()],
+        "NIIFormat": header["magic"].tobytes().decode(),
+        "Dim": header["dim"][1:1+ndim].tolist(),
+        "VoxelSize": header["pixdim"][1:1+ndim].tolist(),
+        "Unit": {
+            "L": UNITS[(header["xyzt_units"] & 0x07).item()],
+            "T": UNITS[(header["xyzt_units"] & 0x38).item()],
         },
-        "datatype": DTYPES[header["datatype"].item()],
-        "dim_info": {
-            "freq": (header["dim_info"] & 0x03).item(),
-            "phase": ((header["dim_info"] >> 2) & 0x03).item(),
-            "slice": ((header["dim_info"] >> 4) & 0x03).item(),
+        "DataType": DTYPES[header["datatype"].item()],
+        "DimInfo": {
+            "Freq": (header["dim_info"] & 0x03).item(),
+            "Phase": ((header["dim_info"] >> 2) & 0x03).item(),
+            "Slice": ((header["dim_info"] >> 4) & 0x03).item(),
         },
-        "intent": {
-            "code": intent_code,
-            "name": header["intent_name"].tobytes().decode(),
-            "p": header["intent_p"][:INTENTS_P[intent_code]].tolist(),
+        "Intent": intent_code,
+        "Param1": intent_param[0] if len(intent_param) > 0 else None,
+        "Param2": intent_param[1] if len(intent_param) > 1 else None,
+        "Param3": intent_param[2] if len(intent_param) > 2 else None,
+        "Name": header["intent_name"].tobytes().decode(),
+        "ScaleSlope": header["scl_slope"].item(),
+        "ScaleOffset": header["scl_inter"].item(),
+        # "scl": {
+        #     "slope": header["scl_slope"].item(),
+        #     "inter": header["scl_inter"].item(),
+        # },
+        "FirstSliceID": header["slice_start"].item(),
+        "LastSliceID": header["slice_end"].item(),
+        "SliceType": SLICEORDERS[header["slice_code"].item()],
+        "SliceTime": header["slice_duration"].item(),
+        # "slice": {
+            # "code": SLICEORDERS[header["slice_code"].item()],
+            # "start": header["slice_start"].item(),
+            # "end": header["slice_end"].item(),
+            # "duration": header["slice_duration"].item(),
+        # },
+        "MinIntensity": header["cal_min"].item(),
+        "MaxIntensity": header["cal_max"].item(),
+        # "cal": {
+        #     "min": header["cal_min"].item(),
+        #     "max": header["cal_max"].item(),
+        # },
+        "TimeOffset": header["toffset"].item(),
+        "Description": header["descrip"].tobytes().decode(),
+        "AuxFile": header["aux_file"].tobytes().decode(),
+        "QForm": XFORMS[header["qform_code"].item()],
+        "Quatern": {
+            "b": quatern[0],
+            "c": quatern[1],
+            "d": quatern[2],
         },
-        "scl": {
-            "slope": header["scl_slope"].item(),
-            "inter": header["scl_inter"].item(),
+        "QuaternOffset":{
+            "x": qoffset[0],
+            "y": qoffset[1],
+            "z": qoffset[2],
         },
-        "slice": {
-            "code": SLICEORDERS[header["slice_code"].item()],
-            "start": header["slice_start"].item(),
-            "end": header["slice_end"].item(),
-            "duration": header["slice_duration"].item(),
-        },
-        "cal": {
-            "min": header["cal_min"].item(),
-            "max": header["cal_max"].item(),
-        },
-        "toffset": header["toffset"].item(),
-        "descrip": header["descrip"].tobytes().decode(),
-        "aux_file": header["aux_file"].tobytes().decode(),
-        "qform": {
-            "intent": XFORMS[header["qform_code"].item()],
-            "quatern": header["quatern"].tolist(),
-            "offset": header["qoffset"].tolist(),
+        # "qform": {
+            # "intent": XFORMS[header["qform_code"].item()],
+            # "quatern": header["quatern"].tolist(),
+            # "offset": header["qoffset"].tolist(),
+            # TODO: remove if not in use
             "fac": header["pixdim"][0].item(),
-        },
-        "sform": {
-            "intent": XFORMS[header["sform_code"].item()],
-            "affine": header["sform"].tolist(),
-        },
+        # },
+        "SForm": XFORMS[header["sform_code"].item()],
+        "Affine": header["sform"].tolist(),
+        # "sform": {
+        #     # "intent": XFORMS[header["sform_code"].item()],
+        #     "affine": header["sform"].tolist(),
+        # },
     }
-    if not math.isfinite(jsonheader["scl"]["slope"]):
-        jsonheader["scl"]["slope"] = 0.0
-    if not math.isfinite(jsonheader["scl"]["inter"]):
-        jsonheader["scl"]["inter"] = 0.0
+    if not math.isfinite(jsonheader["ScaleSlope"]):
+        jsonheader["ScaleSlope"] = 0.0
+    if not math.isfinite(jsonheader["ScaleOffset"]):
+        jsonheader["ScaleOffset"] = 0.0
 
     # Fix data type
     byteorder = header['sizeof_hdr'].dtype.byteorder
     if byteorder == '=':
         byteorder = SYS_BYTEORDER
-    if isinstance(jsonheader["datatype"], tuple):
-        jsonheader["datatype"] = [
-            [field, '|' + dtype] for field, dtype in jsonheader["datatype"]
+    if isinstance(jsonheader["DataType"], tuple):
+        jsonheader["DataType"] = [
+            [field, '|' + dtype] for field, dtype in jsonheader["DataType"]
         ]
-    elif jsonheader["datatype"].endswith('1'):
-        jsonheader["datatype"] = '|' + jsonheader["datatype"]
+    elif jsonheader["DataType"].endswith('1'):
+        jsonheader["DataType"] = '|' + jsonheader["DataType"]
     else:
-        jsonheader["datatype"] = byteorder + jsonheader["datatype"]
+        jsonheader["DataType"] = byteorder + jsonheader["DataType"]
 
     # Check that the dictionary is serializable
     json.dumps(jsonheader)
@@ -173,7 +204,6 @@ def _make_pyramid3d(
 
     for level in zip(*map(pyramid, data3d)):
         yield np.stack(level).reshape(batch + level[0].shape)
-
 
 def nii2zarr(inp, out, *,
              chunk=64,
@@ -251,12 +281,16 @@ def nii2zarr(inp, out, *,
 
     # Parse nifti header
     v = int(inp.header.structarr['magic'].tobytes().decode()[2])
+    print(v)
     header = np.frombuffer(inp.header.structarr.tobytes(), count=1,
                            dtype=HEADERTYPE1 if v == 1 else HEADERTYPE2)[0]
-    if header['magic'].decode() not in ('ni1', 'n+1', 'ni2', 'n+2'):
+    if get_magic_string(header) not in ('ni1', 'n+1', 'ni2', 'n+2'):
         swappedheader = header.newbyteorder()
+        print("swapped")
+        print((header['magic']))
     else:
         swappedheader = header
+
     jsonheader = nii2json(swappedheader)
 
     data = np.asarray(inp.dataobj)
@@ -301,7 +335,7 @@ def nii2zarr(inp, out, *,
 
     # Compute image pyramid
     if label is None:
-        label = jsonheader["intent"]["code"] in ("LABEL", "NEURONAMES")
+        label = jsonheader['Intent'] in ("LABEL", "NEURONAMES")
     pyramid_fn = pyramid_gaussian if method[0] == 'g' else pyramid_laplacian
     data = list(_make_pyramid3d(data, nb_levels, pyramid_fn, label,
                                 no_pyramid_axis))
@@ -320,7 +354,7 @@ def nii2zarr(inp, out, *,
         'chunks': c,
         'dimension_separator': r'/',
         'order': 'F',
-        'dtype': jsonheader['datatype'],
+        'dtype': jsonheader['DataType'],
         'fill_value': fill_value,
         'compressor': compressor,
     } for c in chunk]
@@ -359,17 +393,17 @@ def nii2zarr(inp, out, *,
         {
             "name": "z",
             "type": "space",
-            "unit": jsonheader["units"]["space"],
+            "unit": jsonheader["Unit"]["L"],
         },
         {
             "name": "y",
             "type": "space",
-            "unit": jsonheader["units"]["space"],
+            "unit": jsonheader["Unit"]["L"],
         },
         {
             "name": "x",
             "type": "space",
-            "unit": jsonheader["units"]["space"],
+            "unit": jsonheader["Unit"]["L"],
         }
     ]
     if nbatch >= 2:
@@ -381,7 +415,7 @@ def nii2zarr(inp, out, *,
         multiscales[0]["axes"].insert(0, {
             "name": "t",
             "type": "time",
-            "unit": jsonheader["units"]["time"],
+            "unit": jsonheader["Unit"]["T"],
         })
     for n, level in enumerate(multiscales[0]["datasets"]):
         # skimage pyramid_gaussian/pyramid_laplace use
@@ -389,16 +423,16 @@ def nii2zarr(inp, out, *,
         # so the effective scaling is the shape ratio, and there is
         # a half voxel shift wrt to the "center of first voxel" frame
         level["coordinateTransformations"][0]["scale"] = [1.0] * nbatch + [
-            (shapes[0][0]/shapes[n][0])*jsonheader["pixdim"][2],
-            (shapes[0][1]/shapes[n][1])*jsonheader["pixdim"][1],
-            (shapes[0][2]/shapes[n][2])*jsonheader["pixdim"][0],
+            (shapes[0][0]/shapes[n][0])*jsonheader["VoxelSize"][2],
+            (shapes[0][1]/shapes[n][1])*jsonheader["VoxelSize"][1],
+            (shapes[0][2]/shapes[n][2])*jsonheader["VoxelSize"][0],
         ]
         level["coordinateTransformations"].append({
             "type": "translation",
             "translation": [0.0] * nbatch + [
-                (shapes[0][0]/shapes[n][0] - 1)*jsonheader["pixdim"][2]*0.5,
-                (shapes[0][1]/shapes[n][1] - 1)*jsonheader["pixdim"][1]*0.5,
-                (shapes[0][2]/shapes[n][2] - 1)*jsonheader["pixdim"][0]*0.5,
+                (shapes[0][0]/shapes[n][0] - 1)*jsonheader["VoxelSize"][2]*0.5,
+                (shapes[0][1]/shapes[n][1] - 1)*jsonheader["VoxelSize"][1]*0.5,
+                (shapes[0][2]/shapes[n][2] - 1)*jsonheader["VoxelSize"][0]*0.5,
             ]
         })
     multiscales[0]["coordinateTransformations"] = [
@@ -412,7 +446,7 @@ def nii2zarr(inp, out, *,
             0, 1.0)
     if nbatch >= 1:
         multiscales[0]["coordinateTransformations"][0]['scale'].insert(
-            0, jsonheader["pixdim"][3] or 1.0)
+            0, jsonheader["VoxelSize"][3] or 1.0)
 
     out.attrs["multiscales"] = multiscales
 
