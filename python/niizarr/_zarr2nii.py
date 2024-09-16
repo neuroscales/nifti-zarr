@@ -26,7 +26,7 @@ def zarr2nii(inp, out=None, level=0):
         Output zarr object
     out : path or file_like, optional
         Path to output file. If not provided, do not write a file.
-    levels : int
+    level : int
         Pyramid level to extract
 
     Returns
