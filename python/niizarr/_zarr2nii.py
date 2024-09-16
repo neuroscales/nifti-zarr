@@ -1,12 +1,14 @@
+import argparse
 import io
 import sys
+
+import dask.array
+import numpy as np
 import zarr.hierarchy
 import zarr.storage
-import numpy as np
-import dask.array
-import argparse
 from nibabel import (Nifti1Image, Nifti1Header, Nifti2Image, Nifti2Header,
                      save, load)
+
 from ._header import bin2nii
 
 # If fsspec available, use fsspec
@@ -15,6 +17,7 @@ try:
     open = fsspec.open
 except (ImportError, ModuleNotFoundError):
     fsspec = None
+
 
 def zarr2nii(inp, out=None, level=0):
     """

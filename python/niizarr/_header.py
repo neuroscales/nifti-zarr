@@ -1,5 +1,6 @@
-import numpy as np
 import re
+
+import numpy as np
 
 NIFTI_1_HEADER_SIZE = 348
 NIFTI_2_HEADER_SIZE = 540
@@ -110,6 +111,7 @@ class Recoder:
     def update(self, key_values: dict):
         for key, value in key_values.items():
             self[key] = value
+
 
 # TODO: JNifTI has the following convention but it is not supported by numpy
 # DTYPES = Recoder([
@@ -318,8 +320,8 @@ SLICEORDERS = Recoder([
 def get_magic_string(header):
     return re.sub(r'[\x00-\x1f]+', '', header['magic'].decode())
 
-def bin2nii(buffer):
 
+def bin2nii(buffer):
     header = np.frombuffer(buffer, dtype=HEADERTYPE1, count=1)[0]
     if header['sizeof_hdr'] == NIFTI_1_HEADER_SIZE:
         validate_magic(header, 1)
@@ -338,6 +340,7 @@ def bin2nii(buffer):
         validate_magic(header, 2)
         return header
     raise ValueError('Is this a nifti header?')
+
 
 def validate_magic(header, version):
     magic_string = get_magic_string(header)

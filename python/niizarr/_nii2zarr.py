@@ -1,27 +1,27 @@
-import sys
+import argparse
 import json
 import math
+import sys
+
+import numcodecs
+import numpy as np
 import zarr.hierarchy
 import zarr.storage
-import numpy as np
-import numcodecs
-import argparse
-from skimage.transform import pyramid_gaussian, pyramid_laplacian
-from ome_zarr.writer import write_multiscale
 from nibabel import Nifti1Image, load
-from ._header import (
-    UNITS, DTYPES, INTENTS, INTENTS_P, SLICEORDERS, XFORMS,
-    get_magic_string, bin2nii
-)
+from ome_zarr.writer import write_multiscale
+from skimage.transform import pyramid_gaussian, pyramid_laplacian
 
+from ._header import (
+    UNITS, DTYPES, INTENTS, INTENTS_P, SLICEORDERS, XFORMS, bin2nii
+)
 
 # If fsspec available, use fsspec
 try:
     import fsspec
+
     open = fsspec.open
 except (ImportError, ModuleNotFoundError):
     fsspec = None
-
 
 SYS_BYTEORDER = '<' if sys.byteorder == 'little' else '>'
 
@@ -51,8 +51,8 @@ def nii2json(header):
 
     jsonheader = {
         "NIIFormat": header["magic"].tobytes().decode(),
-        "Dim": header["dim"][1:1+ndim].tolist(),
-        "VoxelSize": header["pixdim"][1:1+ndim].tolist(),
+        "Dim": header["dim"][1:1 + ndim].tolist(),
+        "VoxelSize": header["pixdim"][1:1 + ndim].tolist(),
         "Unit": {
             "L": UNITS[(header["xyzt_units"] & 0x07).item()],
             "T": UNITS[(header["xyzt_units"] & 0x38).item()],
@@ -85,7 +85,7 @@ def nii2json(header):
             "c": quatern[1],
             "d": quatern[2],
         },
-        "QuaternOffset":{
+        "QuaternOffset": {
             "x": qoffset[0],
             "y": qoffset[1],
             "z": qoffset[2],
@@ -175,6 +175,7 @@ def _make_pyramid3d(
 
     for level in zip(*map(pyramid, data3d)):
         yield np.stack(level).reshape(batch + level[0].shape)
+
 
 def nii2zarr(inp, out, *,
              chunk=64,
@@ -384,16 +385,16 @@ def nii2zarr(inp, out, *,
         # so the effective scaling is the shape ratio, and there is
         # a half voxel shift wrt to the "center of first voxel" frame
         level["coordinateTransformations"][0]["scale"] = [1.0] * nbatch + [
-            (shapes[0][0]/shapes[n][0])*jsonheader["VoxelSize"][2],
-            (shapes[0][1]/shapes[n][1])*jsonheader["VoxelSize"][1],
-            (shapes[0][2]/shapes[n][2])*jsonheader["VoxelSize"][0],
+            (shapes[0][0] / shapes[n][0]) * jsonheader["VoxelSize"][2],
+            (shapes[0][1] / shapes[n][1]) * jsonheader["VoxelSize"][1],
+            (shapes[0][2] / shapes[n][2]) * jsonheader["VoxelSize"][0],
         ]
         level["coordinateTransformations"].append({
             "type": "translation",
             "translation": [0.0] * nbatch + [
-                (shapes[0][0]/shapes[n][0] - 1)*jsonheader["VoxelSize"][2]*0.5,
-                (shapes[0][1]/shapes[n][1] - 1)*jsonheader["VoxelSize"][1]*0.5,
-                (shapes[0][2]/shapes[n][2] - 1)*jsonheader["VoxelSize"][0]*0.5,
+                (shapes[0][0] / shapes[n][0] - 1) * jsonheader["VoxelSize"][2] * 0.5,
+                (shapes[0][1] / shapes[n][1] - 1) * jsonheader["VoxelSize"][1] * 0.5,
+                (shapes[0][2] / shapes[n][2] - 1) * jsonheader["VoxelSize"][0] * 0.5,
             ]
         })
     multiscales[0]["coordinateTransformations"] = [
@@ -425,14 +426,14 @@ def cli(args=None):
     parser.add_argument(
         '--unchunk-channels', action='store_true',
         help='Save all chanels in a single chunk. '
-        'Unchunk if you want to display all channels as a single RGB '
-        'layer in neuroglancer. Chunked by default, unless datatype is RGB.'
+             'Unchunk if you want to display all channels as a single RGB '
+             'layer in neuroglancer. Chunked by default, unless datatype is RGB.'
     )
     parser.add_argument(
         '--unchunk-time', action='store_true',
         help='Save all timepoints in a single chunk.'
-        'Unchunk if you want to display all timepoints as a single RGB '
-        'layer in neuroglancer. Chunked by default. '
+             'Unchunk if you want to display all timepoints as a single RGB '
+             'layer in neuroglancer. Chunked by default. '
     )
     parser.add_argument(
         '--levels', type=int, default=-1,
@@ -453,7 +454,7 @@ def cli(args=None):
         '--no-label', action='store_false', dest='label',
         help='Not a segmentation volume')
     parser.add_argument(
-        '--no-time', action='store_true',  help='No time dimension')
+        '--no-time', action='store_true', help='No time dimension')
     parser.add_argument(
         '--no-pyramid-axis', choices=('x', 'y', 'z'),
         help='Thick slice axis that should not be downsampled'
