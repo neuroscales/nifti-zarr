@@ -100,7 +100,7 @@ def zarr2nii(inp, out=None, level=0):
     if array.ndim == 5:
         array = array.transpose([4, 3, 2, 0, 1])
     elif array.ndim == 4:
-        array = array.transpose([3, 2, 1, 0])[..., None, :]
+        array = array.transpose([3, 2, 1, 0])
     elif array.ndim == 3:
         array = array.transpose([2, 1, 0])
 
