@@ -1,5 +1,7 @@
 import numpy as np
 
+NIFTI_1_HEADER_SIZE = 348
+NIFTI_2_HEADER_SIZE = 540
 
 HEADERTYPE1 = np.dtype([
     ("sizeof_hdr", "i4"),
