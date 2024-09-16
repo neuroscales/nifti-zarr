@@ -90,10 +90,6 @@ def zarr2nii(inp, out=None, level=0):
     elif array.ndim == 3:
         array = array.transpose([2, 1, 0])
 
-    while array.ndim > header['dim'][0].item():
-        assert array.shape[-1] == 1
-        array = array[..., 0]
-
     # create nibabel image
     img = NiftiImage(array, None, niiheader)
 
