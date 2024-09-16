@@ -40,23 +40,15 @@ def nii2json(header):
     header : dict
         Nifti header in JSON form
     """
-    # use nz1/nz2 instead of n+1/n+2
-    # still using the n+1/n+2 to comply with JNIfTI
     header = header.copy()
-
-    magic = header["magic"].tobytes().decode()
-    # magic = magic[:1] + 'z' + magic[2:]
-    header['magic'] = magic
 
     ndim = header["dim"][0].item()
     intent_code = INTENTS[header["intent_code"].item()]
 
-    # if "intent_p" in header:
     intent_param = header["intent_p"][:INTENTS_P[intent_code]].tolist()
-    # else:
-        # intent_param = [header["intent_p1"], header["intent_p2"], header["intent_p3"]]
     quatern = header["quatern"].tolist()
     qoffset = header["qoffset"].tolist()
+
     jsonheader = {
         "NIIFormat": header["magic"].tobytes().decode(),
         "Dim": header["dim"][1:1+ndim].tolist(),
@@ -78,26 +70,12 @@ def nii2json(header):
         "Name": header["intent_name"].tobytes().decode(),
         "ScaleSlope": header["scl_slope"].item(),
         "ScaleOffset": header["scl_inter"].item(),
-        # "scl": {
-        #     "slope": header["scl_slope"].item(),
-        #     "inter": header["scl_inter"].item(),
-        # },
         "FirstSliceID": header["slice_start"].item(),
         "LastSliceID": header["slice_end"].item(),
         "SliceType": SLICEORDERS[header["slice_code"].item()],
         "SliceTime": header["slice_duration"].item(),
-        # "slice": {
-            # "code": SLICEORDERS[header["slice_code"].item()],
-            # "start": header["slice_start"].item(),
-            # "end": header["slice_end"].item(),
-            # "duration": header["slice_duration"].item(),
-        # },
         "MinIntensity": header["cal_min"].item(),
         "MaxIntensity": header["cal_max"].item(),
-        # "cal": {
-        #     "min": header["cal_min"].item(),
-        #     "max": header["cal_max"].item(),
-        # },
         "TimeOffset": header["toffset"].item(),
         "Description": header["descrip"].tobytes().decode(),
         "AuxFile": header["aux_file"].tobytes().decode(),
@@ -112,19 +90,12 @@ def nii2json(header):
             "y": qoffset[1],
             "z": qoffset[2],
         },
+        # TODO: remove if not in use
         # "qform": {
-            # "intent": XFORMS[header["qform_code"].item()],
-            # "quatern": header["quatern"].tolist(),
-            # "offset": header["qoffset"].tolist(),
-            # TODO: remove if not in use
-            "fac": header["pixdim"][0].item(),
+        #     "fac": header["pixdim"][0].item(),
         # },
         "SForm": XFORMS[header["sform_code"].item()],
         "Affine": header["sform"].tolist(),
-        # "sform": {
-        #     # "intent": XFORMS[header["sform_code"].item()],
-        #     "affine": header["sform"].tolist(),
-        # },
     }
     if not math.isfinite(jsonheader["ScaleSlope"]):
         jsonheader["ScaleSlope"] = 0.0
@@ -281,13 +252,12 @@ def nii2zarr(inp, out, *,
 
     # Parse nifti header
     v = int(inp.header.structarr['magic'].tobytes().decode()[2])
-    print(v)
+
     header = np.frombuffer(inp.header.structarr.tobytes(), count=1,
                            dtype=HEADERTYPE1 if v == 1 else HEADERTYPE2)[0]
+
     if get_magic_string(header) not in ('ni1', 'n+1', 'ni2', 'n+2'):
         swappedheader = header.newbyteorder()
-        print("swapped")
-        print((header['magic']))
     else:
         swappedheader = header
 
