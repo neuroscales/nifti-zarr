@@ -8,7 +8,7 @@ import zarr.hierarchy
 import zarr.storage
 from nibabel import (Nifti1Image, Nifti1Header, Nifti2Image, Nifti2Header,
                      save, load)
-
+from nibabel.nifti1 import Nifti1Extension
 from ._header import bin2nii
 
 # If fsspec available, use fsspec
@@ -17,6 +17,26 @@ try:
     open = fsspec.open
 except (ImportError, ModuleNotFoundError):
     fsspec = None
+
+def extract_extension(chunk, index=0):
+    sections = []
+    chunk_len = len(chunk)
+
+    while index < chunk_len:
+        # Read the first two integers (size and code)
+        size = int.from_bytes(chunk[index:index + 4], byteorder='big')
+        code = int.from_bytes(chunk[index + 4:index + 8], byteorder='big')
+
+        # Extract the content of the section
+        content = chunk[index + 8:index + size]
+
+        # Append the section details (size, code, content) to the list
+        sections.append(Nifti1Extension(code, content))
+
+        # Move the index forward by the size of the current section
+        index += size
+
+    return sections
 
 
 def zarr2nii(inp, out=None, level=0):
@@ -49,6 +69,7 @@ def zarr2nii(inp, out=None, level=0):
     # read binary header
     header = bin2nii(np.asarray(inp['nifti']).tobytes())
 
+    # TODO: use sizeof_hdr to check version instead
     # create nibabel header (useful to convert quat 2 affine, etc)
     magic = header['magic'].decode()
     if magic[-1] == '1':
@@ -59,6 +80,8 @@ def zarr2nii(inp, out=None, level=0):
         NiftiImage = Nifti2Image
     niiheader = NiftiHeader.from_fileobj(io.BytesIO(header.tobytes()),
                                          check=False)
+
+    extensions = extract_extension(np.asarray(inp['nifti']).tobytes(), header['sizeof_hdr'])
 
     # create affine at current resolution
     if level != 0:
@@ -96,6 +119,7 @@ def zarr2nii(inp, out=None, level=0):
     # create nibabel image
     img = NiftiImage(array, None, niiheader)
 
+    img.header.extensions += extensions
     if out is not None:
         if hasattr(out, 'read'):
             img.to_stream(out)
@@ -103,6 +127,8 @@ def zarr2nii(inp, out=None, level=0):
         else:
             save(img, out)
             img = load(out)
+
+
 
     return img
 

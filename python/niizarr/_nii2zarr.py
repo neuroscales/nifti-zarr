@@ -1,4 +1,5 @@
 import argparse
+import io
 import json
 import math
 import sys
@@ -329,13 +330,20 @@ def nii2zarr(inp, out, *,
         storage_options=chunk
     )
 
+    extension_stream = io.BytesIO()
+    inp.header.extensions.write_to(extension_stream, byteswap=True)
+
+    extension_stream.seek(0)
+    binextension = np.frombuffer(extension_stream.read(), dtype=np.uint8)
     # Write nifti header (binary)
     binheader = np.frombuffer(header.tobytes(), dtype='u1')
+
+    bin_data = np.concatenate((binheader, binextension))
     out.create_dataset(
         'nifti',
-        data=binheader,
-        shape=[len(binheader)],
-        chunks=len(binheader),
+        data=bin_data,
+        shape=[len(bin_data)],
+        chunks=len(bin_data),
         dtype='u1',
         compressor=None,
         fill_value=None,
