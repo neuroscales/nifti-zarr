@@ -12,7 +12,7 @@ from ome_zarr.writer import write_multiscale
 from skimage.transform import pyramid_gaussian, pyramid_laplacian
 
 from ._header import (
-    UNITS, DTYPES, INTENTS, INTENTS_P, SLICEORDERS, XFORMS, bin2nii
+    UNITS, DTYPES, INTENTS, INTENTS_P, SLICEORDERS, XFORMS, bin2nii, get_magic_string
 )
 
 # If fsspec available, use fsspec
@@ -50,7 +50,7 @@ def nii2json(header):
     qoffset = header["qoffset"].tolist()
 
     jsonheader = {
-        "NIIFormat": header["magic"].tobytes().decode(),
+        "NIIFormat": get_magic_string(header), #header["magic"].tobytes().decode(),
         "Dim": header["dim"][1:1 + ndim].tolist(),
         "VoxelSize": header["pixdim"][1:1 + ndim].tolist(),
         "Unit": {
