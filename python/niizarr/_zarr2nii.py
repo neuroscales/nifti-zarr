@@ -9,7 +9,7 @@ import zarr.storage
 from nibabel import (Nifti1Image, Nifti1Header, Nifti2Image, Nifti2Header,
                      save, load)
 from nibabel.nifti1 import Nifti1Extension
-from ._header import bin2nii
+from ._header import bin2nii, NIFTI_1_HEADER_SIZE, NIFTI_2_HEADER_SIZE
 
 # If fsspec available, use fsspec
 try:
@@ -69,15 +69,16 @@ def zarr2nii(inp, out=None, level=0):
     # read binary header
     header = bin2nii(np.asarray(inp['nifti']).tobytes())
 
-    # TODO: use sizeof_hdr to check version instead
     # create nibabel header (useful to convert quat 2 affine, etc)
-    magic = header['magic'].decode()
-    if magic[-1] == '1':
+    if header['sizeof_hdr'] == NIFTI_1_HEADER_SIZE:
         NiftiHeader = Nifti1Header
         NiftiImage = Nifti1Image
-    else:
+    elif header['sizeof_hdr'] == NIFTI_2_HEADER_SIZE:
         NiftiHeader = Nifti2Header
         NiftiImage = Nifti2Image
+    else:
+        raise ValueError(f"sizeof_hdr {header['sizeof_hdr']} does not match any Nifti header specification")
+
     niiheader = NiftiHeader.from_fileobj(io.BytesIO(header.tobytes()),
                                          check=False)
 
