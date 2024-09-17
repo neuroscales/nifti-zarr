@@ -50,7 +50,8 @@ def nii2json(header):
     qoffset = header["qoffset"].tolist()
 
     jsonheader = {
-        "NIIFormat": get_magic_string(header), #header["magic"].tobytes().decode(),
+        # Strip control characters
+        "NIIFormat": get_magic_string(header),
         "Dim": header["dim"][1:1 + ndim].tolist(),
         "VoxelSize": header["pixdim"][1:1 + ndim].tolist(),
         "Unit": {
