@@ -335,7 +335,7 @@ def nii2zarr(inp, out, *,
 
     if inp.header.extensions:
         extension_stream = io.BytesIO()
-        inp.header.extensions.write_to(extension_stream, byteswap=True)
+        inp.header.extensions.write_to(extension_stream, byteswap=False)
         bin_data.append(np.frombuffer(extension_stream.getvalue(), dtype=np.uint8))
 
     # Concatenate the final binary data
