@@ -10,14 +10,17 @@ import zarr.storage
 from nibabel import (Nifti1Image, Nifti1Header, Nifti2Image, Nifti2Header,
                      save, load)
 from nibabel.nifti1 import Nifti1Extension, Nifti1Extensions
+
 from ._header import bin2nii, NIFTI_1_HEADER_SIZE, NIFTI_2_HEADER_SIZE
 
 # If fsspec available, use fsspec
 try:
     import fsspec
+
     open = fsspec.open
 except (ImportError, ModuleNotFoundError):
     fsspec = None
+
 
 def extract_extension(chunk, index=0):
     sections = []
@@ -120,11 +123,11 @@ def zarr2nii(inp, out=None, level=0):
     # create nibabel image
     img = NiftiImage(array, None, niiheader)
 
-    extension_size = len(inp['nifti'])-header['sizeof_hdr']
+    extension_size = len(inp['nifti']) - header['sizeof_hdr']
     if extension_size > 0:
         try:
             file_obj = io.BytesIO(np.asarray(inp['nifti']).tobytes()[header['sizeof_hdr']:])
-            img.header.extensions = Nifti1Extensions.from_fileobj(file_obj,extension_size,False)
+            img.header.extensions = Nifti1Extensions.from_fileobj(file_obj, extension_size, False)
             # extensions = extract_extension(np.asarray(inp['nifti']).tobytes(), header['sizeof_hdr'])
             # img.header.extensions += extensions
         except Exception:
@@ -137,8 +140,6 @@ def zarr2nii(inp, out=None, level=0):
         else:
             save(img, out)
             img = load(out)
-
-
 
     return img
 

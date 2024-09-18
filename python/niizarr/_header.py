@@ -348,6 +348,7 @@ def validate_magic(header, version):
     if magic_string not in (f"n+{version}", f"ni{version}"):
         warnings.warn(f"Magic String {magic_string} does not match NIFTI version {version}")
 
+
 """
 For reference, nibabel xcode and dtype definition 
 _dtdefs = (  # code, label, dtype definition, niistring
