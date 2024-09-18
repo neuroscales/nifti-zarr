@@ -1,6 +1,7 @@
 import argparse
 import io
 import sys
+import warnings
 
 import dask.array
 import numpy as np
@@ -23,18 +24,15 @@ def extract_extension(chunk, index=0):
     chunk_len = len(chunk)
 
     while index < chunk_len:
-        # Read the first two integers (size and code)
+        # TODO: use numpy to load two int and fix endian?
         size = int.from_bytes(chunk[index:index + 4], byteorder='big')
         code = int.from_bytes(chunk[index + 4:index + 8], byteorder='big')
 
-        # Extract the content of the section
         content = chunk[index + 8:index + size]
         # strip redundant \0. See: https://github.com/nipy/nibabel/blob/83eaf0b55be9e9079bf9ad64975b71c22523f5f0/nibabel/nifti1.py#L630
         content = content.rstrip(b'\x00')
-        # Append the section details (size, code, content) to the list
         sections.append(Nifti1Extension(code, content))
 
-        # Move the index forward by the size of the current section
         index += size
 
     return sections
@@ -83,8 +81,6 @@ def zarr2nii(inp, out=None, level=0):
     niiheader = NiftiHeader.from_fileobj(io.BytesIO(header.tobytes()),
                                          check=False)
 
-    extensions = extract_extension(np.asarray(inp['nifti']).tobytes(), header['sizeof_hdr'])
-
     # create affine at current resolution
     if level != 0:
         qform, qcode = niiheader.get_qform(coded=True)
@@ -121,7 +117,14 @@ def zarr2nii(inp, out=None, level=0):
     # create nibabel image
     img = NiftiImage(array, None, niiheader)
 
-    img.header.extensions += extensions
+    extension_size = len(inp['nifti'])-header['sizeof_hdr']
+    if extension_size > 0:
+        try:
+            extensions = extract_extension(np.asarray(inp['nifti']).tobytes(), header['sizeof_hdr'])
+            img.header.extensions += extensions
+        except Exception:
+            warnings.warn("Failed to load extensions")
+
     if out is not None:
         if hasattr(out, 'read'):
             img.to_stream(out)
