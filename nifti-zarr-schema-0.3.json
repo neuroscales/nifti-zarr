@@ -1,0 +1,276 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema",
+  "$id": "https://raw.githubusercontent.com/neuroscales/nifti-zarr/main/nifti-zarr-schema-0.3.json",
+  "title": "NIfTI-Zarr v0.3 - NIfTI header in JSON form",
+  "type": "object",
+  "properties": {
+    "NIIFormat": {
+      "description": "NIfTI magic string",
+      "enum": [
+        "ni1",
+        "n+1",
+        "ni2",
+        "n+2"
+      ]
+    },
+    "VoxelSize": {
+      "description": "Spacing between elements for each dimension",
+      "type": "array",
+      "items": {
+        "type": "number",
+        "minimum": 0
+      },
+      "minItems": 3,
+      "maxItems": 5
+    },
+    "Unit": {
+      "description": "Space and time units",
+      "type": "object",
+      "properties": {
+        "L": {
+          "enum": [
+            "",
+            "m",
+            "mm",
+            "um"
+          ]
+        },
+        "T": {
+          "enum": [
+            "",
+            "s",
+            "ms",
+            "us"
+          ]
+        }
+      }
+    },
+    "DataType": {
+      "description": "Data type, in numpy format",
+      "type": "string"
+    },
+    "DimInfo": {
+      "type": "object",
+      "properties": {
+        "Freq": {
+          "enum": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        "Phase": {
+          "enum": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        "Slice": {
+          "enum": [
+            0,
+            1,
+            2,
+            3
+          ]
+        }
+      }
+    },
+    "Intent": {
+      "description": "Data intent or meaning",
+      "enum": [
+        "",
+        "corr",
+        "ttest",
+        "ftest",
+        "zscore",
+        "chi2",
+        "beta",
+        "binomial",
+        "gamma",
+        "poisson",
+        "normal",
+        "ncftest",
+        "logistic",
+        "laplace",
+        "uniform",
+        "ncttest",
+        "weibull",
+        "chi",
+        "invgauss",
+        "ncchi2",
+        "extval",
+        "pvalue",
+        "logpvalue",
+        "log10pvalue",
+        "estimate",
+        "label",
+        "neuronames",
+        "matrix",
+        "symmatrix",
+        "dispvec",
+        "vector",
+        "point",
+        "triangle",
+        "quaternion",
+        "unitless",
+        "tseries",
+        "elem",
+        "rgb",
+        "rgba",
+        "shape",
+        "FSL_FNIRT_DISPLACEMENT_FIELD",
+        "FSL_CUBIC_SPLINE_COEFFICIENTS",
+        "FSL_DCT_COEFFICIENTS",
+        "FSL_QUADRATIC_SPLINE_COEFFICIENTS",
+        "FSL_TOPUP_CUBIC_SPLINE_COEFFICIENTS",
+        "FSL_TOPUP_QUADRATIC_SPLINE_COEFFICIENTS",
+        "FSL_TOPUP_FIELD"
+      ]
+    },
+    "Param1": {
+      "description": "First intent parameter",
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "Param2": {
+      "description": "Second intent parameter",
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "Param3": {
+      "description": "Third intent parameter",
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "Name": {
+      "description": "'name' or meaning of data",
+      "type": "string"
+    },
+    "ScaleSlope": {
+      "description": "Intensity transform Slope",
+      "type": "number"
+    },
+    "ScaleOffset": {
+      "description": "Intensity transform offset",
+      "type": "number"
+    },
+    "FirstSliceID": {
+      "description": "First slice index",
+      "type": "integer"
+    },
+    "LastSliceID": {
+      "description": "Last slice index",
+      "type": "integer"
+    },
+    "SliceType": {
+      "description": "A valid slice timing code (see table 4.6)",
+      "enum": [
+        "",
+        "seq+",
+        "seq-",
+        "alt+",
+        "alt-",
+        "alt2+",
+        "alt2-"
+      ]
+    },
+    "SliceTime": {
+      "description": "Time for 1 slice",
+      "type": "number"
+    },
+    "MinIntensity": {
+      "description": "Min display intensity",
+      "type": "number"
+    },
+    "MaxIntensity": {
+      "description": "Max display intensity",
+      "type": "number"
+    },
+    "TimeOffset": {
+      "description": "Time axis shift",
+      "type": "number"
+    },
+    "Description": {
+      "description": "Any text you like",
+      "type": "string",
+      "maxLength": 80
+    },
+    "AuxFile": {
+      "description": "Auxiliary filename",
+      "type": "string",
+      "maxLength": 24
+    },
+    "QForm": {
+      "description": "A valid xform name (see table 4.5)",
+      "enum": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "Quatern": {
+      "properties": {
+        "b": {
+          "type": "number"
+        },
+        "c": {
+          "type": "number"
+        },
+        "d": {
+          "type": "number"
+        }
+      }
+    },
+    "QuaternOffset": {
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "z": {
+          "type": "number"
+        }
+      }
+    },
+    "SForm": {
+      "description": "A valid xform name (see table 4.5)",
+      "enum": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "Affine": {
+      "description": "3x4 Matrix",
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 4,
+        "maxItems": 4
+      },
+      "minItems": 3,
+      "maxItems": 3
+    }
+
+  }
+}
