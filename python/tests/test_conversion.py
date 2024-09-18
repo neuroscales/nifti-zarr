@@ -3,6 +3,8 @@ import nibabel as nib
 import tempfile
 import os
 
+import numpy as np
+
 from python import niizarr
 
 
@@ -39,6 +41,19 @@ class TestNiizarrConversion(unittest.TestCase):
             loaded_header = loaded.header
 
             self.assertEqual(str(original_header.extensions), str(loaded_header.extensions))
+
+    def test_conversion_roundtrip_data_preservation(self):
+        test_files = ["data/example_nifti2.nii.gz", "data/example4d.nii.gz"]
+        for nifti_file in test_files:
+            with self.subTest(nifti_file=nifti_file):
+                data = nib.load(nifti_file)
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    zarr_file = os.path.join(tmpdir, "test.ome.zarr")
+                    niizarr.nii2zarr(data, zarr_file)
+                    loaded = niizarr.zarr2nii(zarr_file)
+                    np.testing.assert_array_almost_equal(data.get_fdata(), loaded.get_fdata())
+
+
 if __name__ == '__main__':
     unittest.main()
 
