@@ -27,7 +27,6 @@ def extract_extension(chunk, index=0):
     chunk_len = len(chunk)
 
     while index < chunk_len:
-        # TODO: use numpy to load two int and fix endian?
         size = int.from_bytes(chunk[index:index + 4], byteorder='big')
         code = int.from_bytes(chunk[index + 4:index + 8], byteorder='big')
 
