@@ -109,10 +109,13 @@ def zarr2nii(inp, out=None, level=0):
 
     if array.ndim == 5:
         array = array.transpose([4, 3, 2, 0, 1])
+        assert inp[level].attrs['_ARRAY_DIMENSIONS'] == ['time', 'channel', 'z', 'y', 'x']
     elif array.ndim == 4:
         array = array.transpose([3, 2, 1, 0])
+        assert inp[level].attrs['_ARRAY_DIMENSIONS'] == ['time', 'z', 'y', 'x']
     elif array.ndim == 3:
         array = array.transpose([2, 1, 0])
+        assert inp[level].attrs['_ARRAY_DIMENSIONS'] == ['z', 'y', 'x']
 
     # create nibabel image
     img = NiftiImage(array, None, niiheader)
