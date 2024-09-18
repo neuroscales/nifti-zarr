@@ -29,7 +29,8 @@ def extract_extension(chunk, index=0):
 
         # Extract the content of the section
         content = chunk[index + 8:index + size]
-
+        # strip redundant \0. See: https://github.com/nipy/nibabel/blob/83eaf0b55be9e9079bf9ad64975b71c22523f5f0/nibabel/nifti1.py#L630
+        content = content.rstrip(b'\x00')
         # Append the section details (size, code, content) to the list
         sections.append(Nifti1Extension(code, content))
 
