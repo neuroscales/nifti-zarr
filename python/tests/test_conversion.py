@@ -14,7 +14,7 @@ class TestNiizarrConversion(unittest.TestCase):
             with self.subTest(nifti_file=nifti_file):
                 data = nib.load(nifti_file)
                 with tempfile.TemporaryDirectory() as tmpdir:
-                    zarr_file = os.path.join(tmpdir, "test.zarr")
+                    zarr_file = os.path.join(tmpdir, "test.ome.zarr")
 
                     niizarr.nii2zarr(data, zarr_file)
 
@@ -25,7 +25,20 @@ class TestNiizarrConversion(unittest.TestCase):
 
                     self.assertEqual(str(original_header), str(loaded_header))
 
+    def test_nifti_conversion_extension(self):
+        nifti_file = "data/example_nifti2.nii.gz"
+        data = nib.load(nifti_file)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            zarr_file = os.path.join(tmpdir, "test.ome.zarr")
 
+            niizarr.nii2zarr(data, zarr_file)
+
+            loaded = niizarr.zarr2nii(zarr_file)
+
+            original_header = data.header
+            loaded_header = loaded.header
+
+            self.assertEqual(str(original_header.extensions), str(loaded_header.extensions))
 if __name__ == '__main__':
     unittest.main()
 
