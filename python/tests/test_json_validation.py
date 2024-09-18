@@ -10,10 +10,12 @@ from python import niizarr
 
 
 class TestNiizarrConversion(unittest.TestCase):
+
     def setUp(self):
         self.schema_file = "../../nifti-zarr-schema-0.3.json"
         with open(self.schema_file) as f:
             self.schema = json.load(f)
+
     def test_json_validation(self):
         test_files = ["data/example_nifti2.nii.gz", "data/example4d.nii.gz"]
         for nifti_file in test_files:

@@ -8,7 +8,7 @@ from python import niizarr
 
 class TestNiizarrConversion(unittest.TestCase):
 
-    def test_nifti_conversion_and_back(self):
+    def test_conversion_roundtrip_header(self):
         test_files = ["data/example_nifti2.nii.gz", "data/example4d.nii.gz"]
         for nifti_file in test_files:
             with self.subTest(nifti_file=nifti_file):
@@ -25,7 +25,7 @@ class TestNiizarrConversion(unittest.TestCase):
 
                     self.assertEqual(str(original_header), str(loaded_header))
 
-    def test_nifti_conversion_extension(self):
+    def test_conversion_roundtrip_extension(self):
         nifti_file = "data/example_nifti2.nii.gz"
         data = nib.load(nifti_file)
         with tempfile.TemporaryDirectory() as tmpdir:
