@@ -296,20 +296,19 @@ def nii2zarr(inp, out, *,
     byteorder = header['sizeof_hdr'].dtype.byteorder
     if byteorder == '=':
         byteorder = SYS_BYTEORDER
+
+    data_type = jsonheader['DataType']
+    # named tuple's datatype must be a list
+    if isinstance(data_type, tuple):
+        data_type = list(data_type)
+
     # descr always returns a list
-    if isinstance(jsonheader['DataType'], tuple):
-        data_type = np.dtype(list(jsonheader['DataType'])).descr
-    else:
-        data_type = np.dtype(jsonheader['DataType']).descr
-
-    adjusted_data_type = []
-    for field, dtype in data_type:
-        if dtype[0] == '|' or dtype[-1] == '1':
-            pass
-        else:
-            dtype = byteorder+dtype[1:]
-
-        adjusted_data_type.append((field, dtype))
+    data_type = np.dtype(data_type).descr
+    # replace the endianness character if datatype is more than 1 Byte
+    adjusted_data_type = [
+        (field, dtype if dtype[0] == '|' or dtype[-1] == '1' else byteorder + dtype[1:])
+        for field, dtype in data_type
+    ]
     data_type = adjusted_data_type
     # Prepare array metadata at each level
     compressor = _make_compressor(compressor, **compressor_options)
