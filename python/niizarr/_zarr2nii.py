@@ -110,18 +110,19 @@ def zarr2nii(inp, out=None, level=0):
     # reorder/reshape array as needed
     array = dask.array.from_zarr(inp[f'{level}'])
 
+    actual_axis_order = tuple(axis['name'] for axis in inp.attrs['multiscales'][0]['axes'])
     if array.ndim == 5:
         array = array.transpose([4, 3, 2, 0, 1])
-        assert inp[level].attrs['_ARRAY_DIMENSIONS'] == ['time', 'channel', 'z', 'y', 'x']
+        assert actual_axis_order == ('t','c','z','y','x')
     elif array.ndim == 4:
         array = array.transpose([3, 2, 1, 0])
-        assert inp[level].attrs['_ARRAY_DIMENSIONS'] == ['time', 'z', 'y', 'x']
+        assert actual_axis_order == ('t', 'z', 'y', 'x')
     elif array.ndim == 3:
         array = array.transpose([2, 1, 0])
-        assert inp[level].attrs['_ARRAY_DIMENSIONS'] == ['z', 'y', 'x']
+        assert actual_axis_order == ('z', 'y', 'x')
     elif array.ndim == 2:
         array = array.transpose([1, 0])
-        assert inp[level].attrs['_ARRAY_DIMENSIONS'] == ['y', 'x']
+        assert actual_axis_order == ('y', 'x')
 
     # create nibabel image
     img = NiftiImage(array, None, niiheader)
