@@ -304,13 +304,14 @@ SLICEORDERS = Recoder([
 def get_magic_string(header):
     return re.sub(r'[\x00-\x1f]+', '', header['magic'].decode())
 
+
 def try_header_version(buffer, version=1):
     if version == 1:
-        HEADER_TYPE=HEADERTYPE1
-        HEADER_SIZE=NIFTI_1_HEADER_SIZE
+        HEADER_TYPE = HEADERTYPE1
+        HEADER_SIZE = NIFTI_1_HEADER_SIZE
     elif version == 2:
-        HEADER_TYPE=HEADERTYPE2
-        HEADER_SIZE=NIFTI_2_HEADER_SIZE
+        HEADER_TYPE = HEADERTYPE2
+        HEADER_SIZE = NIFTI_2_HEADER_SIZE
     else:
         raise ValueError(f"Unsupported Nifti version {version}")
 
@@ -326,12 +327,12 @@ def try_header_version(buffer, version=1):
 
 
 def bin2nii(buffer):
-    header = try_header_version(buffer, 1)
-    if not header:
-        header = try_header_version(buffer, 2)
-    if not header:
-        raise ValueError('Is this a nifti header?')
-    return header
+    for v in (1, 2):
+        header = try_header_version(buffer, v)
+        if header:
+            return header
+    raise ValueError('Is this a nifti header?')
+
 
 def validate_magic(header, version):
     magic_string = get_magic_string(header)
