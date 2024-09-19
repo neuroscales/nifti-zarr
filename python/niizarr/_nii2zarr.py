@@ -300,7 +300,7 @@ def nii2zarr(inp, out, *,
 
     # Compute image pyramid
     if label is None:
-        label = jsonheader['Intent'] in ("LABEL", "NEURONAMES")
+        label = jsonheader['Intent'] in ("label", "neuronames")
     pyramid_fn = pyramid_gaussian if method[0] == 'g' else pyramid_laplacian
     data = list(_make_pyramid3d(data, nb_levels, pyramid_fn, label,
                                 no_pyramid_axis))
