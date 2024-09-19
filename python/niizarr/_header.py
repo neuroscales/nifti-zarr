@@ -117,43 +117,42 @@ class Recoder:
             self[key] = value
 
 
-# TODO: JNifTI has the following convention but it is not supported by numpy
-# DTYPES = Recoder([
-#     (2, "uint8"),  # unsigned char (8 bits)
-#     (4, "int16"),  # signed short (16 bits)
-#     (8, "int32"),  # signed int (32 bits)
-#     (16, "single"),  # 32-bit float
-#     (32, "complex64"),  # 64-bit complex (2x 32-bit floats)
-#     (64, "double"),  # 64-bit float (double precision)
-#     (128, (("r", "uint8"), ("g", "uint8"), ("b", "uint8"))),  # 3x 8-bit unsigned char (RGB24)
-#     (256, "int8"),  # signed char (8 bits)
-#     (512, "uint16"),  # unsigned short (16 bits)
-#     (768, "uint32"),  # unsigned int (32 bits)
-#     (1024, "int64"),  # signed long long (64 bits)
-#     (1280, "uint64"),  # unsigned long long (64 bits)
-#     (1536, "double128"),  # 128-bit float (long double)
-#     (1792, "complex128"),  # 128-bit complex (2x 64-bit floats)
-#     (2048, "complex256"),  # 256-bit complex (2x 128-bit floats)
-#     (2304, (("r", "uint8"), ("g", "uint8"), ("b", "uint8"), ("a", "uint8"))),  # 4x 8-bit unsigned char (RGBA32)
-# ])
 DTYPES = Recoder([
-    (2, "u1"),
-    (4, "i2"),
-    (8, "i4"),
-    (16, "f4"),
-    (32, "c8"),
-    (64, "f8"),
-    (128, (("r", "u1"), ("g", "u1"), ("b", "u1"))),
-    (256, "i1"),
-    (512, "u2"),
-    (768, "u4"),
-    (1024, "i8"),
-    (1280, "u8"),
-    (1536, "f16"),
-    (1792, "c16"),
-    (2048, "c32"),
-    (2304, (("r", "u1"), ("g", "u1"), ("b", "u1"), ("a", "u1"))),
+    (2, "uint8"),  # unsigned char (8 bits)
+    (4, "int16"),  # signed short (16 bits)
+    (8, "int32"),  # signed int (32 bits)
+    (16, "single"),  # 32-bit float
+    (32, "complex64"),  # 64-bit complex (2x 32-bit floats)
+    (64, "double"),  # 64-bit float (double precision)
+    (128, (("r", "uint8"), ("g", "uint8"), ("b", "uint8"))),  # 3x 8-bit unsigned char (RGB24)
+    (256, "int8"),  # signed char (8 bits)
+    (512, "uint16"),  # unsigned short (16 bits)
+    (768, "uint32"),  # unsigned int (32 bits)
+    (1024, "int64"),  # signed long long (64 bits)
+    (1280, "uint64"),  # unsigned long long (64 bits)
+    (1536, "double128"),  # 128-bit float (long double)
+    (1792, "complex128"),  # 128-bit complex (2x 64-bit floats)
+    (2048, "complex256"),  # 256-bit complex (2x 128-bit floats)
+    (2304, (("r", "uint8"), ("g", "uint8"), ("b", "uint8"), ("a", "uint8"))),  # 4x 8-bit unsigned char (RGBA32)
 ])
+# DTYPES = Recoder([
+#     (2, "u1"),
+#     (4, "i2"),
+#     (8, "i4"),
+#     (16, "f4"),
+#     (32, "c8"),
+#     (64, "f8"),
+#     (128, (("r", "u1"), ("g", "u1"), ("b", "u1"))),
+#     (256, "i1"),
+#     (512, "u2"),
+#     (768, "u4"),
+#     (1024, "i8"),
+#     (1280, "u8"),
+#     (1536, "f16"),
+#     (1792, "c16"),
+#     (2048, "c32"),
+#     (2304, (("r", "u1"), ("g", "u1"), ("b", "u1"), ("a", "u1"))),
+# ])
 
 UNITS = Recoder([
     (0, ""),

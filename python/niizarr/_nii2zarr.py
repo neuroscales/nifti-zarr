@@ -103,18 +103,18 @@ def nii2json(header):
     if not math.isfinite(jsonheader["ScaleOffset"]):
         jsonheader["ScaleOffset"] = 0.0
 
-    # Fix data type
-    byteorder = header['sizeof_hdr'].dtype.byteorder
-    if byteorder == '=':
-        byteorder = SYS_BYTEORDER
-    if isinstance(jsonheader["DataType"], tuple):
-        jsonheader["DataType"] = [
-            [field, '|' + dtype] for field, dtype in jsonheader["DataType"]
-        ]
-    elif jsonheader["DataType"].endswith('1'):
-        jsonheader["DataType"] = '|' + jsonheader["DataType"]
-    else:
-        jsonheader["DataType"] = byteorder + jsonheader["DataType"]
+    # # Fix data type
+    # byteorder = header['sizeof_hdr'].dtype.byteorder
+    # if byteorder == '=':
+    #     byteorder = SYS_BYTEORDER
+    # if isinstance(jsonheader["DataType"], tuple):
+    #     jsonheader["DataType"] = [
+    #         [field, '|' + dtype] for field, dtype in jsonheader["DataType"]
+    #     ]
+    # elif jsonheader["DataType"].endswith('1'):
+    #     jsonheader["DataType"] = '|' + jsonheader["DataType"]
+    # else:
+    #     jsonheader["DataType"] = byteorder + jsonheader["DataType"]
 
     # Check that the dictionary is serializable
     json.dumps(jsonheader)
@@ -317,7 +317,7 @@ def nii2zarr(inp, out, *,
         'chunks': c,
         'dimension_separator': r'/',
         'order': 'F',
-        'dtype': jsonheader['DataType'],
+        'dtype': np.dtype(jsonheader['DataType']).descr,
         'fill_value': fill_value,
         'compressor': compressor,
     } for c in chunk]
