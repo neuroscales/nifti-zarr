@@ -506,18 +506,18 @@ In Zarr, the byte order __MUST__ be specified by prepending one of
 
 In OME-NGFF, units must be names from the UDUNITS-2 database.
 
-| Unit        | NIfTI | UDUNITS-2       | OME-NGFF axis |
-| ----------- | ----- | --------------- | ------------- |
-| unknown     | `0`   | `""`            |               |
-| meter       | `1`   | `"meter"`       | `"space"`     |
-| millimeter  | `2`   | `"millimeter"`  | `"space"`     |
-| micron      | `3`   | `"micrometer"`  | `"space"`     |
-| second      | `8`   | `"second"`      | `"time"`      |
-| millisecond | `16`  | `"millisecond"` | `"time"`      |
-| microsecond | `24`  | `"microsecond"` | `"time"`      |
-| hertz       | `32`  | `"hertz"`       | `"channel"`   |
-| ppm         | `40`  | `"micro"`       | `"channel"`   |
-| rad         | `48`  | `"radian"`      | `"channel"`   |
+| Unit        | NIfTI | UDUNITS-2       | OME-NGFF axis | JNIfTI    |
+| ----------- | ----- | --------------- | ------------- | --------- |
+| unknown     | `0`   | `""`            |               | `""`      |
+| meter       | `1`   | `"meter"`       | `"space"`     | `"m"`     |
+| millimeter  | `2`   | `"millimeter"`  | `"space"`     | `"mm"`    |
+| micron      | `3`   | `"micrometer"`  | `"space"`     | `"um"`    |
+| second      | `8`   | `"second"`      | `"time"`      | `"s"`     |
+| millisecond | `16`  | `"millisecond"` | `"time"`      | `"ms"`    |
+| microsecond | `24`  | `"microsecond"` | `"time"`      | `"us"`    |
+| hertz       | `32`  | `"hertz"`       | `"channel"`   | `"hz"`    |
+| ppm         | `40`  | `"micro"`       | `"channel"`   | `"ppm"`   |
+| rad         | `48`  | `"radian"`      | `"channel"`   | `"rad/s"` |
 
 ### Table 4.4. Intents
 
@@ -578,7 +578,7 @@ Additional FSL codes:
 
 ### Table 4.5. Xforms
 
-| Transform | NIfTI | JNIfTI header |
+| Transform | NIfTI | JNIfTI        |
 | --------- | ----- | ------------- |
 | Unknown   | `0`   | `"unknown"`   |
 | Scanner   | `1`   | `"scanner"`   |
@@ -589,15 +589,15 @@ Additional FSL codes:
 
 ### Table 4.6. Slice order
 
-| Order                     | NIfTI | NIfTI-Zarr's JSON header |
-| ------------------------- | ----- | ------------------------ |
-| Unknown                   | `0`   | `""`                     |
-| Sequential increasing     | `1`   | `"seq+"`                 |
-| Sequential decreasing     | `2`   | `"seq-"`                 |
-| alternating increasing    | `3`   | `"alt+"`                 |
-| alternating decreasing    | `4`   | `"alt-"`                 |
-| alternating increasing #2 | `5`   | `"alt2+"`                |
-| alternating decreasing #2 | `6`   | `"alt2-"`                |
+| Order                     | NIfTI | JNIfTI    |
+| ------------------------- | ----- | --------- |
+| Unknown                   | `0`   | `""`      |
+| Sequential increasing     | `1`   | `"seq+"`  |
+| Sequential decreasing     | `2`   | `"seq-"`  |
+| alternating increasing    | `3`   | `"alt+"`  |
+| alternating decreasing    | `4`   | `"alt-"`  |
+| alternating increasing #2 | `5`   | `"alt2+"` |
+| alternating decreasing #2 | `6`   | `"alt2-"` |
 
 ## 5. Reference implementations
 
