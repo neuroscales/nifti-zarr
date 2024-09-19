@@ -121,13 +121,13 @@
         "rgb",
         "rgba",
         "shape",
-        "FSL_FNIRT_DISPLACEMENT_FIELD",
-        "FSL_CUBIC_SPLINE_COEFFICIENTS",
-        "FSL_DCT_COEFFICIENTS",
-        "FSL_QUADRATIC_SPLINE_COEFFICIENTS",
-        "FSL_TOPUP_CUBIC_SPLINE_COEFFICIENTS",
-        "FSL_TOPUP_QUADRATIC_SPLINE_COEFFICIENTS",
-        "FSL_TOPUP_FIELD"
+        "fsl_fnirt_displacement_field",
+        "fsl_cubic_spline_coefficients",
+        "fsl_dct_coefficients",
+        "fsl_quadratic_spline_coefficients",
+        "fsl_topup_cubic_spline_coefficients",
+        "fsl_topup_quadratic_spline_coefficients",
+        "fsl_topup_field"
       ]
     },
     "Param1": {
