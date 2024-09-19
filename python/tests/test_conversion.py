@@ -16,7 +16,7 @@ class TestNiizarrConversion(unittest.TestCase):
             with self.subTest(nifti_file=nifti_file):
                 data = nib.load(nifti_file)
                 with tempfile.TemporaryDirectory() as tmpdir:
-                    zarr_file = os.path.join(tmpdir, "test.ome.zarr")
+                    zarr_file = os.path.join(tmpdir, "test.nii.zarr")
 
                     niizarr.nii2zarr(data, zarr_file)
 
@@ -31,7 +31,7 @@ class TestNiizarrConversion(unittest.TestCase):
         nifti_file = "data/example_nifti2.nii.gz"
         data = nib.load(nifti_file)
         with tempfile.TemporaryDirectory() as tmpdir:
-            zarr_file = os.path.join(tmpdir, "test.ome.zarr")
+            zarr_file = os.path.join(tmpdir, "test.nii.zarr")
 
             niizarr.nii2zarr(data, zarr_file)
 
@@ -48,7 +48,7 @@ class TestNiizarrConversion(unittest.TestCase):
             with self.subTest(nifti_file=nifti_file):
                 data = nib.load(nifti_file)
                 with tempfile.TemporaryDirectory() as tmpdir:
-                    zarr_file = os.path.join(tmpdir, "test.ome.zarr")
+                    zarr_file = os.path.join(tmpdir, "test.nii.zarr")
                     niizarr.nii2zarr(data, zarr_file)
                     loaded = niizarr.zarr2nii(zarr_file)
                     np.testing.assert_array_almost_equal(data.get_fdata(), loaded.get_fdata())

@@ -22,7 +22,7 @@ class TestNiizarrConversion(unittest.TestCase):
             with self.subTest(nifti_file=nifti_file):
                 data = nib.load(nifti_file)
                 with tempfile.TemporaryDirectory() as tmpdir:
-                    zarr_file = os.path.join(tmpdir, "test.ome.zarr")
+                    zarr_file = os.path.join(tmpdir, "test.nii.zarr")
                     niizarr.nii2zarr(data, zarr_file)
 
                     json_file = os.path.join(zarr_file, "nifti/.zattrs")
