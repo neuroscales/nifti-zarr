@@ -8,12 +8,12 @@ import numcodecs
 import numpy as np
 import zarr.hierarchy
 import zarr.storage
-from nibabel import Nifti1Image, load
+from nibabel import Nifti1Image, load, aff2axcodes
 from ome_zarr.writer import write_multiscale
 from skimage.transform import pyramid_gaussian, pyramid_laplacian
 
 from ._header import (
-    UNITS, DTYPES, INTENTS, INTENTS_P, SLICEORDERS, XFORMS, bin2nii, get_magic_string, SYS_BYTEORDER
+    UNITS, DTYPES, INTENTS, INTENTS_P, SLICEORDERS, XFORMS, bin2nii, get_magic_string, SYS_BYTEORDER, get_nibabel_klass
 )
 
 # If fsspec available, use fsspec
@@ -24,6 +24,13 @@ try:
 except (ImportError, ModuleNotFoundError):
     fsspec = None
 
+
+def get_orientation(header):
+    NiftiHeader=get_nibabel_klass(header)[0]
+    niiheader = NiftiHeader.from_fileobj(io.BytesIO(header.tobytes()),
+                                         check=False)
+
+    return aff2axcodes(niiheader.get_qform())
 
 def nii2json(header):
     """
@@ -43,10 +50,10 @@ def nii2json(header):
 
     ndim = header["dim"][0].item()
     intent_code = INTENTS[header["intent_code"].item()]
-
     intent_param = header["intent_p"][:INTENTS_P[intent_code]].tolist()
     quatern = header["quatern"].tolist()
     qoffset = header["qoffset"].tolist()
+    orientation = [axis.lower() for axis in get_orientation(header)]
 
     jsonheader = {
         # Strip control characters
@@ -91,9 +98,9 @@ def nii2json(header):
             "z": qoffset[2],
         },
         "Orientation": {
-            "x": "r" if header["pixdim"][0].item() == 0 else "l",
-            "y": "a",
-            "z": "s",
+            "x": orientation[0],
+            "y": orientation[1],
+            "z": orientation[2],
         },
         "SForm": XFORMS[header["sform_code"].item()],
         "Affine": header["sform"].tolist(),
