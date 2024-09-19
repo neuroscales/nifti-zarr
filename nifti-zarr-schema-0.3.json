@@ -157,15 +157,21 @@
       "properties": {
         "x": {
           "enum": [
-            "r",
-            "l"
+            "l",
+            "r"
           ]
         },
         "y": {
-          "const": "a"
+          "enum": [
+            "a",
+            "p"
+          ]
         },
         "z": {
-          "const": "s"
+          "enum": [
+            "s",
+            "i"
+          ]
         }
       }
     },
