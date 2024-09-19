@@ -246,13 +246,13 @@ INTENTS = Recoder([
     (2004, "rgba"),
     # NIFTI_INTENT_SHAPE: Each data point is a shape value
     (2005, "shape"),
-    (2006, "FSL_FNIRT_DISPLACEMENT_FIELD"),
-    (2007, "FSL_CUBIC_SPLINE_COEFFICIENTS"),
-    (2008, "FSL_DCT_COEFFICIENTS"),
-    (2009, "FSL_QUADRATIC_SPLINE_COEFFICIENTS"),
-    (2016, "FSL_TOPUP_CUBIC_SPLINE_COEFFICIENTS"),
-    (2017, "FSL_TOPUP_QUADRATIC_SPLINE_COEFFICIENTS"),
-    (2018, "FSL_TOPUP_FIELD"),
+    (2006, "fsl_fnirt_displacement_field"),
+    (2007, "fsl_cubic_spline_coefficients"),
+    (2008, "fsl_dct_coefficients"),
+    (2009, "fsl_quadratic_spline_coefficients"),
+    (2016, "fsl_topup_cubic_spline_coefficients"),
+    (2017, "fsl_topup_quadratic_spline_coefficients"),
+    (2018, "fsl_topup_field"),
 ])
 
 # parameters count for each intent
