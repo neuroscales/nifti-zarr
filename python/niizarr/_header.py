@@ -304,27 +304,34 @@ SLICEORDERS = Recoder([
 def get_magic_string(header):
     return re.sub(r'[\x00-\x1f]+', '', header['magic'].decode())
 
+def try_header_version(buffer, version=1):
+    if version == 1:
+        HEADER_TYPE=HEADERTYPE1
+        HEADER_SIZE=NIFTI_1_HEADER_SIZE
+    elif version == 2:
+        HEADER_TYPE=HEADERTYPE2
+        HEADER_SIZE=NIFTI_2_HEADER_SIZE
+    else:
+        raise ValueError(f"Unsupported Nifti version {version}")
+
+    header = np.frombuffer(buffer, dtype=HEADER_TYPE, count=1)[0]
+    if header['sizeof_hdr'] != HEADER_SIZE:
+        header = header.newbyteorder()
+
+        if header['sizeof_hdr'] != HEADER_SIZE:
+            return None
+
+    validate_magic(header, version)
+    return header
+
 
 def bin2nii(buffer):
-    header = np.frombuffer(buffer, dtype=HEADERTYPE1, count=1)[0]
-    if header['sizeof_hdr'] == NIFTI_1_HEADER_SIZE:
-        validate_magic(header, 1)
-        return header
-    header = header.newbyteorder()
-    if header['sizeof_hdr'] == NIFTI_1_HEADER_SIZE:
-        validate_magic(header, 1)
-        return header
-
-    header = np.frombuffer(buffer, dtype=HEADERTYPE2, count=1)[0]
-    if header['sizeof_hdr'] == NIFTI_2_HEADER_SIZE:
-        validate_magic(header, 2)
-        return header
-    header = header.newbyteorder()
-    if header['sizeof_hdr'] == NIFTI_2_HEADER_SIZE:
-        validate_magic(header, 2)
-        return header
-    raise ValueError('Is this a nifti header?')
-
+    header = try_header_version(buffer, 1)
+    if not header:
+        header = try_header_version(buffer, 2)
+    if not header:
+        raise ValueError('Is this a nifti header?')
+    return header
 
 def validate_magic(header, version):
     magic_string = get_magic_string(header)
