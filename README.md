@@ -424,56 +424,60 @@ nifti.zattrs["VoxelSize"][4]   ==  zattrs["multiscales"][0]["coordinateTransform
 
 As a reminder, the nifti1 header has the following structure:
 
-| Type       | Name             | NIFfI-1 usage                       | JNIfTI                | JSON type           |
-| ---------- | ---------------- | ----------------------------------- | --------------------- | ------------------- |
-| `int`      | `sizeof_hdr`     | __MUST__ be 348                     | `"NIIHeaderSize"`     | `integer`           |
-| `char`     | `data_type`      | ~~UNUSED~~                          | `"A75DataTypeName"`   | `string`            |
-| `char`     | `db_name`        | ~~UNUSED~~                          | `"A75DBName"`         | `string`            |
-| `int`      | `extents`        | ~~UNUSED~~                          | `"A75Extends"`        | `integer`           |
-| `short`    | `session_error`  | ~~UNUSED~~                          | `"A75SessionError"`   | `integer`           |
-| `char`     | `regular`        | ~~UNUSED~~                          | `"A75Regular"`        | `integer`           |
-| `char`     | `dim_info`       | MRI slice ordering.                 | `"DimInfo"`           | `property`          |
-|            |                  |                                     | `"DimInfo"/"Freq"`    | `integer`           |
-|            |                  |                                     | `"DimInfo"/"Phase"`   | `integer`           |
-|            |                  |                                     | `"DimInfo"/"Slice"`   | `integer`           |
-| `short[8]` | `dim`            | Data array dimensions.              | `"Dim"`               | `array[integer]`    |
-| `float`    | `intent_p1`      | 1st intent parameter.               | `"Param1"`            | `number`            |
-| `float`    | `intent_p2`      | 2nd intent parameter.               | `"Param2"`            | `number`            |
-| `float`    | `intent_p3`      | 3rd intent parameter.               | `"Param3"`            | `number`            |
-| `short`    | `intent_code`    | `NIFTI_INTENT_*` code.              | `"Intent"`            | `[integer, string]` |
-| `short`    | `datatype`       | Defines data type!                  | `"DataType"`          | `[integer, string]` |
-| `short`    | `bitpix`         | Number bits/voxel.                  | `"BitDepth"`          | `integer`           |
-| `short`    | `slice_start`    | First slice index.                  | `"FirstSliceID"`      | `integer`           |
-| `float[8]` | `pixdim`         | Grid spacings.                      | `"VoxelSize"`         | `array[number]`     |
-| `float`    | `vox_offset`     | Offset into .nii file               | `"NIIByteOffset"`     | `number`            |
-| `float`    | `scl_slope`      | Data scaling: slope.                | `"ScaleSlope"`        | `number`            |
-| `float`    | `scl_inter`      | Data scaling: offset.               | `"ScaleOffset"`       | `number`            |
-| `short`    | `slice_end`      | Last slice index.                   | `"LastSliceID"`       | `integer`           |
-| `char`     | `slice_code`     | Slice timing order.                 | `"SliceType"`         | `[integer, string]` |
-| `char`     | `xyzt_units`     | Units of `pixdim[1..4]`             | `"Unit"`              | `property`          |
-|            |                  |                                     | `"Unit"/"L"`          | `[integer, string]` |
-|            |                  |                                     | `"Unit"/"T"`          | `[integer, string]` |
-| `float`    | `cal_max`        | Max display intensity               | `"MaxIntensity"`      | `number`            |
-| `float`    | `cal_min`        | Min display intensity               | `"MinIntensity"`      | `number`            |
-| `float`    | `slice_duration` | Time for 1 slice.                   | `"SliceTime"`         | `number`            |
-| `float`    | `toffset`        | Time axis shift.                    | `"TimeOffset"`        | `number`            |
-| `int`      | `glmax`          | ~~UNUSED~~                          | `"A75GlobalMax"`      | `integer`           |
-| `int`      | `glmin`          | ~~UNUSED~~                          | `"A75GlobalMin"`      | `integer`           |
-| `char[80]` | `descrip`        | any text you like.                  | `"Description"`       | `string`            |
-| `char[24]` | `aux_file`       | auxiliary filename.                 | `"AuxFile"`           | `string`            |
-| `short`    | `qform_code`     | `NIFTI_XFORM_*` code.               | `"QForm"`             | `integer`           |
-| `short`    | `sform_code`     | `NIFTI_XFORM_*` code.               | `"SForm"`             | `integer`           |
-| `float`    | `quatern_b`      | Quaternion b param.                 | `"Quatern"/"b"`       | `number`            |
-| `float`    | `quatern_c`      | Quaternion c param.                 | `"Quatern"/"c"`       | `number`            |
-| `float`    | `quatern_d`      | Quaternion d param.                 | `"Quatern"/"d"`       | `number`            |
-| `float`    | `qoffset_x`      | Quaternion x shift.                 | `"QuaternOffset"/"x"` | `number`            |
-| `float`    | `qoffset_y`      | Quaternion y shift.                 | `"QuaternOffset"/"y"` | `number`            |
-| `float`    | `qoffset_z`      | Quaternion z shift.                 | `"QuaternOffset"/"z"` | `number`            |
-| `float[4]` | `srow_x`         | 1st row affine transform.           | `"Affine"/[0]`        | `array[number]`     |
-| `float[4]` | `srow_y`         | 2nd row affine transform.           | `"Affine"/[1]`        | `array[number]`     |
-| `float[4]` | `srow_z`         | 3rd row affine transform.           | `"Affine"/[2]`        | `array[number]`     |
-| `char[16]` | `intent_name`    | 'name' or meaning of data.          | `"Name"`              | `string`            |
-| `char[4]`  | `magic`          | __MUST__ be `"ni1\0"` or `"n+1\0"`. | `"NIIFormat"`         | `string`            |
+| Type       | Name             | NIFfI-1 usage                       | JNIfTI                | JSON type                              |
+| ---------- | ---------------- | ----------------------------------- | --------------------- | -------------------------------------- |
+| `int`      | `sizeof_hdr`     | __MUST__ be 348                     | `"NIIHeaderSize"`     | `integer`                              |
+| `char`     | `data_type`      | ~~UNUSED~~                          | `"A75DataTypeName"`   | `string`                               |
+| `char`     | `db_name`        | ~~UNUSED~~                          | `"A75DBName"`         | `string`                               |
+| `int`      | `extents`        | ~~UNUSED~~                          | `"A75Extends"`        | `integer`                              |
+| `short`    | `session_error`  | ~~UNUSED~~                          | `"A75SessionError"`   | `integer`                              |
+| `char`     | `regular`        | ~~UNUSED~~                          | `"A75Regular"`        | `integer`                              |
+| `char`     | `dim_info`       | MRI slice ordering.                 | `"DimInfo"`           | `property`                             |
+|            |                  |                                     | `"DimInfo"/"Freq"`    | `integer`                              |
+|            |                  |                                     | `"DimInfo"/"Phase"`   | `integer`                              |
+|            |                  |                                     | `"DimInfo"/"Slice"`   | `integer`                              |
+| `short[8]` | `dim`            | Data array dimensions.              | `"Dim"`               | `array[integer]`                       |
+| `float`    | `intent_p1`      | 1st intent parameter.               | `"Param1"`            | `number`                               |
+| `float`    | `intent_p2`      | 2nd intent parameter.               | `"Param2"`            | `number`                               |
+| `float`    | `intent_p3`      | 3rd intent parameter.               | `"Param3"`            | `number`                               |
+| `short`    | `intent_code`    | `NIFTI_INTENT_*` code.              | `"Intent"`            | `[integer, string]`                    |
+| `short`    | `datatype`       | Defines data type!                  | `"DataType"`          | `[integer, string]`                    |
+| `short`    | `bitpix`         | Number bits/voxel.                  | `"BitDepth"`          | `integer`                              |
+| `short`    | `slice_start`    | First slice index.                  | `"FirstSliceID"`      | `integer`                              |
+| `float[8]` | `pixdim`         | Grid spacings.                      | `"VoxelSize"`         | `array[number]`                        |
+|            |                  |                                     | `"Orientation"`       | `property`                             |
+|            |                  |                                     | `"Orientation"/"x"`   | `enum: ["l", "r", "a", "p", "i", "s"]` |
+|            |                  |                                     | `"Orientation"/"y"`   | `enum: ["l", "r", "a", "p", "i", "s"]` |
+|            |                  |                                     | `"Orientation"/"z"`   | `enum: ["l", "r", "a", "p", "i", "s"]` |
+| `float`    | `vox_offset`     | Offset into .nii file               | `"NIIByteOffset"`     | `number`                               |
+| `float`    | `scl_slope`      | Data scaling: slope.                | `"ScaleSlope"`        | `number`                               |
+| `float`    | `scl_inter`      | Data scaling: offset.               | `"ScaleOffset"`       | `number`                               |
+| `short`    | `slice_end`      | Last slice index.                   | `"LastSliceID"`       | `integer`                              |
+| `char`     | `slice_code`     | Slice timing order.                 | `"SliceType"`         | `[integer, string]`                    |
+| `char`     | `xyzt_units`     | Units of `pixdim[1..4]`             | `"Unit"`              | `property`                             |
+|            |                  |                                     | `"Unit"/"L"`          | `[integer, string]`                    |
+|            |                  |                                     | `"Unit"/"T"`          | `[integer, string]`                    |
+| `float`    | `cal_max`        | Max display intensity               | `"MaxIntensity"`      | `number`                               |
+| `float`    | `cal_min`        | Min display intensity               | `"MinIntensity"`      | `number`                               |
+| `float`    | `slice_duration` | Time for 1 slice.                   | `"SliceTime"`         | `number`                               |
+| `float`    | `toffset`        | Time axis shift.                    | `"TimeOffset"`        | `number`                               |
+| `int`      | `glmax`          | ~~UNUSED~~                          | `"A75GlobalMax"`      | `integer`                              |
+| `int`      | `glmin`          | ~~UNUSED~~                          | `"A75GlobalMin"`      | `integer`                              |
+| `char[80]` | `descrip`        | any text you like.                  | `"Description"`       | `string`                               |
+| `char[24]` | `aux_file`       | auxiliary filename.                 | `"AuxFile"`           | `string`                               |
+| `short`    | `qform_code`     | `NIFTI_XFORM_*` code.               | `"QForm"`             | `integer`                              |
+| `short`    | `sform_code`     | `NIFTI_XFORM_*` code.               | `"SForm"`             | `integer`                              |
+| `float`    | `quatern_b`      | Quaternion b param.                 | `"Quatern"/"b"`       | `number`                               |
+| `float`    | `quatern_c`      | Quaternion c param.                 | `"Quatern"/"c"`       | `number`                               |
+| `float`    | `quatern_d`      | Quaternion d param.                 | `"Quatern"/"d"`       | `number`                               |
+| `float`    | `qoffset_x`      | Quaternion x shift.                 | `"QuaternOffset"/"x"` | `number`                               |
+| `float`    | `qoffset_y`      | Quaternion y shift.                 | `"QuaternOffset"/"y"` | `number`                               |
+| `float`    | `qoffset_z`      | Quaternion z shift.                 | `"QuaternOffset"/"z"` | `number`                               |
+| `float[4]` | `srow_x`         | 1st row affine transform.           | `"Affine"/[0]`        | `array[number]`                        |
+| `float[4]` | `srow_y`         | 2nd row affine transform.           | `"Affine"/[1]`        | `array[number]`                        |
+| `float[4]` | `srow_z`         | 3rd row affine transform.           | `"Affine"/[2]`        | `array[number]`                        |
+| `char[16]` | `intent_name`    | 'name' or meaning of data.          | `"Name"`              | `string`                               |
+| `char[4]`  | `magic`          | __MUST__ be `"ni1\0"` or `"n+1\0"`. | `"NIIFormat"`         | `string`                               |
 
 ### Table 4.2. Data types
 
