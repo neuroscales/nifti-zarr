@@ -151,6 +151,24 @@
         "null"
       ]
     },
+    "Orientation": {
+      "description": "Handedness of the coordinate system",
+      "type": "object",
+      "properties": {
+        "x": {
+          "enum": [
+            "r",
+            "l"
+          ]
+        },
+        "y": {
+          "const": "a"
+        },
+        "z": {
+          "const": "s"
+        }
+      }
+    },
     "Name": {
       "description": "'name' or meaning of data",
       "type": "string"
@@ -271,6 +289,5 @@
       "minItems": 3,
       "maxItems": 3
     }
-
   }
 }

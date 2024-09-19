@@ -92,10 +92,11 @@ def nii2json(header):
             "y": qoffset[1],
             "z": qoffset[2],
         },
-        # TODO: remove if not in use
-        # "qform": {
-        #     "fac": header["pixdim"][0].item(),
-        # },
+        "Orientation": {
+            "x": "r" if header["pixdim"][0].item() == 0 else "l",
+            "y": "a",
+            "z": "s",
+        },
         "SForm": XFORMS[header["sform_code"].item()],
         "Affine": header["sform"].tolist(),
     }
