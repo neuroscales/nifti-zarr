@@ -13,7 +13,7 @@ from ome_zarr.writer import write_multiscale
 from skimage.transform import pyramid_gaussian, pyramid_laplacian
 
 from ._header import (
-    UNITS, DTYPES, INTENTS, INTENTS_P, SLICEORDERS, XFORMS, bin2nii, get_magic_string
+    UNITS, DTYPES, INTENTS, INTENTS_P, SLICEORDERS, XFORMS, bin2nii, get_magic_string, SYS_BYTEORDER
 )
 
 # If fsspec available, use fsspec
@@ -23,8 +23,6 @@ try:
     open = fsspec.open
 except (ImportError, ModuleNotFoundError):
     fsspec = None
-
-SYS_BYTEORDER = '<' if sys.byteorder == 'little' else '>'
 
 
 def nii2json(header):
@@ -336,7 +334,8 @@ def nii2zarr(inp, out, *,
 
     if inp.header.extensions:
         extension_stream = io.BytesIO()
-        inp.header.extensions.write_to(extension_stream, byteswap=False)
+        inp.header.extensions.write_to(extension_stream,
+                                       byteswap=(SYS_BYTEORDER == header['sizeof_hdr'].dtype.byteorder))
         bin_data.append(np.frombuffer(extension_stream.getvalue(), dtype=np.uint8))
 
     # Concatenate the final binary data

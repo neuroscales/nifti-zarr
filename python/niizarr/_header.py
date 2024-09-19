@@ -1,7 +1,10 @@
 import re
+import sys
 import warnings
 
 import numpy as np
+
+SYS_BYTEORDER = '<' if sys.byteorder == 'little' else '>'
 
 NIFTI_1_HEADER_SIZE = 348
 NIFTI_2_HEADER_SIZE = 540
