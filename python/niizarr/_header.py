@@ -340,6 +340,36 @@ def validate_magic(header, version):
         warnings.warn(f"Magic String {magic_string} does not match NIFTI version {version}")
 
 
+# def get_header_version(buffer):
+#     for v in (1, 2):
+#         header = try_header_version(buffer, v)
+#         if header:
+#             return v
+#     raise ValueError('Is this a nifti header?')
+#
+# def bin2nib(buffer):
+#     version = get_header_version(buffer)
+#     if version == 1:
+#         NiftiHeader = Nifti1Header
+#         NiftiImage = Nifti1Image
+#     elif version==2:
+#         NiftiHeader = Nifti2Header
+#         NiftiImage = Nifti2Image
+#     else:
+#         raise ValueError(f"Unsupported Nifti version {version}")
+
+from nibabel import (Nifti1Image, Nifti1Header, Nifti2Image, Nifti2Header)
+
+
+def get_nibabel_klass(header):
+    if header['sizeof_hdr'] == NIFTI_1_HEADER_SIZE:
+        return Nifti1Header, Nifti1Image
+    elif header['sizeof_hdr'] == NIFTI_2_HEADER_SIZE:
+        return Nifti2Header, Nifti2Image
+    else:
+        raise ValueError(f"sizeof_hdr {header['sizeof_hdr']} does not match any Nifti header specification")
+
+
 """
 For reference, nibabel xcode and dtype definition 
 _dtdefs = (  # code, label, dtype definition, niistring

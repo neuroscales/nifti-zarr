@@ -7,11 +7,10 @@ import dask.array
 import numpy as np
 import zarr.hierarchy
 import zarr.storage
-from nibabel import (Nifti1Image, Nifti1Header, Nifti2Image, Nifti2Header,
-                     save, load)
+from nibabel import (save, load)
 from nibabel.nifti1 import Nifti1Extensions
 
-from ._header import bin2nii, NIFTI_1_HEADER_SIZE, NIFTI_2_HEADER_SIZE, SYS_BYTEORDER
+from ._header import bin2nii, SYS_BYTEORDER, get_nibabel_klass
 
 # If fsspec available, use fsspec
 try:
@@ -71,16 +70,7 @@ def zarr2nii(inp, out=None, level=0):
     # read binary header
     header = bin2nii(np.asarray(inp['nifti']).tobytes())
 
-    # create nibabel header (useful to convert quat 2 affine, etc)
-    if header['sizeof_hdr'] == NIFTI_1_HEADER_SIZE:
-        NiftiHeader = Nifti1Header
-        NiftiImage = Nifti1Image
-    elif header['sizeof_hdr'] == NIFTI_2_HEADER_SIZE:
-        NiftiHeader = Nifti2Header
-        NiftiImage = Nifti2Image
-    else:
-        raise ValueError(f"sizeof_hdr {header['sizeof_hdr']} does not match any Nifti header specification")
-
+    NiftiHeader, NiftiImage = get_nibabel_klass(header)
     niiheader = NiftiHeader.from_fileobj(io.BytesIO(header.tobytes()),
                                          check=False)
 
@@ -113,7 +103,7 @@ def zarr2nii(inp, out=None, level=0):
     actual_axis_order = tuple(axis['name'] for axis in inp.attrs['multiscales'][0]['axes'])
     if array.ndim == 5:
         array = array.transpose([4, 3, 2, 0, 1])
-        assert actual_axis_order == ('t','c','z','y','x')
+        assert actual_axis_order == ('t', 'c', 'z', 'y', 'x')
     elif array.ndim == 4:
         array = array.transpose([3, 2, 1, 0])
         assert actual_axis_order == ('t', 'z', 'y', 'x')
@@ -132,7 +122,7 @@ def zarr2nii(inp, out=None, level=0):
         try:
             file_obj = io.BytesIO(np.asarray(inp['nifti']).tobytes()[header['sizeof_hdr']:])
             img.header.extensions = Nifti1Extensions.from_fileobj(file_obj, extension_size, (
-                        header['sizeof_hdr'].dtype.byteorder == SYS_BYTEORDER))
+                    header['sizeof_hdr'].dtype.byteorder == SYS_BYTEORDER))
             # extensions = extract_extension(np.asarray(inp['nifti']).tobytes(), header['sizeof_hdr'])
             # img.header.extensions += extensions
         except Exception:
