@@ -1,0 +1,4 @@
+[deps]
+NIfTI = "a3a9e032-41b5-5fc4-967a-a6b7a19844d3"
+NIfTIZarr = "37a98a6a-6d49-420d-b818-2675248c7c06"
+Zarr = "0a941bbe-ad1d-11e8-39d9-ab76183a1d99"
