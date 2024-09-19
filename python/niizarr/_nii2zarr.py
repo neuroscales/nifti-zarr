@@ -26,11 +26,12 @@ except (ImportError, ModuleNotFoundError):
 
 
 def get_orientation(header):
-    NiftiHeader=get_nibabel_klass(header)[0]
+    NiftiHeader = get_nibabel_klass(header)[0]
     niiheader = NiftiHeader.from_fileobj(io.BytesIO(header.tobytes()),
                                          check=False)
 
     return aff2axcodes(niiheader.get_qform())
+
 
 def nii2json(header):
     """
