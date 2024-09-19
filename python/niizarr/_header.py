@@ -124,7 +124,7 @@ DTYPES = Recoder([
     (16, "single"),  # 32-bit float
     (32, "complex64"),  # 64-bit complex (2x 32-bit floats)
     (64, "double"),  # 64-bit float (double precision)
-    (128, [("r", "uint8"), ("g", "uint8"), ("b", "uint8")]),  # 3x 8-bit unsigned char (RGB24)
+    (128, (("r", "uint8"), ("g", "uint8"), ("b", "uint8"))),  # 3x 8-bit unsigned char (RGB24)
     (256, "int8"),  # signed char (8 bits)
     (512, "uint16"),  # unsigned short (16 bits)
     (768, "uint32"),  # unsigned int (32 bits)
@@ -133,9 +133,8 @@ DTYPES = Recoder([
     (1536, "double128"),  # 128-bit float (long double)
     (1792, "complex128"),  # 128-bit complex (2x 64-bit floats)
     (2048, "complex256"),  # 256-bit complex (2x 128-bit floats)
-    (2304, [("r", "uint8"), ("g", "uint8"), ("b", "uint8"), ("a", "uint8")]),  # 4x 8-bit unsigned char (RGBA32)
+    (2304, (("r", "uint8"), ("g", "uint8"), ("b", "uint8"), ("a", "uint8"))),  # 4x 8-bit unsigned char (RGBA32)
 ])
-
 UNITS = Recoder([
     (0, ""),
     (1, "m"),
