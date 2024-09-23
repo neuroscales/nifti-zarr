@@ -21,25 +21,6 @@ except (ImportError, ModuleNotFoundError):
     fsspec = None
 
 
-# This function is no longer used. We used nibabel to load extension from binary blob directly.
-# def extract_extension(chunk, index=0):
-#     sections = []
-#     chunk_len = len(chunk)
-#
-#     while index < chunk_len:
-#         size = int.from_bytes(chunk[index:index + 4], byteorder='big')
-#         code = int.from_bytes(chunk[index + 4:index + 8], byteorder='big')
-#
-#         content = chunk[index + 8:index + size]
-#         # strip redundant \0. See: https://github.com/nipy/nibabel/blob/83eaf0b55be9e9079bf9ad64975b71c22523f5f0/nibabel/nifti1.py#L630
-#         content = content.rstrip(b'\x00')
-#         sections.append(Nifti1Extension(code, content))
-#
-#         index += size
-#
-#     return sections
-
-
 def zarr2nii(inp, out=None, level=0):
     """
     Convert a nifti-zarr to nifti
