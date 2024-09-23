@@ -309,6 +309,8 @@ def nii2zarr(inp, out, *,
         (field, dtype if dtype[0] == '|' or dtype[-1] == '1' else byteorder + dtype[1:])
         for field, dtype in data_type
     ]
+    if len(adjusted_data_type) == 1:
+        adjusted_data_type = adjusted_data_type[0][1]
     data_type = adjusted_data_type
     # Prepare array metadata at each level
     compressor = _make_compressor(compressor, **compressor_options)
