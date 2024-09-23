@@ -3,6 +3,8 @@ import sys
 import warnings
 
 import numpy as np
+from nibabel import (Nifti1Image, Nifti1Header, Nifti2Image, Nifti2Header)
+
 
 SYS_BYTEORDER = '<' if sys.byteorder == 'little' else '>'
 
@@ -135,6 +137,7 @@ DTYPES = Recoder([
     (2048, "complex256"),  # 256-bit complex (2x 128-bit floats)
     (2304, (("r", "uint8"), ("g", "uint8"), ("b", "uint8"), ("a", "uint8"))),  # 4x 8-bit unsigned char (RGBA32)
 ])
+
 UNITS = Recoder([
     (0, ""),
     (1, "m"),
@@ -147,6 +150,38 @@ UNITS = Recoder([
     (40, "ppm"),
     (48, "rad/s"),
 ])
+
+
+JNIFTI_ZARR = Recoder([
+    ("u1", "uint8"),
+    ("i2", "int16"),
+    ("i4", "int32"),
+    ("f4", "single"),
+    ("c8", "complex64"),
+    ("f8", "double"),
+    ((("r", "u1"), ("g", "u1"), ("b", "u1")), (("r", "uint8"), ("g", "uint8"), ("b", "uint8"))),
+    ("i1", "int8"),
+    ("u2", "uint16"),
+    ("u4", "uint32"),
+    ("i8", "int64"),
+    ("u8", "uint64"),
+    ("f16", "double128"),
+    ("c16", "complex128"),
+    ("c32", "complex256"),
+    ((("r", "u1"), ("g", "u1"), ("b", "u1"), ("a", "u1")),
+     (("r", "uint8"), ("g", "uint8"), ("b", "uint8"), ("a", "uint8"))),
+    ("", ""),
+    ("m", "meter"),
+    ("mm", "millimeter"),
+    ("um", "micrometer"),
+    ("s", "second"),
+    ("ms", "millisecond"),
+    ("us", "microsecond"),
+    ("hz", "hertz"),
+    ("ppm", "micro"),
+    ("rad/s", "radian"),
+])
+
 
 INTENTS = Recoder([
     # NIFTI_INTENT_NONE: Unknown data intent
@@ -357,8 +392,6 @@ def validate_magic(header, version):
 #         NiftiImage = Nifti2Image
 #     else:
 #         raise ValueError(f"Unsupported Nifti version {version}")
-
-from nibabel import (Nifti1Image, Nifti1Header, Nifti2Image, Nifti2Header)
 
 
 def get_nibabel_klass(header):

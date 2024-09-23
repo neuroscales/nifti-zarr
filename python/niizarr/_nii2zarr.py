@@ -13,7 +13,7 @@ from ome_zarr.writer import write_multiscale
 from skimage.transform import pyramid_gaussian, pyramid_laplacian
 
 from ._header import (
-    UNITS, DTYPES, INTENTS, INTENTS_P, SLICEORDERS, XFORMS, bin2nii, get_magic_string, SYS_BYTEORDER
+    UNITS, DTYPES, INTENTS, INTENTS_P, SLICEORDERS, XFORMS, bin2nii, get_magic_string, SYS_BYTEORDER, JNIFTI_ZARR
 )
 
 # If fsspec available, use fsspec
@@ -297,21 +297,17 @@ def nii2zarr(inp, out, *,
     if byteorder == '=':
         byteorder = SYS_BYTEORDER
 
-    data_type = jsonheader['DataType']
-    # named tuple's datatype must be a list
+    data_type = JNIFTI_ZARR[jsonheader['DataType']]
     if isinstance(data_type, tuple):
-        data_type = list(data_type)
+        data_type = [
+            [field, '|' + dtype] for field, dtype in data_type
+        ]
+    elif data_type.endswith('1'):
+        data_type = '|' + data_type
+    else:
+        data_type = byteorder + data_type
 
-    # descr always returns a list
-    data_type = np.dtype(data_type).descr
-    # replace the endianness character if datatype is more than 1 Byte
-    adjusted_data_type = [
-        (field, dtype if dtype[0] == '|' or dtype[-1] == '1' else byteorder + dtype[1:])
-        for field, dtype in data_type
-    ]
-    if len(adjusted_data_type) == 1:
-        adjusted_data_type = adjusted_data_type[0][1]
-    data_type = adjusted_data_type
+
     # Prepare array metadata at each level
     compressor = _make_compressor(compressor, **compressor_options)
     if not isinstance(chunk, list):
@@ -373,17 +369,17 @@ def nii2zarr(inp, out, *,
         {
             "name": "z",
             "type": "space",
-            "unit": jsonheader["Unit"]["L"],
+            "unit": JNIFTI_ZARR[jsonheader["Unit"]["L"]],
         },
         {
             "name": "y",
             "type": "space",
-            "unit": jsonheader["Unit"]["L"],
+            "unit": JNIFTI_ZARR[jsonheader["Unit"]["L"]],
         },
         {
             "name": "x",
             "type": "space",
-            "unit": jsonheader["Unit"]["L"],
+            "unit": JNIFTI_ZARR[jsonheader["Unit"]["L"]],
         }
     ]
     if nbatch >= 2:
@@ -395,7 +391,7 @@ def nii2zarr(inp, out, *,
         multiscales[0]["axes"].insert(0, {
             "name": "t",
             "type": "time",
-            "unit": jsonheader["Unit"]["T"],
+            "unit": JNIFTI_ZARR[jsonheader["Unit"]["T"]],
         })
     for n, level in enumerate(multiscales[0]["datasets"]):
         # skimage pyramid_gaussian/pyramid_laplace use
