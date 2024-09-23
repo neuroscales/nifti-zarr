@@ -102,7 +102,7 @@ def zarr2nii(inp, out=None, level=0):
     if extension_size > 0:
         try:
             file_obj = io.BytesIO(np.asarray(inp['nifti']).tobytes()[header['sizeof_hdr']:])
-            img.header.extensions = Nifti1Extensions.from_fileobj(file_obj, extension_size, (
+            img.header.extensions = Nifti1Extensions.from_fileobj(file_obj, extension_size, not (
                     header['sizeof_hdr'].dtype.byteorder == SYS_BYTEORDER))
             # extensions = extract_extension(np.asarray(inp['nifti']).tobytes(), header['sizeof_hdr'])
             # img.header.extensions += extensions

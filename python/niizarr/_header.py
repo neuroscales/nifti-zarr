@@ -5,7 +5,6 @@ import warnings
 import numpy as np
 from nibabel import (Nifti1Image, Nifti1Header, Nifti2Image, Nifti2Header)
 
-
 SYS_BYTEORDER = '<' if sys.byteorder == 'little' else '>'
 
 NIFTI_1_HEADER_SIZE = 348
@@ -151,7 +150,6 @@ UNITS = Recoder([
     (48, "rad/s"),
 ])
 
-
 JNIFTI_ZARR = Recoder([
     ("u1", "uint8"),
     ("i2", "int16"),
@@ -181,7 +179,6 @@ JNIFTI_ZARR = Recoder([
     ("ppm", "micro"),
     ("rad/s", "radian"),
 ])
-
 
 INTENTS = Recoder([
     # NIFTI_INTENT_NONE: Unknown data intent

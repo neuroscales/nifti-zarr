@@ -307,7 +307,6 @@ def nii2zarr(inp, out, *,
     else:
         data_type = byteorder + data_type
 
-
     # Prepare array metadata at each level
     compressor = _make_compressor(compressor, **compressor_options)
     if not isinstance(chunk, list):
@@ -338,7 +337,7 @@ def nii2zarr(inp, out, *,
     if inp.header.extensions:
         extension_stream = io.BytesIO()
         inp.header.extensions.write_to(extension_stream,
-                                       byteswap=(SYS_BYTEORDER == header['sizeof_hdr'].dtype.byteorder))
+                                       byteswap=not (SYS_BYTEORDER == header['sizeof_hdr'].dtype.byteorder))
         bin_data.append(np.frombuffer(extension_stream.getvalue(), dtype=np.uint8))
 
     # Concatenate the final binary data
