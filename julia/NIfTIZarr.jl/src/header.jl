@@ -146,7 +146,7 @@ function _open_stream(path::AbstractString, mode="r")
 end
 
 function _open_stream(io::IO, mode="r")
-    if mode == "r" && startswith(io, GZIP_MAGIC)
+    if mode == "r" && startswith(peek(io,String), GZIP_MAGIC)
         stream = GzipDecompressorStream(io)
         return OpenedStream(stream, [stream])
     else
