@@ -107,8 +107,8 @@ end
 
 
 function _make_pyramid3d(data3d::AbstractArray, nb_levels::Integer, label::Bool=false)
-    (nbatch..., nx, ny, nz) = size(data3d)
-    nxyz = (nx, ny, nz)
+    nbatch = size(data3d)[1:end-3]
+    nxyz = size(data3d)[end-2:end] 
     data4d = reshape(data3d, (prod(nbatch), nxyz...))
     if nb_levels < 0
         T = typeof(nb_levels)
