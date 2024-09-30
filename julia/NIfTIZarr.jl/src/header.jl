@@ -146,7 +146,7 @@ function _open_stream(path::AbstractString, mode="r")
 end
 
 function _open_stream(io::IO, mode="r")
-    if mode == "r" && startswith(io, GZIP_MAGIC)
+    if mode == "r" && startswith(peek(io,String), GZIP_MAGIC)
         stream = GzipDecompressorStream(io)
         return OpenedStream(stream, [stream])
     else
@@ -158,7 +158,7 @@ GZIP_MAGIC = 0x8b1f
 GZIP_MAGIC = String(UInt8[GZIP_MAGIC >>> 8, GZIP_MAGIC & 0xff])
 
 function _open_stream(io::OpenedStream, mode="r")
-    if mode == "r" && startswith(io.stream, GZIP_MAGIC)
+    if mode == "r" && startswith(peek(io.stream), GZIP_MAGIC)
         stream = GzipDecompressorStream(io.stream)
         return OpenedStream(stream, [io.stream; io.mine])
     else
