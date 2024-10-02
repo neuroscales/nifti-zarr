@@ -30,76 +30,87 @@ julia> jsonheader = nii2json(header)
 function nii2json(header::NiftiHeader, byteorder::ByteOrder.T)
 
     magic = _tuple2string(header.magic)
-    magic = magic[1] * 'z' * magic[3]
+ 
+    magic = magic[1] * 'i' * magic[3]
     ndim = header.dim[1]
+    
     intent_code = IntentRecoder(header.intent_code)
-    nb_intent_prm = IntentNbPrm[IntentCode.T(header.intent_code)]
+
+    nb_intent_prm = IntentNbPrm[IntentRecoder(header.intent_code)]
 
     jsonheader = Dict(
-        "magic" => magic,
-        "dim" => collect(header.dim[2:2+ndim-1]),
-        "pixdim" => collect(header.pixdim[2:2+ndim-1]),
-        "units" => Dict(
-            "space" => UnitRecoder(header.xyzt_units & 0x07),
-            "time" => UnitRecoder(header.xyzt_units & 0x38)
+        "NIIFormat" => magic,
+        "Dim" => collect(header.dim[2:2+ndim-1]),
+        "VoxelSize" => collect(header.pixdim[2:2+ndim-1]),
+        "Unit" => Dict(
+            "L" => UnitRecoder(header.xyzt_units & 0x07),
+            "T" => UnitRecoder(header.xyzt_units & 0x38)
         ),
-        "datatype" => DataTypeRecoder(header.datatype),
-        "dim_info" => Dict(
-            "freq" => header.dim_info & 0x03,
-            "phase" => (header.dim_info >> 2) & 0x03,
-            "slice" => (header.dim_info >> 4) & 0x03
+        "DataType" => DataTypeRecoder(header.datatype),
+        "DimInfo" => Dict(
+            "Freq" => header.dim_info & 0x03,
+            "Phase" => (header.dim_info >> 2) & 0x03,
+            "Slice" => (header.dim_info >> 4) & 0x03
         ),
-        "intent" => Dict(
-            "code" => intent_code,
-            "name" => _tuple2string(header.intent_name),
-            "p" => collect(header.intent_p[begin:nb_intent_prm])
+        "Intent" => intent_code,
+        "Name" => _tuple2string(header.intent_name),
+        "Param1" => nothing,
+        "Param2" => nothing,
+        "Param3" => nothing,
+        "ScaleSlope"=> header.scl_slope,
+        "ScaleOffset"=> header.scl_inter,
+        "FirstSliceID" => header.slice_start,
+        "LastSliceID"=> header.slice_end,
+        "SliceType" =>  SliceOrderRecoder(header.slice_code),
+        "SliceTime" => header.slice_duration,
+        "MinIntensity" => header.cal_min,
+        "MaxIntensity" => header.cal_max,
+        "TimeOffset" => header.toffset,
+        "Description" => _tuple2string(header.descrip),
+        "AuxFile" => _tuple2string(header.aux_file),
+        "QForm"=> XFormRecoder(header.qform_code),
+        "Quatern"=> Dict(
+            "b"=> header.quatern[1],
+            "c"=> header.quatern[2],
+            "d"=> header.quatern[3],
         ),
-        "scl" => Dict(
-            "slope" => header.scl_slope,
-            "inter" => header.scl_inter
+        "QuaternOffset"=> Dict(
+            "x"=> header.qoffset[1],
+            "y"=> header.qoffset[2],
+            "z"=> header.qoffset[3],
         ),
-        "slice" => Dict(
-            "code" => SliceOrderRecoder(header.slice_code),
-            "start" => header.slice_start,
-            "end" => header.slice_end,
-            "duration" => header.slice_duration
+        # TODO: change this after JNIfTI changed
+        "Orientation"=> Dict(
+            "x"=> header.pixdim[1] == 0 ? "r" : "l",
+            "y"=> "a",
+            "z"=> "s",
         ),
-        "cal" => Dict(
-            "min" => header.cal_min,
-            "max" => header.cal_max
-        ),
-        "toffset" => header.toffset,
-        "descrip" => _tuple2string(header.descrip),
-        "aux_file" => _tuple2string(header.aux_file),
-        "qform" => Dict(
-            "intent" => XFormRecoder(header.qform_code),
-            "quatern" => collect(header.quatern),
-            "offset" => collect(header.qoffset),
-            "fac" => header.pixdim[begin]
-        ),
-        "sform" => Dict(
-            "intent" => XFormRecoder(header.sform_code),
-            "affine" => [[header.srow_x...] [header.srow_y...] [header.srow_z...]]
-        )
+        "SForm"=> XFormRecoder(header.sform_code),
+        "Affine" => [[header.srow_x...] [header.srow_y...] [header.srow_z...]]
     )
-    if !isfinite(jsonheader["scl"]["slope"])
-        jsonheader["scl"]["slope"] = 0.0
+    if !isfinite(jsonheader["ScaleSlope"])
+        jsonheader["ScaleSlope"] = 0.0
     end
-    if !isfinite(jsonheader["scl"]["inter"])
-        jsonheader["scl"]["inter"] = 0.0
+    if !isfinite(jsonheader["ScaleOffset"])
+        jsonheader["ScaleOffset"] = 0.0
     end
 
+    for (i,v) in pairs(nb_intent_prm)
+        jsonheader["Param$i"] = v
+    end
+
+    # TODO: Move this to nii2zarr
     # Fix data type
     bo = ByteOrderSymbol[byteorder]
-    if isa(jsonheader["datatype"], Array)
-        jsonheader["datatype"] = map(
+    if isa(jsonheader["DataType"], Array)
+        jsonheader["DataType"] = map(
             x -> [x[1], '|' * x[2]],
-            jsonheader["datatype"]
+            jsonheader["DataType"]
         )
-    elseif jsonheader["datatype"][end] == '1'
-        jsonheader["datatype"] = '|' + jsonheader["datatype"]
+    elseif jsonheader["DataType"][end] == '1'
+        jsonheader["DataType"] = '|' + jsonheader["DataType"]
     else
-        jsonheader["datatype"] = bo * jsonheader["datatype"]
+        jsonheader["DataType"] = bo * jsonheader["DataType"]
     end
 
     return jsonheader
@@ -211,13 +222,14 @@ function _nii2zarr_ome_attrs(axes, shapes, niiheader)
         "multiscales" => [Dict()]
     )
     multiscales = attrs["multiscales"][1]
-
+    # TODO: Change this
     typemap = Dict(
-        "t" => "time",
+        "t" => "T",
+        # TODO: Fix this, should match in two implementation
         "c" => "channel",
-        "z" => "space",
-        "y" => "space",
-        "x" => "space",
+        "z" => "L",
+        "y" => "L",
+        "x" => "L",
     )
     idxmap = Dict(
         "x" => 1,
@@ -235,7 +247,7 @@ function _nii2zarr_ome_attrs(axes, shapes, niiheader)
         : Dict(
             "name" => axis,
             "type" => typemap[axis],
-            "unit" => niiheader["units"][typemap[axis]]
+            "unit" => niiheader["Unit"][typemap[axis]]
         )
     ) for axis in axes]
 
@@ -341,7 +353,7 @@ function nii2zarr(inp::NIfTI.NIVolume, out::Zarr.ZGroup;
     # Convert NIfTI.jl's header into my header (they only handle nifti-1)
     header = convert(Nifti1Header, inp.header)
     jsonheader = nii2json(header)
-
+    
     # Fix array shape
     if ndims(inp.raw) == 3
         nbatch = 0
@@ -366,7 +378,7 @@ function nii2zarr(inp::NIfTI.NIVolume, out::Zarr.ZGroup;
     data = PermutedDimsArray(inp.raw, perm)
 
     # Compute image pyramid
-    bool_label = jsonheader["intent"]["code"] in ("LABEL", "NEURONAMES")
+    bool_label = jsonheader["Intent"] in ("LABEL", "NEURONAMES")
     if label == IsLabel.yes
         bool_label = true
     elseif label == IsLabel.no
@@ -385,7 +397,7 @@ function nii2zarr(inp::NIfTI.NIVolume, out::Zarr.ZGroup;
     chunk = map(x->Tuple(x[axis] for axis in axes), chunk)
 
     # Write nifti header
-    header.magic = MAGIC1Z
+    header.magic = MAGIC1P
     binheader = bytesencode(header)
     delete!(out.storage, "", "nifti")
     header_array = Zarr.zcreate(

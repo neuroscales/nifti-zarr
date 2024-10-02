@@ -5,7 +5,7 @@ import Base64: base64encode, Base64DecodePipe
 import NIfTI
 # import GZip
 import CodecZlib: GzipCompressorStream, GzipDecompressorStream
-
+import Bijections: Bijection
 
 """A generic IO type"""
 IOType = Union{IO,AbstractString}
@@ -19,7 +19,7 @@ abstract type NiftiHeader end
 
 
 function Base.show(x::NiftiHeader)
-    fieldlength = maximum( map(f->length(string(f)), fieldnames(typeof(x))) ) + 1
+    fieldlength = maximum(map(f -> length(string(f)), fieldnames(typeof(x)))) + 1
     print("$(typeof(x))()\n")
     for field in fieldnames(typeof(x))
         printfmt("    {:$(fieldlength)s} => $(reprfield(getproperty(x, field)))\n", field)
@@ -31,7 +31,7 @@ end
 
 Create a NTuple of zeros
 """
-ztuple(n) = ntuple(x->0, n)
+ztuple(n) = ntuple(x -> 0, n)
 
 # Valid magic strings
 MAGIC1 = UInt8.(('n', 'i', '1', '\0'))   # two files
@@ -146,7 +146,7 @@ function _open_stream(path::AbstractString, mode="r")
 end
 
 function _open_stream(io::IO, mode="r")
-    if mode == "r" && startswith(peek(io,String), GZIP_MAGIC)
+    if mode == "r" && startswith(peek(io, String), GZIP_MAGIC)
         stream = GzipDecompressorStream(io)
         return OpenedStream(stream, [stream])
     else
@@ -155,7 +155,7 @@ function _open_stream(io::IO, mode="r")
 end
 
 GZIP_MAGIC = 0x8b1f
-GZIP_MAGIC = String(UInt8[GZIP_MAGIC >>> 8, GZIP_MAGIC & 0xff])
+GZIP_MAGIC = String(UInt8[GZIP_MAGIC>>>8, GZIP_MAGIC&0xff])
 
 function _open_stream(io::OpenedStream, mode="r")
     if mode == "r" && startswith(peek(io.stream), GZIP_MAGIC)
@@ -253,121 +253,134 @@ end
     rgba = 2304
 end
 
-@enumx UnitCode begin
-    unknown = 0
-    meter = 1
-    millimeter = 2
-    micrometer = 3
-    second = 8
-    millisecond = 16
-    microsecond = 24
-    hertz = 32
-    micro = 40
-    radian = 48
-end
 
-@enumx IntentCode begin
-    NONE = 0
-    CORREL = 2
-    TTEST = 3
-    FTEST = 4
-    ZSCORE = 5
-    CHISQ = 6
-    BETA = 7
-    BINOM = 8
-    GAMMA = 9
-    POISSON = 10
-    NORMAL = 11
-    FTEST_NONC = 12
-    CHISQ_NONC = 13
-    LOGISTIC = 14
-    LAPLACE = 15
-    UNIFORM = 16
-    TTEST_NONC = 17
-    WEIBULL = 18
-    CHI = 19
-    INVGAUSS = 20
-    EXTVAL = 21
-    PVAL = 22
-    LOGPVAL = 23
-    LOG10PVAL = 24
-    ESTIMATE = 1001
-    LABEL = 1002
-    NEURONAME = 1003
-    GENMATRIX = 1004
-    SYMMATRIX = 1005
-    DISPVECT = 1006
-    VECTOR = 1007
-    POINTSET = 1008
-    TRIANGLE = 1009
-    QUATERNION = 1010
-    DIMLESS = 1011
-    TIME_SERIES = 2001
-    NODE_INDEX = 2002
-    RGB_VECTOR = 2003
-    RGBA_VECTOR = 2004
-    SHAPE = 2005
-    FSL_FNIRT_DISPLACEMENT_FIELD = 2006
-    FSL_CUBIC_SPLINE_COEFFICIENTS = 2007
-    FSL_DCT_COEFFICIENTS = 2008
-    FSL_QUADRATIC_SPLINE_COEFFICIENTS = 2009
-    FSL_TOPUP_CUBIC_SPLINE_COEFFICIENTS = 2016
-    FSL_TOPUP_QUADRATIC_SPLINE_COEFFICIENTS =  2017
-    FSL_TOPUP_FIELD = 2018
-end
+UnitCode = Dict(
+    "" => 0,
+    "m" => 1,
+    "mm" => 2,
+    "um" => 3,
+    "s" => 8,
+    "ms" => 16,
+    "us" => 24,
+    "hz" => 32,
+    "ppm" => 40,
+    "rad/s" => 48
+)
 
-IntentNbPrm = Dict(key => 0 for key in instances(IntentCode.T))
+IntentCode = Dict(
+    "" => 0,
+    "corr" => 2,
+    "ttest" => 3,
+    "ftest" => 4,
+    "zscore" => 5,
+    "chi2" => 6,
+    "beta" => 7,
+    "binomial" => 8,
+    "gamma" => 9,
+    "poisson" => 10,
+    "normal" => 11,
+    "ncftest" => 12,
+    "ncchi2" => 13,
+    "logistic" => 14,
+    "laplace" => 15,
+    "uniform" => 16,
+    "ncttest" => 17,
+    "weibull" => 18,
+    "chi" => 19,
+    "invgauss" => 20,
+    "extval" => 21,
+    "pvalue" => 22,
+    "logpvalue" => 23,
+    "log10pvalue" => 24,
+    "estimate" => 1001,
+    "label" => 1002,
+    "neuronames" => 1003,
+    "matrix" => 1004,
+    "symmatrix" => 1005,
+    "dispvec" => 1006,
+    "vector" => 1007,
+    "point" => 1008,
+    "triangle" => 1009,
+    "quaternion" => 1010,
+    "unitless" => 1011,
+    "tseries" => 2001,
+    "elem" => 2002,
+    "rgb" => 2003,
+    "rgba" => 2004,
+    "shape" => 2005,
+    "fsl_fnirt_displacement_field" => 2006,
+    "fsl_cubic_spline_coefficients" => 2007,
+    "fsl_dct_coefficients" => 2008,
+    "fsl_quadratic_spline_coefficients" => 2009,
+    "fsl_topup_cubic_spline_coefficients" => 2016,
+    "fsl_topup_quadratic_spline_coefficients" => 2017,
+    "fsl_topup_field" => 2018
+)
+
+
+IntentNbPrm = Dict(key => 0 for (key, v) in IntentCode)
 merge!(IntentNbPrm, Dict(
-    IntentCode.CORREL => 1,
-    IntentCode.TTEST => 1,
-    IntentCode.FTEST => 2,
-    IntentCode.CHISQ => 1,
-    IntentCode.BETA => 2,
-    IntentCode.BINOM => 2,
-    IntentCode.GAMMA => 2,
-    IntentCode.POISSON => 1,
-    IntentCode.NORMAL => 2,
-    IntentCode.FTEST_NONC => 3,
-    IntentCode.CHISQ_NONC => 2,
-    IntentCode.LOGISTIC => 2,
-    IntentCode.LAPLACE => 2,
-    IntentCode.UNIFORM => 2,
-    IntentCode.TTEST_NONC => 2,
-    IntentCode.WEIBULL => 2,
-    IntentCode.CHI => 1,
-    IntentCode.INVGAUSS => 2,
-    IntentCode.EXTVAL => 2,
-    IntentCode.GENMATRIX => 2,
-    IntentCode.SYMMATRIX => 1,
+    "corr" => 1,
+    "ttest" => 1,
+    "ftest" => 2,
+    "chi2" => 1,
+    "beta" => 2,
+    "binomial" => 2,
+    "gamma" => 2,
+    "poisson" => 1,
+    "normal" => 2,
+    "ncftest" => 3,
+    "ncchi2" => 2,
+    "logistic" => 2,
+    "laplace" => 2,
+    "uniform" => 2,
+    "ncttest" => 2,
+    "weibull" => 2,
+    "chi" => 1,
+    "invgauss" => 2,
+    "extval" => 2,
+    "matrix" => 2,
+    "symmatrix" => 1,
 ))
 
-@enumx XFormCode begin
-    UNKNOWN = 0
-    SCANNER_ANAT = 1
-    ALIGNED_ANAT = 2
-    TALAIRACH = 3
-    MNI = 4
-    TEMPLATE_OTHER = 5
-end
+XFormCode = Dict(
+    "" => 0,
+    "scanner_anat" => 1,
+    "aligned_anat" => 2,
+    "talairach" => 3,
+    "mni" => 4,
+    "template_other" => 5
+)
 
-@enumx SliceOrderCode begin
-    UNKNOWN = 0
-    SEQ_INC = 1
-    SEQ_DEC = 2
-    ALT_INC = 3
-    ALT_DEC = 4
-    ALT_INC2 = 5
-    ALT_DEC2 = 6
-end
 
-UnitRecoder(x::Integer) = string(UnitCode.T(x))
-UnitRecoder(x::String) = getproperty(UnitCode, Symbol(x))
-IntentRecoder(x::Integer) = string(IntentCode.T(x))
-IntentRecoder(x::String) = getproperty(IntentCode, Symbol(x))
-XFormRecoder(x::Integer) = string(XFormCode.T(x))
-XFormRecoder(x::String) = getproperty(XFormCode, Symbol(x))
-SliceOrderRecoder(x::Integer) = string(SliceOrderCode.T(x))
-SliceOrderRecoder(x::String) = getproperty(SliceOrderCode, Symbol(x))
+
+
+SliceOrderCode = Dict(
+    "" => 0,
+    "seq+" => 1,
+    "seq-" => 2,
+    "alt+" => 3,
+    "alt-" => 4,
+    "alt2+" => 5,
+    "alt2-" => 6
+)
+
+
+
+UnitCode = Bijection(UnitCode)
+IntentCode = Bijection(IntentCode)
+XFormCode = Bijection(XFormCode)
+SliceOrderCode = Bijection(SliceOrderCode)
+
+UnitRecoder(x::Integer) = UnitCode(x)
+UnitRecoder(x::String) = UnitCode[x]
+IntentRecoder(x::Integer) = IntentCode(x)
+IntentRecoder(x::String) = IntentCode[x]
+# TODO: change this after JNIfTI changed
+XFormRecoder(x::Integer) = x
+XFormRecoder(x::String) = XFormCode[x]
+SliceOrderRecoder(x::Integer) = SliceOrderCode(x)
+SliceOrderRecoder(x::String) = SliceOrderCode[x]
 
 function DataTypeRecoder(x::Integer)
     if x == DataTypeCode.rgb
