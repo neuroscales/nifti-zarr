@@ -99,19 +99,6 @@ function nii2json(header::NiftiHeader, byteorder::ByteOrder.T)
         jsonheader["Param$i"] = v
     end
 
-    # TODO: Move this to nii2zarr
-    # Fix data type
-    bo = ByteOrderSymbol[byteorder]
-    if isa(jsonheader["DataType"], Array)
-        jsonheader["DataType"] = map(
-            x -> [x[1], '|' * x[2]],
-            jsonheader["DataType"]
-        )
-    elseif jsonheader["DataType"][end] == '1'
-        jsonheader["DataType"] = '|' + jsonheader["DataType"]
-    else
-        jsonheader["DataType"] = bo * jsonheader["DataType"]
-    end
 
     return jsonheader
 end
@@ -222,14 +209,13 @@ function _nii2zarr_ome_attrs(axes, shapes, niiheader)
         "multiscales" => [Dict()]
     )
     multiscales = attrs["multiscales"][1]
-    # TODO: Change this
+    
     typemap = Dict(
-        "t" => "T",
-        # TODO: Fix this, should match in two implementation
+        "t" => "time",
         "c" => "channel",
-        "z" => "L",
-        "y" => "L",
-        "x" => "L",
+        "z" => "space",
+        "y" => "space",
+        "x" => "space",
     )
     idxmap = Dict(
         "x" => 1,
@@ -239,7 +225,7 @@ function _nii2zarr_ome_attrs(axes, shapes, niiheader)
     )
 
     multiscales["axes"] = [(
-        typemap[axis] == "channel"
+        axis == "c"
         ? Dict(
             "name" => axis,
             "type" => typemap[axis]
@@ -247,7 +233,7 @@ function _nii2zarr_ome_attrs(axes, shapes, niiheader)
         : Dict(
             "name" => axis,
             "type" => typemap[axis],
-            "unit" => niiheader["Unit"][typemap[axis]]
+            "unit" => typemap[axis]=="time" ? JNIfTIUnit2ZarrUnit[niiheader["Unit"]["T"]] : JNIfTIUnit2ZarrUnit[niiheader["Unit"]["L"]]
         )
     ) for axis in axes]
 
@@ -265,7 +251,7 @@ function _nii2zarr_ome_attrs(axes, shapes, niiheader)
                 "type" => "scale",
                 "scale" => [(
                     typemap[axis] == "spatial"
-                    ? (shapes[1][i]/shapes[n][i])*niiheader["pixdim"][idxmap[axis]]
+                    ? (shapes[1][i]/shapes[n][i])*niiheader["Dim"][idxmap[axis]]
                     : 1.0
                 ) for (i, axis) in enumerate(axes)]
             ),
@@ -273,7 +259,7 @@ function _nii2zarr_ome_attrs(axes, shapes, niiheader)
                 "type" => "translation",
                 "translation" => [(
                     typemap[axis] == "spatial"
-                    ? (shapes[1][i]/shapes[n][i] - 1)*niiheader["pixdim"][idxmap[axis]]*0.5
+                    ? (shapes[1][i]/shapes[n][i] - 1)*niiheader["Dim"][idxmap[axis]]*0.5
                     : 0.0
                 ) for (i, axis) in enumerate(axes)]
             ),
@@ -284,7 +270,7 @@ function _nii2zarr_ome_attrs(axes, shapes, niiheader)
     multiscales["coordinateTransformations"] = [Dict(
         "scale" => [(
             typemap[axis] == "time"
-            ? niiheader["pixdim"][idxmap[axis]]
+            ? niiheader["Dim"][idxmap[axis]]
             : 1.0
         )  for (i, axis) in enumerate(axes)],
         "type" => "scale"
@@ -433,6 +419,19 @@ function nii2zarr(inp::NIfTI.NIVolume, out::Zarr.ZGroup;
 
 end
 
+# # TODO: Move this to nii2zarr
+#     # Fix data type
+#     bo = ByteOrderSymbol[byteorder]
+#     if isa(jsonheader["DataType"], Array)
+#         jsonheader["DataType"] = map(
+#             x -> [x[1], '|' * x[2]],
+#             jsonheader["DataType"]
+#         )
+#     elseif jsonheader["DataType"][end] == '1'
+#         jsonheader["DataType"] = '|' + jsonheader["DataType"]
+#     else
+#         jsonheader["DataType"] = bo * jsonheader["DataType"]
+#     end
 
 # Fix delete! from Zarr.jl, which implements it as:
 #   Base.delete!(s::DirectoryStore, k::String) = isfile(joinpath(s.folder, k)) && rm(joinpath(s.folder, k))

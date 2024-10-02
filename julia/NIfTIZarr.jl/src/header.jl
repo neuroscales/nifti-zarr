@@ -235,24 +235,23 @@ function base64decode(x::AbstractString, T::Type{<:NiftiHeader})
     read(Base64DecodePipe(IOBuffer(x)), T)
 end
 
-@enumx DataTypeCode begin
-    u1 = 2
-    i2 = 4
-    i4 = 8
-    f4 = 16
-    c8 = 32
-    rgb = 128
-    i1 = 256
-    u2 = 512
-    u4 = 768
-    i8 = 1024
-    u8 = 1280
-    f16 = 1536
-    c16 = 1792
-    c32 = 2048
-    rgba = 2304
-end
-
+DataTypeCode = Dict(
+    "uint8" => 2,
+    "int16" => 4,
+    "int32" => 8,
+    "single" => 16,
+    "complex64" => 32,
+    "rgb" => 128,
+    "int8" => 256,
+    "uint16" => 512,
+    "uint32" => 768,
+    "int64" => 1024,
+    "uint64" => 1280,
+    "double128" => 1536,
+    "complex128" => 1792,
+    "complex256" => 2048,
+    "rgba" => 2304,
+)
 
 UnitCode = Dict(
     "" => 0,
@@ -266,6 +265,39 @@ UnitCode = Dict(
     "ppm" => 40,
     "rad/s" => 48
 )
+
+JNIfTIUnit2ZarrUnit = Dict(
+    "" => "",
+    "m" => "meter",
+    "mm" => "milimeter",
+    "um" => "micrometer",
+    "s" => "second",
+    "ms" => "millisecond",
+    "us" => "microsecond",
+    "hz" => "hertz",
+    "ppm" => "micro",
+    "rad/s" => "radian"
+)
+
+JNIfTIDataType2ZarrDataType = Dict(
+    "uint8" => "u1",
+    "int16" => "i2",
+    "int32" => "i4",
+    "single" => "f4",
+    "complex64" => "c8",
+    (("r", "uint8"), ("g", "uint8"), ("b", "uint8")) => (("r", "u1"), ("g", "u1"), ("b", "u1")),
+    "int8" => "i1",
+    "uint16" => "u2",
+    "uint32" => "u4",
+    "int64" => "i8",
+    "uint64" => "u8",
+    "double128" => "f16",
+    "complex128" => "c16",
+    "complex256" => "c32",
+    (("r", "uint8"), ("g", "uint8"), ("b", "uint8"), ("a", "uint8")) => (("r", "u1"), ("g", "u1"), ("b", "u1"), ("a", "u1")),
+)
+
+
 
 IntentCode = Dict(
     "" => 0,
@@ -352,9 +384,6 @@ XFormCode = Dict(
     "template_other" => 5
 )
 
-
-
-
 SliceOrderCode = Dict(
     "" => 0,
     "seq+" => 1,
@@ -366,7 +395,7 @@ SliceOrderCode = Dict(
 )
 
 
-
+DataTypeCode = Bijection(DataTypeCode)
 UnitCode = Bijection(UnitCode)
 IntentCode = Bijection(IntentCode)
 XFormCode = Bijection(XFormCode)
@@ -383,20 +412,20 @@ SliceOrderRecoder(x::Integer) = SliceOrderCode(x)
 SliceOrderRecoder(x::String) = SliceOrderCode[x]
 
 function DataTypeRecoder(x::Integer)
-    if x == DataTypeCode.rgb
-        (("r", "u1"), ("g", "u1"), ("b", "u1"))
-    elseif x == DataTypeCode.rgba
-        (("r", "u1"), ("g", "u1"), ("b", "u1"), ("a", "u1"))
+    if x == DataTypeCode["rgb"]
+        (("r", "uint8"), ("g", "uint8"), ("b", "uint8"))
+    elseif x == DataTypeCode["rgba"]
+        (("r", "uint8"), ("g", "uint8"), ("b", "uint8"), ("a", "uint8"))
     else
-        string(DataTypeCode.T(x))
+        DataTypeCode(x)
     end
 end
-DataTypeRecoder(x::String) = getproperty(DataTypeCode, Symbol(x))
+DataTypeRecoder(x::String) = DataTypeCode[x]
 function DataTypeRecoder(x::Tuple)
-    if x == (("r", "u1"), ("g", "u1"), ("b", "u1"))
-        DataTypeRecoder("rgb")
-    elseif x == (("r", "u1"), ("g", "u1"), ("b", "u1"), ("a", "u1"))
-        DataTypeRecoder("rgba")
+    if x == (("r", "uint8"), ("g", "uint8"), ("b", "uint8"))
+        DataTypeRecoder["rgb"]
+    elseif x == (("r", "uint8"), ("g", "uint8"), ("b", "uint8"), ("a", "uint8"))
+        DataTypeRecoder["rgba"]
     else
         error("unsupported data type")
     end
