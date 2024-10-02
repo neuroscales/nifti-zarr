@@ -141,7 +141,7 @@ function _open_stream(path::AbstractString, mode="r")
         stream = mode == "r" ? GzipDecompressorStream(io) : GzipCompressorStream(io)
         return OpenedStream(stream, [stream, io])
     else
-        return _open_stream(OpenedStream(io, [io]))
+        return OpenedStream(io, [io])
     end
 end
 
