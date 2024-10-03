@@ -47,6 +47,9 @@ def zarr2nii(inp, out=None, level=0):
             else:
                 inp = zarr.storage.DirectoryStore(inp)
         inp = zarr.group(store=inp)
+    # check nifti info present in zarr archive
+    if 'nifti' not in inp:
+        raise KeyError("NifTi data not present in zarr archive. Is this a nifti.zarr file?")
 
     # read binary header
     header = bin2nii(np.asarray(inp['nifti']).tobytes())
