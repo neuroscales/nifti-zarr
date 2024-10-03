@@ -90,6 +90,7 @@ def nii2json(header):
             "y": qoffset[1],
             "z": qoffset[2],
         },
+        # TODO: change this after JNIfTI changed
         "Orientation": {
             "x": "r" if header["pixdim"][0].item() == 0 else "l",
             "y": "a",
