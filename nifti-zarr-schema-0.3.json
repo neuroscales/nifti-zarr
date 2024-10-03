@@ -294,6 +294,15 @@
       },
       "minItems": 3,
       "maxItems": 3
+    },
+    "NIFTIExtension": {
+      "description": "Four bytes following header indicating the exist of extension",
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "minItems": 4,
+      "maxItems": 4
     }
   }
 }

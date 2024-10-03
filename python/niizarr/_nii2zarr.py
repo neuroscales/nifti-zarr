@@ -25,7 +25,7 @@ except (ImportError, ModuleNotFoundError):
     fsspec = None
 
 
-def nii2json(header):
+def nii2json(header, extensions=False):
     """
     Convert a nifti header to JSON
 
@@ -33,11 +33,13 @@ def nii2json(header):
     ----------
     header : np.array[HEADERTYPE1 or HEADERTYPE2]
         Nifti header in binary form
-
+    extensions: bool, optional
+        If extensions present in this nifti file
     Returns
     -------
     header : dict
         Nifti header in JSON form
+
     """
     header = header.copy()
 
@@ -98,6 +100,7 @@ def nii2json(header):
         },
         "SForm": XFORMS[header["sform_code"].item()],
         "Affine": header["sform"].tolist(),
+        "NIFTIExtension" : [1 if extensions else 0] + [0,0,0],
     }
     if not math.isfinite(jsonheader["ScaleSlope"]):
         jsonheader["ScaleSlope"] = 0.0
@@ -242,7 +245,7 @@ def nii2zarr(inp, out, *,
 
     header = bin2nii(inp.header.structarr.tobytes())
 
-    jsonheader = nii2json(header)
+    jsonheader = nii2json(header, len(inp.header.extensions)!=0)
 
     data = np.asarray(inp.dataobj)
 
