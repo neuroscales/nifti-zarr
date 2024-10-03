@@ -296,24 +296,14 @@ INTENTS_P.update({
     "symmatrix": 1,
 })
 
-# Not converting to human-readable string for now
 XFORMS = Recoder([
-    (0, 0),
-    (1, 1),
-    (2, 2),
-    (3, 3),
-    (4, 4),
-    (5, 5),
+    (0, ""),
+    (1, "scanner_anat"),
+    (2, "aligned_anat"),
+    (3, "talairach"),
+    (4, "mni_152"),
+    (5, "template_other"),
 ])
-
-# XFORMS = Recoder([
-#     (0, "UNKNOWN"),
-#     (1, "SCANNER_ANAT"),
-#     (2, "ALIGNED_ANAT"),
-#     (3, "TALAIRACH"),
-#     (4, "MNI"),
-#     (5, "TEMPLATE_OTHER"),
-# ])
 
 SLICEORDERS = Recoder([
     # NIFTI_SLICE_UNKNOWN: Unknown slice type, no parameters

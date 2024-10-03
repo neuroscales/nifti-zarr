@@ -236,12 +236,12 @@
     "QForm": {
       "description": "A valid xform name (see table 4.5)",
       "enum": [
-        0,
-        1,
-        2,
-        3,
-        4,
-        5
+        "",
+        "scanner_anat",
+        "aligned_anat",
+        "talairach",
+        "mni_152",
+        "template_other"
       ]
     },
     "Quatern": {
@@ -273,12 +273,12 @@
     "SForm": {
       "description": "A valid xform name (see table 4.5)",
       "enum": [
-        0,
-        1,
-        2,
-        3,
-        4,
-        5
+        "",
+        "scanner_anat",
+        "aligned_anat",
+        "talairach",
+        "mni_152",
+        "template_other"
       ]
     },
     "Affine": {
