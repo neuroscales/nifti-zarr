@@ -10,7 +10,7 @@ import zarr.storage
 from nibabel import (save, load)
 from nibabel.nifti1 import Nifti1Extensions
 
-from ._header import bin2nii, SYS_BYTEORDER, get_nibabel_klass
+from ._header import bin2nii, get_nibabel_klass
 
 # If fsspec available, use fsspec
 try:
@@ -52,7 +52,7 @@ def zarr2nii(inp, out=None, level=0):
         raise KeyError("NifTi data not present in zarr archive. Is this a nifti.zarr file?")
 
     # read binary header
-    header = bin2nii(np.asarray(inp['nifti']).tobytes())
+    header, byte_swapped = bin2nii(np.asarray(inp['nifti']).tobytes(), True)
 
     NiftiHeader, NiftiImage = get_nibabel_klass(header)
     niiheader = NiftiHeader.from_fileobj(io.BytesIO(header.tobytes()),
@@ -101,14 +101,13 @@ def zarr2nii(inp, out=None, level=0):
     # create nibabel image
     img = NiftiImage(array, None, niiheader)
 
+    # load extensions following the header binary data if present
     extension_size = len(inp['nifti']) - header['sizeof_hdr']
     if extension_size > 0:
         try:
             file_obj = io.BytesIO(np.asarray(inp['nifti']).tobytes()[header['sizeof_hdr']:])
-            img.header.extensions = Nifti1Extensions.from_fileobj(file_obj, extension_size, not (
-                    header['sizeof_hdr'].dtype.byteorder == SYS_BYTEORDER))
-            # extensions = extract_extension(np.asarray(inp['nifti']).tobytes(), header['sizeof_hdr'])
-            # img.header.extensions += extensions
+            img.header.extensions = Nifti1Extensions.from_fileobj(file_obj, extension_size, byte_swapped)
+
         except Exception:
             warnings.warn("Failed to load extensions")
 

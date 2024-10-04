@@ -6,6 +6,7 @@ import numpy as np
 from nibabel import (Nifti1Image, Nifti1Header, Nifti2Image, Nifti2Header)
 
 SYS_BYTEORDER = '<' if sys.byteorder == 'little' else '>'
+SYS_BYTEORDER_SWAPPED = '>' if SYS_BYTEORDER == '<' else '<'
 
 NIFTI_1_HEADER_SIZE = 348
 NIFTI_2_HEADER_SIZE = 540
@@ -336,22 +337,37 @@ def try_header_version(buffer, version=1):
         HEADER_SIZE = NIFTI_2_HEADER_SIZE
     else:
         raise ValueError(f"Unsupported Nifti version {version}")
-
+    byteorder_swapped = False
     header = np.frombuffer(buffer, dtype=HEADER_TYPE, count=1)[0]
     if header['sizeof_hdr'] != HEADER_SIZE:
         header = header.newbyteorder()
-
+        byteorder_swapped = True
         if header['sizeof_hdr'] != HEADER_SIZE:
             return None
 
     validate_magic(header, version)
-    return header
+    return header, byteorder_swapped
 
 
-def bin2nii(buffer):
+def bin2nii(buffer, check_swapped=False):
+    """
+    Parameters
+    ----------
+    buffer : binary header data
+    check_swapped : bool
+        if true, return if the byte order is swapped
+    Returns
+    -------
+    header : structure array of header
+    swapped : bool
+
+    """
     for v in (1, 2):
-        header = try_header_version(buffer, v)
-        if header:
+        result = try_header_version(buffer, v)
+        if result:
+            header, byteorder_swapped = result
+            if check_swapped:
+                return header, byteorder_swapped
             return header
     raise ValueError('Is this a nifti header?')
 
@@ -388,4 +404,3 @@ def get_nibabel_klass(header):
         return Nifti2Header, Nifti2Image
     else:
         raise ValueError(f"sizeof_hdr {header['sizeof_hdr']} does not match any Nifti header specification")
-

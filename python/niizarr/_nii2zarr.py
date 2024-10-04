@@ -13,7 +13,8 @@ from ome_zarr.writer import write_multiscale
 from skimage.transform import pyramid_gaussian, pyramid_laplacian
 
 from ._header import (
-    UNITS, DTYPES, INTENTS, INTENTS_P, SLICEORDERS, XFORMS, bin2nii, get_magic_string, SYS_BYTEORDER, JNIFTI_ZARR
+    UNITS, DTYPES, INTENTS, INTENTS_P, SLICEORDERS, XFORMS, bin2nii, get_magic_string, SYS_BYTEORDER, JNIFTI_ZARR,
+    SYS_BYTEORDER_SWAPPED
 )
 
 # If fsspec available, use fsspec
@@ -100,7 +101,7 @@ def nii2json(header, extensions=False):
         },
         "SForm": XFORMS[header["sform_code"].item()],
         "Affine": header["sform"].tolist(),
-        "NIFTIExtension" : [1 if extensions else 0] + [0,0,0],
+        "NIFTIExtension": [1 if extensions else 0] + [0, 0, 0],
     }
     if not math.isfinite(jsonheader["ScaleSlope"]):
         jsonheader["ScaleSlope"] = 0.0
@@ -243,9 +244,9 @@ def nii2zarr(inp, out, *,
     if no_time and len(inp.shape) > 3:
         inp = Nifti1Image(inp.dataobj[:, :, :, None], inp.affine, inp.header)
 
-    header = bin2nii(inp.header.structarr.tobytes())
+    header, byteorder_swapped = bin2nii(inp.header.structarr.tobytes(), True)
 
-    jsonheader = nii2json(header, len(inp.header.extensions)!=0)
+    jsonheader = nii2json(header, len(inp.header.extensions) != 0)
 
     data = np.asarray(inp.dataobj)
 
@@ -297,10 +298,8 @@ def nii2zarr(inp, out, *,
     shapes = [d.shape[-3:] for d in data]
 
     # Fix data type
-    byteorder = header['sizeof_hdr'].dtype.byteorder
-    if byteorder == '=':
-        byteorder = SYS_BYTEORDER
-
+    # If nifti was swapped when loading it, we want to swapped it back to make it as same as before
+    byteorder = SYS_BYTEORDER_SWAPPED if byteorder_swapped else SYS_BYTEORDER
     data_type = JNIFTI_ZARR[jsonheader['DataType']]
     if isinstance(data_type, tuple):
         data_type = [
@@ -336,12 +335,13 @@ def nii2zarr(inp, out, *,
     )
 
     # Write nifti header (binary)
-    bin_data = [np.frombuffer(header.tobytes(), dtype='u1')]
+    header_data = header.tobytes().newbyteorder() if byteorder_swapped else header.tobytes()
+    bin_data = [np.frombuffer(header_data, dtype='u1')]
 
     if inp.header.extensions:
         extension_stream = io.BytesIO()
         inp.header.extensions.write_to(extension_stream,
-                                       byteswap=not (SYS_BYTEORDER == header['sizeof_hdr'].dtype.byteorder))
+                                       byteswap=byteorder_swapped)
         bin_data.append(np.frombuffer(extension_stream.getvalue(), dtype=np.uint8))
 
     # Concatenate the final binary data
