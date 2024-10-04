@@ -309,7 +309,7 @@ def nii2zarr(inp, out, *,
     data_type = JNIFTI_ZARR[jsonheader['DataType']]
     if isinstance(data_type, tuple):
         data_type = [
-            [field, '|' + dtype] for field, dtype in data_type
+            (field, '|' + dtype) for field, dtype in data_type
         ]
     elif data_type.endswith('1'):
         data_type = '|' + data_type
