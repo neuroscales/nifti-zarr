@@ -3,6 +3,7 @@ import io
 import json
 import math
 import sys
+import re
 
 import numcodecs
 import numpy as np
@@ -107,6 +108,11 @@ def nii2json(header, extensions=False):
         jsonheader["ScaleSlope"] = 0.0
     if not math.isfinite(jsonheader["ScaleOffset"]):
         jsonheader["ScaleOffset"] = 0.0
+
+    # Remove control characters
+    for k,v in jsonheader.items():
+        if isinstance(v, str):
+            jsonheader[k] = re.sub(r'[\n\r\t\00]*', '', v)
 
     # Check that the dictionary is serializable
     json.dumps(jsonheader)
