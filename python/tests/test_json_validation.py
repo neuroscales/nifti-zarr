@@ -9,7 +9,7 @@ from jsonschema.exceptions import ValidationError
 from python import niizarr
 
 
-class TestNiizarrConversion(unittest.TestCase):
+class TestJSONValidation(unittest.TestCase):
 
     def setUp(self):
         self.schema_file = "../../nifti-zarr-schema-0.3.json"
