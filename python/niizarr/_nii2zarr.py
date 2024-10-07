@@ -250,8 +250,8 @@ def nii2zarr(inp, out, *,
     if no_time and len(inp.shape) > 3:
         inp = Nifti1Image(inp.dataobj[:, :, :, None], inp.affine, inp.header)
 
-    header, byteorder_swapped = bin2nii(inp.header.structarr.tobytes(), True)
-
+    header = bin2nii(inp.header.structarr.tobytes())
+    byteorder_swapped = inp.header.endianness != SYS_BYTEORDER
     jsonheader = nii2json(header, len(inp.header.extensions) != 0)
 
     data = np.asarray(inp.dataobj)
@@ -341,8 +341,7 @@ def nii2zarr(inp, out, *,
     )
 
     # Write nifti header (binary)
-    header_data = header.tobytes().newbyteorder() if byteorder_swapped else header.tobytes()
-    bin_data = [np.frombuffer(header_data, dtype='u1')]
+    bin_data = [np.frombuffer(header.tobytes(), dtype='u1')]
 
     if inp.header.extensions:
         extension_stream = io.BytesIO()

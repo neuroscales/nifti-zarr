@@ -10,7 +10,7 @@ import zarr.storage
 from nibabel import (save, load)
 from nibabel.nifti1 import Nifti1Extensions
 
-from ._header import bin2nii, get_nibabel_klass
+from ._header import bin2nii, get_nibabel_klass, SYS_BYTEORDER
 
 # If fsspec available, use fsspec
 try:
@@ -52,12 +52,12 @@ def zarr2nii(inp, out=None, level=0):
         raise KeyError("NifTi data not present in zarr archive. Is this a nifti.zarr file?")
 
     # read binary header
-    header, byte_swapped = bin2nii(np.asarray(inp['nifti']).tobytes(), True)
+    header = bin2nii(np.asarray(inp['nifti']).tobytes())
 
     NiftiHeader, NiftiImage = get_nibabel_klass(header)
     niiheader = NiftiHeader.from_fileobj(io.BytesIO(header.tobytes()),
                                          check=False)
-
+    byte_swapped = niiheader.endianness != SYS_BYTEORDER
     # create affine at current resolution
     if level != 0:
         qform, qcode = niiheader.get_qform(coded=True)
