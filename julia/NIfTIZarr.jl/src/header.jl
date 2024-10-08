@@ -405,7 +405,6 @@ UnitRecoder(x::Integer) = UnitCode(x)
 UnitRecoder(x::String) = UnitCode[x]
 IntentRecoder(x::Integer) = IntentCode(x)
 IntentRecoder(x::String) = IntentCode[x]
-# TODO: change this after JNIfTI changed
 XFormRecoder(x::Integer) = XFormCode(x)
 XFormRecoder(x::String) = XFormCode[x]
 SliceOrderRecoder(x::Integer) = SliceOrderCode(x)
