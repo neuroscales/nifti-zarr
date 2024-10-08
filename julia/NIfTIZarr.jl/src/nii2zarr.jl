@@ -13,7 +13,7 @@ ByteOrderSymbol = Dict(ByteOrder.little => '<', ByteOrder.big => '>')
 
 _tuple2string(x::NTuple) = split(join(Char.(x)), '\0')[begin]
 
-nii2json(header::NiftiHeader) = nii2json(header, SystemByteOrder)
+nii2json(header::NiftiHeader) = nii2json(header)
 
 """
     nii2json(header[, byteorder])
@@ -27,7 +27,7 @@ julia> header = read("path/to/nifti.nii.gz", NiftiHeader)
 julia> jsonheader = nii2json(header)
 ```
 """
-function nii2json(header::NiftiHeader, byteorder::ByteOrder.T)
+function nii2json(header::NiftiHeader)
 
     magic = _tuple2string(header.magic)
  
@@ -339,7 +339,7 @@ function nii2zarr(inp::NIfTI.NIVolume, out::Zarr.ZGroup;
     # Convert NIfTI.jl's header into my header (they only handle nifti-1)
     header = convert(Nifti1Header, inp.header)
     jsonheader = nii2json(header)
-    
+
     # Fix array shape
     if ndims(inp.raw) == 3
         nbatch = 0
