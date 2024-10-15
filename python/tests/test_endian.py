@@ -6,9 +6,10 @@ import unittest
 
 import nibabel as nib
 import numpy as np
-from _data import get_nifti_image
 from nibabel import Nifti1Header, Nifti1Image
 from nibabel.nifti1 import Nifti1Extension
+
+from _data import get_nifti_image
 from niizarr import nii2zarr
 from niizarr._header import SYS_BYTEORDER, HEADERTYPE1
 
@@ -72,28 +73,28 @@ class TestEndian(unittest.TestCase):
         self.assertNotEqual(zarray["dtype"][0], SYS_BYTEORDER)
 
     def test_system_endian_extension(self):
-        pass
+
         with open(os.path.join(self.sys_endian_zarr, "nifti/0"), "rb") as f:
             f.seek(348)
             zarr_extension_content = f.read(4)
         with open(self.sys_endian_nifti, "rb") as f:
             f.seek(348 + 4)
             nifti_extension_content = f.read(4)
-        self.assertEqual(zarr_extension_content, zarr_extension_content)
+        self.assertEqual(zarr_extension_content, nifti_extension_content)
         if SYS_BYTEORDER == "<":
             self.assertEqual(zarr_extension_content, b'\x30\x00\x00\x00')
         else:
             self.assertEqual(zarr_extension_content, b'\x00\x00\x00\x30')
 
     def test_inv_endian_extension(self):
-        pass
+
         with open(os.path.join(self.inv_endian_zarr, "nifti/0"), "rb") as f:
             f.seek(348)
             zarr_extension_content = f.read(4)
         with open(self.inv_endian_nifti, "rb") as f:
             f.seek(348 + 4)
             nifti_extension_content = f.read(4)
-        self.assertEqual(zarr_extension_content, zarr_extension_content)
+        self.assertEqual(zarr_extension_content, nifti_extension_content)
         if SYS_BYTEORDER == ">":
             self.assertEqual(zarr_extension_content, b'\x30\x00\x00\x00')
         else:
