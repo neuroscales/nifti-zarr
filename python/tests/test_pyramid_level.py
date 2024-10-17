@@ -58,7 +58,7 @@ class TestPyramidLevel(unittest.TestCase):
         nii2zarr(self.ni, self.output_zarr, nb_levels=-1, chunk=96)
         self.assertEqual(1, count_levels(self.output_zarr))
 
-    def test_chunk_size_1024(self):
+    def test_chunk_size_512(self):
         nii2zarr(self.ni, self.output_zarr, nb_levels=-1, chunk=512)
         self.assertEqual(1, count_levels(self.output_zarr))
 
