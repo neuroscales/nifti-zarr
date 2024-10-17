@@ -3,8 +3,10 @@ import sys
 import warnings
 
 import numpy as np
+from nibabel import (Nifti1Image, Nifti1Header, Nifti2Image, Nifti2Header)
 
 SYS_BYTEORDER = '<' if sys.byteorder == 'little' else '>'
+SYS_BYTEORDER_SWAPPED = '>' if SYS_BYTEORDER == '<' else '<'
 
 NIFTI_1_HEADER_SIZE = 348
 NIFTI_2_HEADER_SIZE = 540
@@ -135,6 +137,7 @@ DTYPES = Recoder([
     (2048, "complex256"),  # 256-bit complex (2x 128-bit floats)
     (2304, (("r", "uint8"), ("g", "uint8"), ("b", "uint8"), ("a", "uint8"))),  # 4x 8-bit unsigned char (RGBA32)
 ])
+
 UNITS = Recoder([
     (0, ""),
     (1, "m"),
@@ -146,6 +149,36 @@ UNITS = Recoder([
     (32, "hz"),
     (40, "ppm"),
     (48, "rad/s"),
+])
+
+JNIFTI_ZARR = Recoder([
+    ("u1", "uint8"),
+    ("i2", "int16"),
+    ("i4", "int32"),
+    ("f4", "single"),
+    ("c8", "complex64"),
+    ("f8", "double"),
+    ((("r", "u1"), ("g", "u1"), ("b", "u1")), (("r", "uint8"), ("g", "uint8"), ("b", "uint8"))),
+    ("i1", "int8"),
+    ("u2", "uint16"),
+    ("u4", "uint32"),
+    ("i8", "int64"),
+    ("u8", "uint64"),
+    ("f16", "double128"),
+    ("c16", "complex128"),
+    ("c32", "complex256"),
+    ((("r", "u1"), ("g", "u1"), ("b", "u1"), ("a", "u1")),
+     (("r", "uint8"), ("g", "uint8"), ("b", "uint8"), ("a", "uint8"))),
+    ("", ""),
+    ("m", "meter"),
+    ("mm", "millimeter"),
+    ("um", "micrometer"),
+    ("s", "second"),
+    ("ms", "millisecond"),
+    ("us", "microsecond"),
+    ("hz", "hertz"),
+    ("ppm", "micro"),
+    ("rad/s", "radian"),
 ])
 
 INTENTS = Recoder([
@@ -264,24 +297,14 @@ INTENTS_P.update({
     "symmatrix": 1,
 })
 
-# Not converting to human-readable string for now
 XFORMS = Recoder([
-    (0, 0),
-    (1, 1),
-    (2, 2),
-    (3, 3),
-    (4, 4),
-    (5, 5),
+    (0, ""),
+    (1, "scanner_anat"),
+    (2, "aligned_anat"),
+    (3, "talairach"),
+    (4, "mni_152"),
+    (5, "template_other"),
 ])
-
-# XFORMS = Recoder([
-#     (0, "UNKNOWN"),
-#     (1, "SCANNER_ANAT"),
-#     (2, "ALIGNED_ANAT"),
-#     (3, "TALAIRACH"),
-#     (4, "MNI"),
-#     (5, "TEMPLATE_OTHER"),
-# ])
 
 SLICEORDERS = Recoder([
     # NIFTI_SLICE_UNKNOWN: Unknown slice type, no parameters
@@ -305,24 +328,47 @@ def get_magic_string(header):
     return re.sub(r'[\x00-\x1f]+', '', header['magic'].decode())
 
 
-def bin2nii(buffer):
-    header = np.frombuffer(buffer, dtype=HEADERTYPE1, count=1)[0]
-    if header['sizeof_hdr'] == NIFTI_1_HEADER_SIZE:
-        validate_magic(header, 1)
-        return header
-    header = header.newbyteorder()
-    if header['sizeof_hdr'] == NIFTI_1_HEADER_SIZE:
-        validate_magic(header, 1)
-        return header
+def try_header_version(buffer, version=1):
+    if version == 1:
+        HEADER_TYPE = HEADERTYPE1
+        HEADER_SIZE = NIFTI_1_HEADER_SIZE
+    elif version == 2:
+        HEADER_TYPE = HEADERTYPE2
+        HEADER_SIZE = NIFTI_2_HEADER_SIZE
+    else:
+        raise ValueError(f"Unsupported Nifti version {version}")
+    byteorder_swapped = False
+    header = np.frombuffer(buffer, dtype=HEADER_TYPE, count=1)[0]
+    if header['sizeof_hdr'] != HEADER_SIZE:
+        header = header.newbyteorder()
+        byteorder_swapped = True
+        if header['sizeof_hdr'] != HEADER_SIZE:
+            return None
 
-    header = np.frombuffer(buffer, dtype=HEADERTYPE2, count=1)[0]
-    if header['sizeof_hdr'] == NIFTI_2_HEADER_SIZE:
-        validate_magic(header, 2)
-        return header
-    header = header.newbyteorder()
-    if header['sizeof_hdr'] == NIFTI_2_HEADER_SIZE:
-        validate_magic(header, 2)
-        return header
+    validate_magic(header, version)
+    return header, byteorder_swapped
+
+
+def bin2nii(buffer, check_swapped=False):
+    """
+    Parameters
+    ----------
+    buffer : binary header data
+    check_swapped : bool
+        if true, return if the byte order is swapped
+    Returns
+    -------
+    header : structure array of header
+    swapped : bool
+
+    """
+    for v in (1, 2):
+        result = try_header_version(buffer, v)
+        if result:
+            header, byteorder_swapped = result
+            if check_swapped:
+                return header, byteorder_swapped
+            return header
     raise ValueError('Is this a nifti header?')
 
 
@@ -332,48 +378,29 @@ def validate_magic(header, version):
         warnings.warn(f"Magic String {magic_string} does not match NIFTI version {version}")
 
 
-"""
-For reference, nibabel xcode and dtype definition 
-_dtdefs = (  # code, label, dtype definition, niistring
-    (0, 'none', np.void, ''),
-    (1, 'binary', np.void, ''),
-    (2, 'uint8', np.uint8, 'NIFTI_TYPE_UINT8'),
-    (4, 'int16', np.int16, 'NIFTI_TYPE_INT16'),
-    (8, 'int32', np.int32, 'NIFTI_TYPE_INT32'),
-    (16, 'float32', np.float32, 'NIFTI_TYPE_FLOAT32'),
-    (32, 'complex64', np.complex64, 'NIFTI_TYPE_COMPLEX64'),
-    (64, 'float64', np.float64, 'NIFTI_TYPE_FLOAT64'),
-    (128, 'RGB', np.dtype([('R', 'u1'), ('G', 'u1'), ('B', 'u1')]), 'NIFTI_TYPE_RGB24'),
-    (255, 'all', np.void, ''),
-    (256, 'int8', np.int8, 'NIFTI_TYPE_INT8'),
-    (512, 'uint16', np.uint16, 'NIFTI_TYPE_UINT16'),
-    (768, 'uint32', np.uint32, 'NIFTI_TYPE_UINT32'),
-    (1024, 'int64', np.int64, 'NIFTI_TYPE_INT64'),
-    (1280, 'uint64', np.uint64, 'NIFTI_TYPE_UINT64'),
-    (1536, 'float128', _float128t, 'NIFTI_TYPE_FLOAT128'),
-    (1792, 'complex128', np.complex128, 'NIFTI_TYPE_COMPLEX128'),
-    (2048, 'complex256', _complex256t, 'NIFTI_TYPE_COMPLEX256'),
-    (
-        2304,
-        'RGBA',
-        np.dtype([('R', 'u1'), ('G', 'u1'), ('B', 'u1'), ('A', 'u1')]),
-        'NIFTI_TYPE_RGBA32',
-    ),
-)
+# def get_header_version(buffer):
+#     for v in (1, 2):
+#         header = try_header_version(buffer, v)
+#         if header:
+#             return v
+#     raise ValueError('Is this a nifti header?')
+#
+# def bin2nib(buffer):
+#     version = get_header_version(buffer)
+#     if version == 1:
+#         NiftiHeader = Nifti1Header
+#         NiftiImage = Nifti1Image
+#     elif version==2:
+#         NiftiHeader = Nifti2Header
+#         NiftiImage = Nifti2Image
+#     else:
+#         raise ValueError(f"Unsupported Nifti version {version}")
 
-# Make full code alias bank, including dtype column
-data_type_codes = make_dt_codes(_dtdefs)
 
-# Transform (qform, sform) codes
-xform_codes = Recoder(
-    (  # code, label, niistring
-        (0, 'unknown', 'NIFTI_XFORM_UNKNOWN'),
-        (1, 'scanner', 'NIFTI_XFORM_SCANNER_ANAT'),
-        (2, 'aligned', 'NIFTI_XFORM_ALIGNED_ANAT'),
-        (3, 'talairach', 'NIFTI_XFORM_TALAIRACH'),
-        (4, 'mni', 'NIFTI_XFORM_MNI_152'),
-        (5, 'template', 'NIFTI_XFORM_TEMPLATE_OTHER'),
-    ),
-    fields=('code', 'label', 'niistring'),
-)
-"""
+def get_nibabel_klass(header):
+    if header['sizeof_hdr'] == NIFTI_1_HEADER_SIZE:
+        return Nifti1Header, Nifti1Image
+    elif header['sizeof_hdr'] == NIFTI_2_HEADER_SIZE:
+        return Nifti2Header, Nifti2Image
+    else:
+        raise ValueError(f"sizeof_hdr {header['sizeof_hdr']} does not match any Nifti header specification")
