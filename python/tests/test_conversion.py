@@ -1,10 +1,9 @@
-import unittest
-import nibabel as nib
-import tempfile
 import os
+import tempfile
+import unittest
 
+import nibabel as nib
 import numpy as np
-
 from python import niizarr
 
 
@@ -56,7 +55,6 @@ class TestNiizarrConversion(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-
 
 """
 sizeof_hdr      : 348

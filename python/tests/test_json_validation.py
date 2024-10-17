@@ -1,11 +1,11 @@
-import unittest
-import nibabel as nib
-import tempfile
-import os
 import json
+import os
+import tempfile
+import unittest
+
+import nibabel as nib
 from jsonschema import validate
 from jsonschema.exceptions import ValidationError
-
 from python import niizarr
 
 
@@ -33,8 +33,6 @@ class TestJSONValidation(unittest.TestCase):
                         validate(json_obj, self.schema)
                     except ValidationError as e:
                         self.fail(json.dumps(json_obj))
-
-
 
 
 if __name__ == '__main__':

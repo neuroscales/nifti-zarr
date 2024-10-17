@@ -6,10 +6,9 @@ import unittest
 
 import nibabel as nib
 import numpy as np
+from _data import get_nifti_image
 from nibabel import Nifti1Header, Nifti1Image
 from nibabel.nifti1 import Nifti1Extension
-
-from _data import get_nifti_image
 from niizarr import nii2zarr
 from niizarr._header import SYS_BYTEORDER, HEADERTYPE1
 
