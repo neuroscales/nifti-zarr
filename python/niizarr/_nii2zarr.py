@@ -2,8 +2,8 @@ import argparse
 import io
 import json
 import math
-import sys
 import re
+import sys
 
 import numcodecs
 import numpy as np
@@ -110,7 +110,7 @@ def nii2json(header, extensions=False):
         jsonheader["ScaleOffset"] = 0.0
 
     # Remove control characters
-    for k,v in jsonheader.items():
+    for k, v in jsonheader.items():
         if isinstance(v, str):
             jsonheader[k] = re.sub(r'[\n\r\t\00]*', '', v)
 
@@ -147,7 +147,7 @@ def _make_pyramid3d(
 
     batch, nxyz = data3d.shape[:-3], data3d.shape[-3:]
     data3d = data3d.reshape((-1, *nxyz))
-    max_layer = nb_levels - 1 if nb_levels > 0 else -1
+    max_layer = nb_levels - 1
 
     def pyramid_values(x):
         return pyramid_fn(x, max_layer, 2, preserve_range=True,
@@ -213,7 +213,8 @@ def nii2zarr(inp, out, *,
         Chunk size of the time dimension. If 0, combine all timepoints
         in a single chunk.
     nb_levels : int
-        Number of levels in the pyramid. Default: all possible levels.
+        Number of levels in the pyramid. If -1, make all possible levels until the level can be fit into one chunk.
+        Default: -1
     method : {'gaussian', 'laplacian'}
         Method used to compute the pyramid.
     label : bool
@@ -298,9 +299,18 @@ def nii2zarr(inp, out, *,
     if label is None:
         label = jsonheader['Intent'] in ("label", "neuronames")
     pyramid_fn = pyramid_gaussian if method[0] == 'g' else pyramid_laplacian
+
+    # if chunk is a list, we use the first tuple, otherwise the logic might be too complicated
+    chunksize = np.array((chunk,) * 3 if isinstance(chunk, int) else chunk[0])
+    nxyz = np.array(data.shape[-3:])
+
+    default_layers = int(np.ceil(np.log2(np.max(nxyz / chunksize)))) + 1
+    default_layers = max(default_layers, 1)
+    nb_levels = default_layers if nb_levels == -1 else nb_levels
+
     data = list(_make_pyramid3d(data, nb_levels, pyramid_fn, label,
                                 no_pyramid_axis))
-    nb_levels = len(data)
+
     shapes = [d.shape[-3:] for d in data]
 
     # Fix data type
