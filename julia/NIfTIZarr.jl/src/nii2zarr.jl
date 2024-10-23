@@ -365,7 +365,7 @@ function nii2zarr(inp::NIfTI.NIVolume, out::Zarr.ZGroup;
     data = PermutedDimsArray(inp.raw, perm)
 
     # Compute image pyramid
-    bool_label = jsonheader["Intent"] in ("LABEL", "NEURONAMES")
+    bool_label = jsonheader["Intent"] in ("label", "neuronames")
     if label == IsLabel.yes
         bool_label = true
     elseif label == IsLabel.no
