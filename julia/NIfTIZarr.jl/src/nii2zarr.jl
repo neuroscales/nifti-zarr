@@ -403,10 +403,13 @@ function nii2zarr(inp::NIfTI.NIVolume, out::Zarr.ZGroup;
 
     # Write zarr arrays
     for n in eachindex(shapes)
+        # TODO: delete all redundant layers
         delete!(out.storage, "", string(n-1))
+        # everything is reversed since zarr.jl write things in reversed order, 
+        # see https://github.com/JuliaIO/Zarr.jl/issues/78
         subarray = Zarr.zcreate(
-            eltype(data[n]), out, string(n-1), shapes[n]...;
-            chunks=chunk[n],
+            eltype(data[n]), out, string(n-1), reverse(shapes[n])...;
+            chunks=reverse(chunk[n]),
             fill_as_missing=false,
             fill_value=nothing,
             compressor=compressor,
@@ -415,7 +418,7 @@ function nii2zarr(inp::NIfTI.NIVolume, out::Zarr.ZGroup;
             attrs = Dict("_ARRAY_DIMENSIONS" => ARRAY_DIMENSIONS)
         )
         # subarray[:,:,:] = data[n]
-        copy!(subarray, data[n])
+        copy!(subarray, PermutedDimsArray(data[n], reverse(1:ndims(data[n]))))
     end
 
 end
