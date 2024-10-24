@@ -1,0 +1,84 @@
+{
+    "Affine": [
+        [
+            -2.0,
+            6.714715653593746e-19,
+            9.081024511081715e-18,
+            117.8551025390625
+        ],
+        [
+            -6.714715653593746e-19,
+            1.9737114906311035,
+            -0.35552823543548584,
+            -35.72294235229492
+        ],
+        [
+            8.25548088896093e-18,
+            0.3232076168060303,
+            2.171081781387329,
+            -7.248798370361328
+        ]
+    ],
+    "AuxFile": "",
+    "DataType": "int16",
+    "Description": "FSL3.3 v2.25 NIfTI-1 Single file format",
+    "Dim": [
+        32,
+        20,
+        12,
+        2
+    ],
+    "DimInfo": {
+        "Freq": 1,
+        "Phase": 2,
+        "Slice": 3
+    },
+    "FirstSliceID": 0,
+    "Intent": "",
+    "LastSliceID": 23,
+    "MaxIntensity": 1162.0,
+    "MinIntensity": 0.0,
+    "NIFTIExtension": [
+        1,
+        0,
+        0,
+        0
+    ],
+    "NIIFormat": "n+2",
+    "Name": "",
+    "Orientation": {
+        "x": "l",
+        "y": "a",
+        "z": "s"
+    },
+    "Param1": null,
+    "Param2": null,
+    "Param3": null,
+    "QForm": "scanner_anat",
+    "Quatern": {
+        "b": -1.9451068140294884e-26,
+        "c": -0.9967085123062134,
+        "d": -0.0810687392950058
+    },
+    "QuaternOffset": {
+        "x": 117.8551025390625,
+        "y": -35.72294235229492,
+        "z": -7.248798370361328
+    },
+    "SForm": "scanner_anat",
+    "ScaleOffset": 0.0,
+    "ScaleSlope": 0.0,
+    "SliceTime": 0.0,
+    "SliceType": "",
+    "TimeOffset": 0.0,
+    "Unit": {
+        "L": "mm",
+        "T": "s"
+    },
+    "VoxelSize": [
+        2.0,
+        2.0,
+        2.1999990940093994,
+        2000.0
+    ]
+}

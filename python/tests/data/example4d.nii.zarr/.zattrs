@@ -1,0 +1,89 @@
+{
+    "multiscales": [
+        {
+            "axes": [
+                {
+                    "name": "t",
+                    "type": "time",
+                    "unit": "second"
+                },
+                {
+                    "name": "z",
+                    "type": "space",
+                    "unit": "millimeter"
+                },
+                {
+                    "name": "y",
+                    "type": "space",
+                    "unit": "millimeter"
+                },
+                {
+                    "name": "x",
+                    "type": "space",
+                    "unit": "millimeter"
+                }
+            ],
+            "coordinateTransformations": [
+                {
+                    "scale": [
+                        2000.0,
+                        1.0,
+                        1.0,
+                        1.0
+                    ],
+                    "type": "scale"
+                }
+            ],
+            "datasets": [
+                {
+                    "coordinateTransformations": [
+                        {
+                            "scale": [
+                                1.0,
+                                2.1999990940093994,
+                                2.0,
+                                2.0
+                            ],
+                            "type": "scale"
+                        },
+                        {
+                            "translation": [
+                                0.0,
+                                0.0,
+                                0.0,
+                                0.0
+                            ],
+                            "type": "translation"
+                        }
+                    ],
+                    "path": "0"
+                },
+                {
+                    "coordinateTransformations": [
+                        {
+                            "scale": [
+                                1.0,
+                                4.399998188018799,
+                                4.0,
+                                4.0
+                            ],
+                            "type": "scale"
+                        },
+                        {
+                            "translation": [
+                                0.0,
+                                1.0999995470046997,
+                                1.0,
+                                1.0
+                            ],
+                            "type": "translation"
+                        }
+                    ],
+                    "path": "1"
+                }
+            ],
+            "name": "/",
+            "version": "0.4"
+        }
+    ]
+}
