@@ -121,13 +121,13 @@
         "rgb",
         "rgba",
         "shape",
-        "FSL_FNIRT_DISPLACEMENT_FIELD",
-        "FSL_CUBIC_SPLINE_COEFFICIENTS",
-        "FSL_DCT_COEFFICIENTS",
-        "FSL_QUADRATIC_SPLINE_COEFFICIENTS",
-        "FSL_TOPUP_CUBIC_SPLINE_COEFFICIENTS",
-        "FSL_TOPUP_QUADRATIC_SPLINE_COEFFICIENTS",
-        "FSL_TOPUP_FIELD"
+        "fsl_fnirt_displacement_field",
+        "fsl_cubic_spline_coefficients",
+        "fsl_dct_coefficients",
+        "fsl_quadratic_spline_coefficients",
+        "fsl_topup_cubic_spline_coefficients",
+        "fsl_topup_quadratic_spline_coefficients",
+        "fsl_topup_field"
       ]
     },
     "Param1": {
@@ -157,15 +157,21 @@
       "properties": {
         "x": {
           "enum": [
-            "r",
-            "l"
+            "l",
+            "r"
           ]
         },
         "y": {
-          "const": "a"
+          "enum": [
+            "a",
+            "p"
+          ]
         },
         "z": {
-          "const": "s"
+          "enum": [
+            "s",
+            "i"
+          ]
         }
       }
     },
@@ -230,12 +236,12 @@
     "QForm": {
       "description": "A valid xform name (see table 4.5)",
       "enum": [
-        0,
-        1,
-        2,
-        3,
-        4,
-        5
+        "",
+        "scanner_anat",
+        "aligned_anat",
+        "talairach",
+        "mni_152",
+        "template_other"
       ]
     },
     "Quatern": {
@@ -267,12 +273,12 @@
     "SForm": {
       "description": "A valid xform name (see table 4.5)",
       "enum": [
-        0,
-        1,
-        2,
-        3,
-        4,
-        5
+        "",
+        "scanner_anat",
+        "aligned_anat",
+        "talairach",
+        "mni_152",
+        "template_other"
       ]
     },
     "Affine": {
@@ -288,6 +294,15 @@
       },
       "minItems": 3,
       "maxItems": 3
+    },
+    "NIFTIExtension": {
+      "description": "Four bytes following header indicating the exist of extension",
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "minItems": 4,
+      "maxItems": 4
     }
   }
 }

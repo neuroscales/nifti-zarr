@@ -2,6 +2,7 @@ import argparse
 import io
 import json
 import math
+import re
 import sys
 
 import numcodecs
@@ -13,7 +14,8 @@ from ome_zarr.writer import write_multiscale
 from skimage.transform import pyramid_gaussian, pyramid_laplacian
 
 from ._header import (
-    UNITS, DTYPES, INTENTS, INTENTS_P, SLICEORDERS, XFORMS, bin2nii, get_magic_string, SYS_BYTEORDER
+    UNITS, DTYPES, INTENTS, INTENTS_P, SLICEORDERS, XFORMS, bin2nii, get_magic_string, SYS_BYTEORDER, JNIFTI_ZARR,
+    SYS_BYTEORDER_SWAPPED
 )
 
 # If fsspec available, use fsspec
@@ -25,7 +27,7 @@ except (ImportError, ModuleNotFoundError):
     fsspec = None
 
 
-def nii2json(header):
+def nii2json(header, extensions=False):
     """
     Convert a nifti header to JSON
 
@@ -33,11 +35,13 @@ def nii2json(header):
     ----------
     header : np.array[HEADERTYPE1 or HEADERTYPE2]
         Nifti header in binary form
-
+    extensions: bool, optional
+        If extensions present in this nifti file
     Returns
     -------
     header : dict
         Nifti header in JSON form
+
     """
     header = header.copy()
 
@@ -90,6 +94,7 @@ def nii2json(header):
             "y": qoffset[1],
             "z": qoffset[2],
         },
+        # TODO: change this after JNIfTI changed
         "Orientation": {
             "x": "r" if header["pixdim"][0].item() == 0 else "l",
             "y": "a",
@@ -97,11 +102,17 @@ def nii2json(header):
         },
         "SForm": XFORMS[header["sform_code"].item()],
         "Affine": header["sform"].tolist(),
+        "NIFTIExtension": [1 if extensions else 0] + [0, 0, 0],
     }
     if not math.isfinite(jsonheader["ScaleSlope"]):
         jsonheader["ScaleSlope"] = 0.0
     if not math.isfinite(jsonheader["ScaleOffset"]):
         jsonheader["ScaleOffset"] = 0.0
+
+    # Remove control characters
+    for k, v in jsonheader.items():
+        if isinstance(v, str):
+            jsonheader[k] = re.sub(r'[\n\r\t\00]*', '', v)
 
     # Check that the dictionary is serializable
     json.dumps(jsonheader)
@@ -136,7 +147,7 @@ def _make_pyramid3d(
 
     batch, nxyz = data3d.shape[:-3], data3d.shape[-3:]
     data3d = data3d.reshape((-1, *nxyz))
-    max_layer = nb_levels - 1 if nb_levels > 0 else -1
+    max_layer = nb_levels - 1
 
     def pyramid_values(x):
         return pyramid_fn(x, max_layer, 2, preserve_range=True,
@@ -202,7 +213,8 @@ def nii2zarr(inp, out, *,
         Chunk size of the time dimension. If 0, combine all timepoints
         in a single chunk.
     nb_levels : int
-        Number of levels in the pyramid. Default: all possible levels.
+        Number of levels in the pyramid. If -1, make all possible levels until the level can be fit into one chunk.
+        Default: -1
     method : {'gaussian', 'laplacian'}
         Method used to compute the pyramid.
     label : bool
@@ -240,8 +252,8 @@ def nii2zarr(inp, out, *,
         inp = Nifti1Image(inp.dataobj[:, :, :, None], inp.affine, inp.header)
 
     header = bin2nii(inp.header.structarr.tobytes())
-
-    jsonheader = nii2json(header)
+    byteorder_swapped = inp.header.endianness != SYS_BYTEORDER
+    jsonheader = nii2json(header, len(inp.header.extensions) != 0)
 
     data = np.asarray(inp.dataobj)
 
@@ -287,32 +299,33 @@ def nii2zarr(inp, out, *,
     if label is None:
         label = jsonheader['Intent'] in ("label", "neuronames")
     pyramid_fn = pyramid_gaussian if method[0] == 'g' else pyramid_laplacian
+
+    # if chunk is a list, we use the first tuple, otherwise the logic might be too complicated
+    chunksize = np.array((chunk,) * 3 if isinstance(chunk, int) else chunk[0])
+    nxyz = np.array(data.shape[-3:])
+
+    default_layers = int(np.ceil(np.log2(np.max(nxyz / chunksize)))) + 1
+    default_layers = max(default_layers, 1)
+    nb_levels = default_layers if nb_levels == -1 else nb_levels
+
     data = list(_make_pyramid3d(data, nb_levels, pyramid_fn, label,
                                 no_pyramid_axis))
-    nb_levels = len(data)
+
     shapes = [d.shape[-3:] for d in data]
 
     # Fix data type
-    byteorder = header['sizeof_hdr'].dtype.byteorder
-    if byteorder == '=':
-        byteorder = SYS_BYTEORDER
-
-    data_type = jsonheader['DataType']
-    # named tuple's datatype must be a list
+    # If nifti was swapped when loading it, we want to swapped it back to make it as same as before
+    byteorder = SYS_BYTEORDER_SWAPPED if byteorder_swapped else SYS_BYTEORDER
+    data_type = JNIFTI_ZARR[jsonheader['DataType']]
     if isinstance(data_type, tuple):
-        data_type = list(data_type)
+        data_type = [
+            (field, '|' + dtype) for field, dtype in data_type
+        ]
+    elif data_type.endswith('1'):
+        data_type = '|' + data_type
+    else:
+        data_type = byteorder + data_type
 
-    # descr always returns a list
-    data_type = np.dtype(data_type).descr
-    # replace the endianness character if datatype is more than 1 Byte
-    adjusted_data_type = [
-        (field, dtype if dtype[0] == '|' or dtype[-1] == '1' else byteorder + dtype[1:])
-        for field, dtype in data_type
-    ]
-    # if no fieldname, this is builtin data type (not RGB or RGBA) 
-    if len(adjusted_data_type) == 1 and adjusted_data_type[0][0] == '':
-        adjusted_data_type = adjusted_data_type[0][1]
-    data_type = adjusted_data_type
     # Prepare array metadata at each level
     compressor = _make_compressor(compressor, **compressor_options)
     if not isinstance(chunk, list):
@@ -343,7 +356,7 @@ def nii2zarr(inp, out, *,
     if inp.header.extensions:
         extension_stream = io.BytesIO()
         inp.header.extensions.write_to(extension_stream,
-                                       byteswap=(SYS_BYTEORDER == header['sizeof_hdr'].dtype.byteorder))
+                                       byteswap=byteorder_swapped)
         bin_data.append(np.frombuffer(extension_stream.getvalue(), dtype=np.uint8))
 
     # Concatenate the final binary data
@@ -374,17 +387,17 @@ def nii2zarr(inp, out, *,
         {
             "name": "z",
             "type": "space",
-            "unit": jsonheader["Unit"]["L"],
+            "unit": JNIFTI_ZARR[jsonheader["Unit"]["L"]],
         },
         {
             "name": "y",
             "type": "space",
-            "unit": jsonheader["Unit"]["L"],
+            "unit": JNIFTI_ZARR[jsonheader["Unit"]["L"]],
         },
         {
             "name": "x",
             "type": "space",
-            "unit": jsonheader["Unit"]["L"],
+            "unit": JNIFTI_ZARR[jsonheader["Unit"]["L"]],
         }
     ]
     if nbatch >= 2:
@@ -396,7 +409,7 @@ def nii2zarr(inp, out, *,
         multiscales[0]["axes"].insert(0, {
             "name": "t",
             "type": "time",
-            "unit": jsonheader["Unit"]["T"],
+            "unit": JNIFTI_ZARR[jsonheader["Unit"]["T"]],
         })
     for n, level in enumerate(multiscales[0]["datasets"]):
         # skimage pyramid_gaussian/pyramid_laplace use

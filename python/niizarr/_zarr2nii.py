@@ -7,11 +7,10 @@ import dask.array
 import numpy as np
 import zarr.hierarchy
 import zarr.storage
-from nibabel import (Nifti1Image, Nifti1Header, Nifti2Image, Nifti2Header,
-                     save, load)
+from nibabel import (save, load)
 from nibabel.nifti1 import Nifti1Extensions
 
-from ._header import bin2nii, NIFTI_1_HEADER_SIZE, NIFTI_2_HEADER_SIZE, SYS_BYTEORDER
+from ._header import bin2nii, get_nibabel_klass, SYS_BYTEORDER
 
 # If fsspec available, use fsspec
 try:
@@ -20,25 +19,6 @@ try:
     open = fsspec.open
 except (ImportError, ModuleNotFoundError):
     fsspec = None
-
-
-# This function is no longer used. We used nibabel to load extension from binary blob directly.
-# def extract_extension(chunk, index=0):
-#     sections = []
-#     chunk_len = len(chunk)
-#
-#     while index < chunk_len:
-#         size = int.from_bytes(chunk[index:index + 4], byteorder='big')
-#         code = int.from_bytes(chunk[index + 4:index + 8], byteorder='big')
-#
-#         content = chunk[index + 8:index + size]
-#         # strip redundant \0. See: https://github.com/nipy/nibabel/blob/83eaf0b55be9e9079bf9ad64975b71c22523f5f0/nibabel/nifti1.py#L630
-#         content = content.rstrip(b'\x00')
-#         sections.append(Nifti1Extension(code, content))
-#
-#         index += size
-#
-#     return sections
 
 
 def zarr2nii(inp, out=None, level=0):
@@ -67,23 +47,17 @@ def zarr2nii(inp, out=None, level=0):
             else:
                 inp = zarr.storage.DirectoryStore(inp)
         inp = zarr.group(store=inp)
+    # check nifti info present in zarr archive
+    if 'nifti' not in inp:
+        raise KeyError("NifTi data not present in zarr archive. Is this a nifti.zarr file?")
 
     # read binary header
     header = bin2nii(np.asarray(inp['nifti']).tobytes())
 
-    # create nibabel header (useful to convert quat 2 affine, etc)
-    if header['sizeof_hdr'] == NIFTI_1_HEADER_SIZE:
-        NiftiHeader = Nifti1Header
-        NiftiImage = Nifti1Image
-    elif header['sizeof_hdr'] == NIFTI_2_HEADER_SIZE:
-        NiftiHeader = Nifti2Header
-        NiftiImage = Nifti2Image
-    else:
-        raise ValueError(f"sizeof_hdr {header['sizeof_hdr']} does not match any Nifti header specification")
-
+    NiftiHeader, NiftiImage = get_nibabel_klass(header)
     niiheader = NiftiHeader.from_fileobj(io.BytesIO(header.tobytes()),
                                          check=False)
-
+    byte_swapped = niiheader.endianness != SYS_BYTEORDER
     # create affine at current resolution
     if level != 0:
         qform, qcode = niiheader.get_qform(coded=True)
@@ -113,7 +87,7 @@ def zarr2nii(inp, out=None, level=0):
     actual_axis_order = tuple(axis['name'] for axis in inp.attrs['multiscales'][0]['axes'])
     if array.ndim == 5:
         array = array.transpose([4, 3, 2, 0, 1])
-        assert actual_axis_order == ('t','c','z','y','x')
+        assert actual_axis_order == ('t', 'c', 'z', 'y', 'x')
     elif array.ndim == 4:
         array = array.transpose([3, 2, 1, 0])
         assert actual_axis_order == ('t', 'z', 'y', 'x')
@@ -127,14 +101,13 @@ def zarr2nii(inp, out=None, level=0):
     # create nibabel image
     img = NiftiImage(array, None, niiheader)
 
+    # load extensions following the header binary data if present
     extension_size = len(inp['nifti']) - header['sizeof_hdr']
     if extension_size > 0:
         try:
             file_obj = io.BytesIO(np.asarray(inp['nifti']).tobytes()[header['sizeof_hdr']:])
-            img.header.extensions = Nifti1Extensions.from_fileobj(file_obj, extension_size, (
-                        header['sizeof_hdr'].dtype.byteorder == SYS_BYTEORDER))
-            # extensions = extract_extension(np.asarray(inp['nifti']).tobytes(), header['sizeof_hdr'])
-            # img.header.extensions += extensions
+            img.header.extensions = Nifti1Extensions.from_fileobj(file_obj, extension_size, byte_swapped)
+
         except Exception:
             warnings.warn("Failed to load extensions")
 
