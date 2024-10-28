@@ -35,10 +35,8 @@ ztuple(n) = ntuple(x -> 0, n)
 # Valid magic strings
 MAGIC1 = UInt8.(('n', 'i', '1', '\0'))   # two files
 MAGIC1P = UInt8.(('n', '+', '1', '\0'))  # single file
-MAGIC1Z = UInt8.(('n', 'z', '1', '\0'))  # zarr folder
 MAGIC2 = UInt8.(('n', 'i', '1', '\0', '\0', '\0', '\0', '\0'))   # two files
 MAGIC2P = UInt8.(('n', '+', '1', '\0', '\0', '\0', '\0', '\0'))  # single file
-MAGIC2Z = UInt8.(('n', 'z', '1', '\0', '\0', '\0', '\0', '\0'))  # zarr folder
 
 """
 Check if a nifti_1_header struct needs to be byte swapped.

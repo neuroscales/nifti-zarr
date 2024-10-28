@@ -385,7 +385,6 @@ function nii2zarr(inp::NIfTI.NIVolume, out::Zarr.ZGroup;
     chunk = map(x->Tuple(x[axis] for axis in axes), chunk)
 
     # Write nifti header
-    header.magic = MAGIC1P
     binheader = bytesencode(header)
     delete!(out.storage, "", "nifti")
     header_array = Zarr.zcreate(
@@ -404,7 +403,7 @@ function nii2zarr(inp::NIfTI.NIVolume, out::Zarr.ZGroup;
     
     # Write zarr arrays
     for n in eachindex(shapes)
-        # TODO: delete all redundant layers
+        # TODO: delete all redundant from previous existed layers
         delete!(out.storage, "", string(n-1))
         # everything is reversed since zarr.jl write things in reversed order, 
         # see https://github.com/JuliaIO/Zarr.jl/issues/78
