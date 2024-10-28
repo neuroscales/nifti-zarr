@@ -30,7 +30,6 @@ NIfTIZarr.nii2zarr(original_file, output_file, chunk=128)
 back = NIfTIZarr.zarr2nii(output_file)
 original = NIfTI.niread(original_file)
 
-
 @test isequal(original.header, back.header)
 schema = Schema(JSON.parsefile(joinpath(dirname(@__FILE__), "data/nifti-zarr-schema-0.3.json")))
 output_json =  JSON.parsefile(joinpath(output_file, "nifti/.zattrs"))

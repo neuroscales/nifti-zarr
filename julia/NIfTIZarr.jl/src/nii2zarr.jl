@@ -329,7 +329,7 @@ julia> nii2zarr("path/to/nifti.nii.gz", "s3://path/to/bucket")
 ```
 """
 function nii2zarr(inp::NIfTI.NIVolume, out::Zarr.ZGroup;
-    chunk::Vector{NTuple{5, T}} where T <: Integer = [(64, 64, 64, 1, 1)],
+    chunk::Vector{NTuple{5, T}} where T <: Integer = [(128, 128, 128, 1, 1)],
     nb_levels::Integer = -1,
     method::PyramidMethod.T = PyramidMethod.gaussian,
     label::IsLabel.T = IsLabel.auto,
@@ -337,8 +337,6 @@ function nii2zarr(inp::NIfTI.NIVolume, out::Zarr.ZGroup;
     compressor::CompressorType.T = CompressorType.blosc,
     compressor_options...
 )
-    # Convert NIfTI.jl's header into my header (they only handle nifti-1)
-    # TODO: add support for Nifti2Header
     header = inp.header
     jsonheader = nii2json(header, !isempty(inp.extensions))
     

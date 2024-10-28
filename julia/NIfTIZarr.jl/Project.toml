@@ -5,20 +5,29 @@ version = "0.1.0"
 
 [deps]
 Base64 = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
-Zarr = "0a941bbe-ad1d-11e8-39d9-ab76183a1d99"
-NIfTI = "a3a9e032-41b5-5fc4-967a-a6b7a19844d3"
-EnumX = "4e289a0a-7415-4d19-859d-a7e5c4648b56"
-Images = "916415d5-f1e6-5110-898d-aaa5f9f070e0"
-Formatting = "59287772-0a20-5a39-b81b-1366585eb4c0"
-LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
-StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+Bijections = "e2ed5e7c-b2de-5872-ae92-c73ca462fb04"
 CodecZlib = "944b1d66-785c-5afd-91f1-9de20f533193"
-# GZip = "92fee26a-97fe-5a0c-ad85-20a5f3185b63"
+EnumX = "4e289a0a-7415-4d19-859d-a7e5c4648b56"
+Formatting = "59287772-0a20-5a39-b81b-1366585eb4c0"
+Images = "916415d5-f1e6-5110-898d-aaa5f9f070e0"
 
-[compat]            # to check
-Zarr = "0.7"        # storage API change (added path)
-NIfTI = "0.6"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+NIfTI = "a3a9e032-41b5-5fc4-967a-a6b7a19844d3"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+Zarr = "0a941bbe-ad1d-11e8-39d9-ab76183a1d99"
+
+[compat]
 CodecZlib = "0.7"
 EnumX = "1.0"
 Images = ">=0.8"
+NIfTI = "0.6"
+Zarr = "0.7"
 julia = "1.6"
+
+
+[extras]
+JSONSchema = "7d188eb4-7ad8-530c-ae41-71a32a6d4692"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["JSONSchema", "Test"]
