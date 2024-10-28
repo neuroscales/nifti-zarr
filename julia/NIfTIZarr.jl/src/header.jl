@@ -2,7 +2,7 @@ import Base: @kwdef, read, write
 import EnumX: @enumx
 import Formatting: printfmt
 import Base64: base64encode, Base64DecodePipe
-import NIfTI
+import NIfTI: NIfTIHeader, NIfTI1Header, NIfTI2Header
 # import GZip
 import CodecZlib: GzipCompressorStream, GzipDecompressorStream
 import Bijections: Bijection
@@ -15,10 +15,9 @@ struct OpenedStream{T<:IO}
     mine::Vector{<:IO}
 end
 
-abstract type NiftiHeader end
 
 
-function Base.show(x::NiftiHeader)
+function Base.show(x::NIfTIHeader)
     fieldlength = maximum(map(f -> length(string(f)), fieldnames(typeof(x)))) + 1
     print("$(typeof(x))()\n")
     for field in fieldnames(typeof(x))
@@ -45,8 +44,8 @@ MAGIC2Z = UInt8.(('n', 'z', '1', '\0', '\0', '\0', '\0', '\0'))  # zarr folder
 Check if a nifti_1_header struct needs to be byte swapped.
 Returns 1 if it needs to be swapped, 0 if it does not.
 """
-needs_swap(h::NIfTI.NIfTI1Header) = (bswap(h.sizeof_hdr) == 348)
-needs_swap(h::NIfTI.NIfTI2Header) = (bswap(h.sizeof_hdr) == 540)
+needs_swap(h::NIfTI1Header) = (bswap(h.sizeof_hdr) == 348)
+needs_swap(h::NIfTI2Header) = (bswap(h.sizeof_hdr) == 540)
 
 
 # Open stream if needed, using the correct opener
@@ -86,7 +85,7 @@ _open_stream(io::OpenedStream{GzipCompressorStream}, mode="w") = io
 
 
 # Read header, bswap and tell if bswap needed
-function _read!(io::IOType, header::NIfTI.NIfTIHeader)
+function _read!(io::IOType, header::NIfTIHeader)
     io = _open_stream(io)
     Base.read!(io.stream, Ref(header))
     map(close, io.mine)
@@ -96,16 +95,16 @@ function _read!(io::IOType, header::NIfTI.NIfTIHeader)
     end
     return (header=header, bswap=do_swap)
 end
-_read(io::IOType, type::Type{<:NiftiHeader}) = _read!(io, type())
+_read(io::IOType, type::Type{<:NIfTIHeader}) = _read!(io, type())
 
 # Read header and bswap (only return header)
-read!(io::IO, header::NIfTI.NIfTIHeader) = _read!(io, header)[:header]
-read(io::IO, type::Type{<:NIfTI.NIfTIHeader}) = _read!(io, type())[:header]
-read!(io::AbstractString, header::NIfTI.NIfTIHeader) = _read!(io, header)[:header]
-read(io::AbstractString, type::Type{<:NIfTI.NIfTIHeader}) = _read!(io, type())[:header]
+read!(io::IO, header::NIfTIHeader) = _read!(io, header)[:header]
+read(io::IO, type::Type{<:NIfTIHeader}) = _read!(io, type())[:header]
+read!(io::AbstractString, header::NIfTIHeader) = _read!(io, header)[:header]
+read(io::AbstractString, type::Type{<:NIfTIHeader}) = _read!(io, type())[:header]
 
 # Write header
-function write(io::IOType, header::NIfTI.NIfTIHeader, bswap::Bool=false)
+function write(io::IOType, header::NIfTIHeader, bswap::Bool=false)
     io = _stream(io, 'w')
     header = bswap ? smap(Base.bswap, header) : header
     write(io.stream, Ref(header))
@@ -113,26 +112,26 @@ function write(io::IOType, header::NIfTI.NIfTIHeader, bswap::Bool=false)
     return io.stream
 end
 
-function bytesencode(x::NIfTI.NIfTIHeader)
+function bytesencode(x::NIfTIHeader)
     ptr = reinterpret(Ptr{UInt8}, pointer_from_objref(x))
     vec = unsafe_wrap(Vector{UInt8}, ptr, sizeof(x), own=false)
 end
 
-function bytesdecode(::Type{NIfTI.NIfTI1Header}, x::Vector{UInt8})
+function bytesdecode(::Type{NIfTI1Header}, x::Vector{UInt8})
     read(IOBuffer(x), Nifti1Header)
 end
 
-function bytesdecode(::Type{NIfTI.NIfTI1Header}, x::Vector{UInt8})
-    read(IOBuffer(x), NIfTI.NIfTI1Header)[1]
+function bytesdecode(::Type{NIfTI1Header}, x::Vector{UInt8})
+    read(IOBuffer(x), NIfTI1Header)[1]
 end
 
-function base64encode(x::NIfTI.NIfTIHeader)
+function base64encode(x::NIfTIHeader)
     ptr = reinterpret(Ptr{UInt8}, pointer_from_objref(x))
     vec = unsafe_wrap(Vector{UInt8}, ptr, sizeof(x), own=false)
     base64encode(vec)
 end
 
-function base64decode(x::AbstractString, T::Type{<:NIfTI.NIfTIHeader})
+function base64decode(x::AbstractString, T::Type{<:NIfTIHeader})
     read(Base64DecodePipe(IOBuffer(x)), T)
 end
 

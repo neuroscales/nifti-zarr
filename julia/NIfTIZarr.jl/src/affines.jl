@@ -5,15 +5,15 @@ import NIfTI: NIfTIHeader
 
 function set_sform!(header, sform::AbstractMatrix)
     T = typeof(header.srow_x)
-    sform = SizedMatrix{4, 4}(sform)
+    sform = SizedMatrix{4,4}(sform)
     header.srow_x = T(sform[1, :])
     header.srow_y = T(sform[2, :])
     header.srow_z = T(sform[3, :])
     return header
 end
 
-function set_qform!(header::NiftiHeader, qform::AbstractMatrix)
-    qform = SizedMatrix{4, 4}(qform)
+function set_qform!(header::NIfTI1Header, qform::AbstractMatrix)
+    qform = SizedMatrix{4,4}(qform)
     qoffset = qform[1:3, 4]
     quatern = mat2quat(qform[1:3, 1:3])
     pixdim = MVector(header.pixdim...)
@@ -24,8 +24,8 @@ function set_qform!(header::NiftiHeader, qform::AbstractMatrix)
     return header
 end
 
-function set_qform!(header::NIfTI.NIfTI1Header, qform::AbstractMatrix)
-    qform = SizedMatrix{4, 4}(qform)
+function set_qform!(header::NIfTI1Header, qform::AbstractMatrix)
+    qform = SizedMatrix{4,4}(qform)
     qoffset = qform[1:3, 4]
     quatern = mat2quat(qform[1:3, 1:3])
     pixdim = MVector(header.pixdim...)
