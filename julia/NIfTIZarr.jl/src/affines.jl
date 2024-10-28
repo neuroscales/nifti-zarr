@@ -1,7 +1,7 @@
 
 import StaticArrays: SizedMatrix, SVector, MVector
 import LinearAlgebra: cholesky, det, diag, tr, Diagonal
-
+import NIfTI: NIfTIHeader
 
 function set_sform!(header, sform::AbstractMatrix)
     T = typeof(header.srow_x)

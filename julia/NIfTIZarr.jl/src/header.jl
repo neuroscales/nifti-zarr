@@ -42,96 +42,11 @@ MAGIC2P = UInt8.(('n', '+', '1', '\0', '\0', '\0', '\0', '\0'))  # single file
 MAGIC2Z = UInt8.(('n', 'z', '1', '\0', '\0', '\0', '\0', '\0'))  # zarr folder
 
 """
-A NIfTI1 header in raw binary form
-
-https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h
-"""
-@kwdef mutable struct Nifti1Header <: NiftiHeader
-    sizeof_hdr::Int32 = 348                     # MUST be 348
-    data_type::NTuple{10,UInt8} = ztuple(10)    # ++UNUSED++
-    db_name::NTuple{18,UInt8} = ztuple(18)      # ++UNUSED++
-    extents::Int32 = 16384                      # ++UNUSED++
-    session_error::Int16 = 0                    # ++UNUSED++
-    regular::UInt8 = UInt8('r')                 # ++UNUSED++
-    dim_info::UInt8 = 0                         # MRI slice ordering.
-    dim::NTuple{8,Int16} = ztuple(8)            # Data array dimensions.
-    intent_p::NTuple{3,Float32} = ztuple(3)     # Intent parameters.
-    intent_code::Int16 = 0                      # NIFTI_INTENT_* code.
-    datatype::Int16 = 0                         # Defines data type!
-    bitpix::Int16 = 0                           # Number bits/voxel.
-    slice_start::Int16 = 0                      # First slice index.
-    pixdim::NTuple{8,Float32} = ztuple(8)       # Grid spacings.
-    vox_offset::Float32 = 0                     # Offset into .nii file
-    scl_slope::Float32 = 0                      # Data scaling: slope.
-    scl_inter::Float32 = 0                      # Data scaling: offset.
-    slice_end::Int16 = 0                        # Last slice index.
-    slice_code::UInt8 = 0                       # Slice timing order.
-    xyzt_units::UInt8 = 0                       # Units of pixdim[1..4]
-    cal_max::Float32 = 0                        # Max display intensity
-    cal_min::Float32 = 0                        # Min display intensity
-    slice_duration::Float32 = 0                 # Time for 1 slice.
-    toffset::Float32 = 0                        # Time axis shift.
-    glmax::Int32 = 0                            # ++UNUSED++
-    glmin::Int32 = 0                            # ++UNUSED++
-    descrip::NTuple{80,UInt8} = ztuple(80)      # any text you like.
-    aux_file::NTuple{24,UInt8} = ztuple(24)     # auxiliary filename.
-    qform_code::Int16 = 0                       # NIFTI_XFORM_* code.
-    sform_code::Int16 = 0                       # NIFTI_XFORM_* code.
-    quatern::NTuple{3,Float32} = ztuple(3)      # Quaternion b/c/d param.
-    qoffset::NTuple{3,Float32} = ztuple(3)      # Quaternion x/y/z param.
-    srow_x::NTuple{4,Float32} = ztuple(4)       # 1st row affine transform.
-    srow_y::NTuple{4,Float32} = ztuple(4)       # 2nd row affine transform.
-    srow_z::NTuple{4,Float32} = ztuple(4)       # 3rd row affine transform.
-    intent_name::NTuple{16,UInt8} = ztuple(16)  # 'name' or meaning of data.
-    magic::NTuple{4,UInt8} = MAGIC1             # MUST be "ni1\0" or "n+1\0".
-end                                             # 348 bytes total
-
-"""
-A NIfTI2 header in raw binary form
-
-https://nifti.nimh.nih.gov/pub/dist/doc/nifti2.h
-"""
-@kwdef mutable struct Nifti2Header <: NiftiHeader
-    sizeof_hdr::Int32 = 540                     # MUST be 540
-    magic::NTuple{8,UInt8} = MAGIC2             # MUST be valid signature.
-    datatype::Int16 = 0                         # Defines data type!
-    bitpix::Int16 = 0                           # Number bits/voxel.
-    dim::NTuple{8,Int64} = ztuple(8)            # Data array dimensions.
-    intent_p::NTuple{3,Float64} = ztuple(3)     # Intent parameters.
-    pixdim::NTuple{8,Float64} = ztuple(8)       # Grid spacings.
-    vox_offset::Int64 = 0                       # Offset into .nii file
-    scl_slope::Float64 = 0                      # Data scaling: slope.
-    scl_inter::Float64 = 0                      # Data scaling: offset.
-    cal_max::Float64 = 0                        # Max display intensity
-    cal_min::Float64 = 0                        # Min display intensity
-    slice_duration::Float64 = 0                 # Time for 1 slice.
-    toffset::Float64 = 0                        # Time axis shift.
-    slice_start::Int64 = 0                      # First slice index.
-    slice_end::Int64 = 0                        # Last slice index.
-    descrip::NTuple{80,UInt8} = ztuple(80)      # any text you like.
-    aux_file::NTuple{24,UInt8} = ztuple(24)     # auxiliary filename.
-    qform_code::Int32 = 0                       # NIFTI_XFORM_* code.
-    sform_code::Int32 = 0                       # NIFTI_XFORM_* code.
-    quatern::NTuple{3,Float32} = ztuple(3)      # Quaternion b/c/d param.
-    qoffset::NTuple{3,Float32} = ztuple(3)      # Quaternion x/y/z param.
-    srow_x::NTuple{4,Float64} = ztuple(4)       # 1st row affine transform.
-    srow_y::NTuple{4,Float64} = ztuple(4)       # 2nd row affine transform.
-    srow_z::NTuple{4,Float64} = ztuple(4)       # 3rd row affine transform.
-    slice_code::Int32 = 0                       # Slice timing order.
-    xyzt_units::Int32 = 0                       # Units of pixdim[1..4]
-    intent_code::Int32 = 0                      # NIFTI_INTENT_* code.
-    intent_name::NTuple{16,UInt8} = ztuple(16)  # 'name' or meaning of data.
-    dim_info::UInt8 = 0                         # MRI slice ordering.
-    unused_str::NTuple{15,UInt8} = ztuple(15)   # unused, filled with \0
-end
-
-
-"""
 Check if a nifti_1_header struct needs to be byte swapped.
 Returns 1 if it needs to be swapped, 0 if it does not.
 """
-needs_swap(h::Nifti1Header) = (bswap(h.sizeof_hdr) == 348)
-needs_swap(h::Nifti2Header) = (bswap(h.sizeof_hdr) == 540)
+needs_swap(h::NIfTI.NIfTI1Header) = (bswap(h.sizeof_hdr) == 348)
+needs_swap(h::NIfTI.NIfTI2Header) = (bswap(h.sizeof_hdr) == 540)
 
 
 # Open stream if needed, using the correct opener
@@ -171,7 +86,7 @@ _open_stream(io::OpenedStream{GzipCompressorStream}, mode="w") = io
 
 
 # Read header, bswap and tell if bswap needed
-function _read!(io::IOType, header::NiftiHeader)
+function _read!(io::IOType, header::NIfTI.NIfTIHeader)
     io = _open_stream(io)
     Base.read!(io.stream, Ref(header))
     map(close, io.mine)
@@ -184,13 +99,13 @@ end
 _read(io::IOType, type::Type{<:NiftiHeader}) = _read!(io, type())
 
 # Read header and bswap (only return header)
-read!(io::IO, header::NiftiHeader) = _read!(io, header)[:header]
-read(io::IO, type::Type{<:NiftiHeader}) = _read!(io, type())[:header]
-read!(io::AbstractString, header::NiftiHeader) = _read!(io, header)[:header]
-read(io::AbstractString, type::Type{<:NiftiHeader}) = _read!(io, type())[:header]
+read!(io::IO, header::NIfTI.NIfTIHeader) = _read!(io, header)[:header]
+read(io::IO, type::Type{<:NIfTI.NIfTIHeader}) = _read!(io, type())[:header]
+read!(io::AbstractString, header::NIfTI.NIfTIHeader) = _read!(io, header)[:header]
+read(io::AbstractString, type::Type{<:NIfTI.NIfTIHeader}) = _read!(io, type())[:header]
 
 # Write header
-function write(io::IOType, header::NiftiHeader, bswap::Bool=false)
+function write(io::IOType, header::NIfTI.NIfTIHeader, bswap::Bool=false)
     io = _stream(io, 'w')
     header = bswap ? smap(Base.bswap, header) : header
     write(io.stream, Ref(header))
@@ -198,26 +113,12 @@ function write(io::IOType, header::NiftiHeader, bswap::Bool=false)
     return io.stream
 end
 
-# Convert from NIfTI.jl to ours
-function convert(::Type{Nifti1Header}, x::NIfTI.NIfTI1Header)
-    ptr = reinterpret(Ptr{UInt8}, pointer_from_objref(x))
-    vec = unsafe_wrap(Vector{UInt8}, ptr, sizeof(x), own=false)
-    read(IOBuffer(vec), Nifti1Header)
-end
-
-# Convert from ours to NIfTI.jl
-function convert(::Type{NIfTI.NIfTI1Header}, x::Nifti1Header)
-    ptr = reinterpret(Ptr{UInt8}, pointer_from_objref(x))
-    vec = unsafe_wrap(Vector{UInt8}, ptr, sizeof(x), own=false)
-    read(IOBuffer(vec), NIfTI.NIfTI1Header)[1]
-end
-
-function bytesencode(x::NiftiHeader)
+function bytesencode(x::NIfTI.NIfTIHeader)
     ptr = reinterpret(Ptr{UInt8}, pointer_from_objref(x))
     vec = unsafe_wrap(Vector{UInt8}, ptr, sizeof(x), own=false)
 end
 
-function bytesdecode(::Type{Nifti1Header}, x::Vector{UInt8})
+function bytesdecode(::Type{NIfTI.NIfTI1Header}, x::Vector{UInt8})
     read(IOBuffer(x), Nifti1Header)
 end
 
@@ -225,13 +126,13 @@ function bytesdecode(::Type{NIfTI.NIfTI1Header}, x::Vector{UInt8})
     read(IOBuffer(x), NIfTI.NIfTI1Header)[1]
 end
 
-function base64encode(x::NiftiHeader)
+function base64encode(x::NIfTI.NIfTIHeader)
     ptr = reinterpret(Ptr{UInt8}, pointer_from_objref(x))
     vec = unsafe_wrap(Vector{UInt8}, ptr, sizeof(x), own=false)
     base64encode(vec)
 end
 
-function base64decode(x::AbstractString, T::Type{<:NiftiHeader})
+function base64decode(x::AbstractString, T::Type{<:NIfTI.NIfTIHeader})
     read(Base64DecodePipe(IOBuffer(x)), T)
 end
 

@@ -13,7 +13,7 @@ ByteOrderSymbol = Dict(ByteOrder.little => '<', ByteOrder.big => '>')
 
 _tuple2string(x::NTuple) = split(join(Char.(x)), '\0')[begin]
 
-nii2json(header::NiftiHeader) = nii2json(header, false)
+nii2json(header::NIfTI.NIfTIHeader) = nii2json(header, false)
 
 """
     nii2json(header[, byteorder])
@@ -27,7 +27,7 @@ julia> header = read("path/to/nifti.nii.gz", NiftiHeader)
 julia> jsonheader = nii2json(header)
 ```
 """
-function nii2json(header::NiftiHeader, has_extensions::Bool)
+function nii2json(header::NIfTI.NIfTIHeader, has_extensions::Bool)
 
     magic = _tuple2string(header.magic)
  
@@ -70,14 +70,14 @@ function nii2json(header::NiftiHeader, has_extensions::Bool)
         "AuxFile" => _tuple2string(header.aux_file),
         "QForm"=> XFormRecoder(header.qform_code),
         "Quatern"=> Dict(
-            "b"=> header.quatern[1],
-            "c"=> header.quatern[2],
-            "d"=> header.quatern[3],
+            "b"=> header.quatern_b,
+            "c"=> header.quatern_c,
+            "d"=> header.quatern_d,
         ),
         "QuaternOffset"=> Dict(
-            "x"=> header.qoffset[1],
-            "y"=> header.qoffset[2],
-            "z"=> header.qoffset[3],
+            "x"=> header.qoffset_x,
+            "y"=> header.qoffset_y,
+            "z"=> header.qoffset_z,
         ),
         # TODO: change this after JNIfTI changed
         "Orientation"=> Dict(
@@ -338,9 +338,10 @@ function nii2zarr(inp::NIfTI.NIVolume, out::Zarr.ZGroup;
     compressor_options...
 )
     # Convert NIfTI.jl's header into my header (they only handle nifti-1)
-    header = convert(Nifti1Header, inp.header)
+    # TODO: add support for Nifti2Header
+    header = inp.header
     jsonheader = nii2json(header, !isempty(inp.extensions))
-
+    
     # Fix array shape
     if ndims(inp.raw) == 3
         nbatch = 0
@@ -363,7 +364,7 @@ function nii2zarr(inp::NIfTI.NIVolume, out::Zarr.ZGroup;
         error("Too few dimensions for conversion to nii.zarr. Is this really an image?")
     end
     data = PermutedDimsArray(inp.raw, perm)
-
+    
     # Compute image pyramid
     bool_label = jsonheader["Intent"] in ("label", "neuronames")
     if label == IsLabel.yes
@@ -400,7 +401,7 @@ function nii2zarr(inp::NIfTI.NIVolume, out::Zarr.ZGroup;
 
     # Write group attributes
     Zarr.writeattrs(out.storage, out.path, attrs)
-
+    
     # Write zarr arrays
     for n in eachindex(shapes)
         # TODO: delete all redundant layers
@@ -420,7 +421,7 @@ function nii2zarr(inp::NIfTI.NIVolume, out::Zarr.ZGroup;
         # subarray[:,:,:] = data[n]
         copy!(subarray, PermutedDimsArray(data[n], reverse(1:ndims(data[n]))))
     end
-
+    
 end
 
 # # TODO: Move this to nii2zarr
