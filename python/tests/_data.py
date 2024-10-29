@@ -113,7 +113,7 @@ def compare_zarr_archives(path1, path2):
 
     return True
 
-
+# This script generates trusted test data.
 if __name__ == '__main__':
     from python.niizarr import *
     import zarr
