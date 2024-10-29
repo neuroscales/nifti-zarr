@@ -304,9 +304,10 @@ def nii2zarr(inp, out, *,
     chunksize = np.array((chunk,) * 3 if isinstance(chunk, int) else chunk[0])
     nxyz = np.array(data.shape[-3:])
 
-    default_layers = int(np.ceil(np.log2(np.max(nxyz / chunksize)))) + 1
-    default_layers = max(default_layers, 1)
-    nb_levels = default_layers if nb_levels == -1 else nb_levels
+    if nb_levels == -1:
+        default_nb_levels = int(np.ceil(np.log2(np.max(nxyz / chunksize)))) + 1
+        default_nb_levels = max(default_nb_levels, 1)
+        nb_levels = default_nb_levels
 
     data = list(_make_pyramid3d(data, nb_levels, pyramid_fn, label,
                                 no_pyramid_axis))
