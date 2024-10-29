@@ -367,18 +367,12 @@ function nii2zarr(inp::NIfTI.NIVolume, out::Zarr.ZGroup;
     bool_label = label == IsLabel.yes || (label == IsLabel.auto && jsonheader["Intent"] in ("label", "neuronames"))
 
     # Compute image pyramid
-    # 
-    # default_layers = ceil(Int, log2(max(nxyz ./ chunksize))) + 1
-    # default_layers = max(default_layers, 1)
     if nb_levels == -1
         nxyz = collect(size(data)[end-2:end])
         spacial_chunksize = collect(chunk[1][1:3])
-        default_layers = ceil(Int, log2(maximum(nxyz ./ spacial_chunksize))) + 1
-        # default_layers = maximum(default_layers)
-        nb_levels=default_layers
+        default_nb_levels = ceil(Int, log2(maximum(nxyz ./ spacial_chunksize))) + 1
+        nb_levels=default_nb_levels
     end
-
-
     data = _make_pyramid3d(data, nb_levels, bool_label)
     nb_levels = length(data)
     shapes = [size(d) for d in data]
