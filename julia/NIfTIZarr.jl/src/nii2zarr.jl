@@ -400,6 +400,7 @@ function nii2zarr(inp::NIfTI.NIVolume, out::Zarr.ZGroup;
     # Write group attributes
     Zarr.writeattrs(out.storage, out.path, attrs)
     
+    # Remove all exisitng levels
     for k in keys(out.arrays)
         if isa(tryparse(Float64,k), Number)
             delete!(out.storage, "", k)
