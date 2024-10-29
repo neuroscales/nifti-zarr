@@ -371,6 +371,8 @@ function nii2zarr(inp::NIfTI.NIVolume, out::Zarr.ZGroup;
         nxyz = collect(size(data)[end-2:end])
         spacial_chunksize = collect(chunk[1][1:3])
         default_nb_levels = ceil(Int, log2(maximum(nxyz ./ spacial_chunksize))) + 1
+        # make sure at lease 1 level
+        default_nb_levels = max(default_nb_levels, 1)
         nb_levels=default_nb_levels
     end
     data = _make_pyramid3d(data, nb_levels, bool_label)
@@ -401,10 +403,16 @@ function nii2zarr(inp::NIfTI.NIVolume, out::Zarr.ZGroup;
     # Write group attributes
     Zarr.writeattrs(out.storage, out.path, attrs)
     
+    for k in keys(out.arrays)
+        if isa(tryparse(Float64,k), Number)
+            delete!(out.storage, "", k)
+        end
+    end
+
     # Write zarr arrays
     for n in eachindex(shapes)
         # TODO: delete all redundant from previous existed layers
-        delete!(out.storage, "", string(n-1))
+        
         # everything is reversed since zarr.jl write things in reversed order, 
         # see https://github.com/JuliaIO/Zarr.jl/issues/78
         subarray = Zarr.zcreate(
