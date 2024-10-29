@@ -139,6 +139,7 @@ DataTypeCode = Dict(
     "int32" => 8,
     "single" => 16,
     "complex64" => 32,
+    "double" => 64,
     "rgb" => 128,
     "int8" => 256,
     "uint16" => 512,
