@@ -16,8 +16,6 @@ end
 
 temp_dir = mktempdir()
 output_zarr = joinpath(temp_dir, "output.nii.zarr")
-
-
 img_data = rand(Float64,(16, 32, 64))
 ni = NIfTI.NIVolume(img_data)
 
@@ -65,5 +63,3 @@ end
     nii2zarr(ni, output_zarr, nb_levels=-1, chunk=512)
     @test count_levels(output_zarr) == 1
 end
-
-

@@ -109,10 +109,7 @@ function _make_pyramid3d(data3d::AbstractArray, nb_levels::Integer, label::Bool=
     nbatch = size(data3d)[1:end-3]
     nxyz = size(data3d)[end-2:end] 
     data4d = reshape(data3d, (prod(nbatch), nxyz...))
-    if nb_levels < 0
-        T = typeof(nb_levels)
-        nb_levels = min(T.(floor.(log2.(nxyz) .- 2))...)
-    end
+    nb_levels = max(nb_levels, 1)
     max_layer = nb_levels - 1
 
     # I would really prefer to use sigma = 0.42, which corresponds to a
@@ -411,8 +408,6 @@ function nii2zarr(inp::NIfTI.NIVolume, out::Zarr.ZGroup;
 
     # Write zarr arrays
     for n in eachindex(shapes)
-        # TODO: delete all redundant from previous existed layers
-        
         # everything is reversed since zarr.jl write things in reversed order, 
         # see https://github.com/JuliaIO/Zarr.jl/issues/78
         subarray = Zarr.zcreate(

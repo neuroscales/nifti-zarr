@@ -18,4 +18,3 @@ end
 
 test_json_validation(joinpath(dirname(@__FILE__), "data/example4d.nii.gz"))
 test_json_validation(joinpath(dirname(@__FILE__), "data/example_nifti2.nii.gz"))
-
