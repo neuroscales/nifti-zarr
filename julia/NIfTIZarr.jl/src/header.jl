@@ -1,6 +1,6 @@
 import Base: @kwdef, read, write
 import EnumX: @enumx
-import Formatting: printfmt
+import Printf: @printf
 import Base64: base64encode, Base64DecodePipe
 import NIfTI: NIfTIHeader, NIfTI1Header, NIfTI2Header
 # import GZip
@@ -21,7 +21,7 @@ function Base.show(x::NIfTIHeader)
     fieldlength = maximum(map(f -> length(string(f)), fieldnames(typeof(x)))) + 1
     print("$(typeof(x))()\n")
     for field in fieldnames(typeof(x))
-        printfmt("    {:$(fieldlength)s} => $(reprfield(getproperty(x, field)))\n", field)
+        @printf "%s => %s\n" field reprfield(getproperty(x, field))
     end
 end
 
