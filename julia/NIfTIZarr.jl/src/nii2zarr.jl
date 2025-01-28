@@ -111,7 +111,7 @@ function _make_pyramid3d(data3d::AbstractArray, nb_levels::Integer, label::Bool=
     data4d = reshape(data3d, (prod(nbatch), nxyz...))
     nb_levels = max(nb_levels, 1)
     max_layer = nb_levels - 1
-
+    
     # I would really prefer to use sigma = 0.42, which corresponds to a
     # full-width at half-maximum of 1 (which, assuming that the signal at
     # the previous resolution has a PSF of 1 pixel, ensures that the filtered
@@ -136,18 +136,24 @@ function _make_pyramid3d(data3d::AbstractArray, nb_levels::Integer, label::Bool=
     end
 
     pyramids3d = map(label ? pyramid_labels : pyramid_values, eachslice(data4d; dims=1))
-
+    
     level0 = map(x->reshape(x[begin], (1, size(x[begin])...)), pyramids3d)
     level0 = reduce(vcat, level0)
     level0 = reshape(level0, (nbatch..., size(level0)[2:end]...))
     levels = [level0]
-
+    
     for n in 2:length(pyramids3d[1])
         level = reduce(vcat, map(x->reshape(x[n], (1, size(x[n])...)), pyramids3d))
         level = reshape(level, (nbatch..., size(level)[2:end]...))
         push!(levels, level)
     end
-
+    
+    if eltype(data3d) != eltype(levels[1])
+        if eltype(data3d)<: Integer && eltype(levels[1])<: AbstractFloat
+            levels = map(x->round.(x), levels)
+        end
+        levels = map(x->convert(Array{eltype(data3d)},x), levels)
+    end 
     return levels
 end
 
