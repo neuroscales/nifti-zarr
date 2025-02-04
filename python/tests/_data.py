@@ -15,8 +15,9 @@ klass_map = {
 def get_nifti_image(version=1):
     try:
         img = sk.data.brain()
-    except:
-        print("faile to load sample data from skimage, using random data")
+    except Exception as e:
+        print(e)
+        print("failed to load sample data from skimage, using random data")
         img = np.random.rand(100, 200, 300)
     ni = klass_map[version](img, np.eye(4))
 
@@ -115,7 +116,7 @@ def compare_zarr_archives(path1, path2):
 
 
 if __name__ == '__main__':
-    from python.niizarr import *
+    from niizarr import *
     import zarr
 
     input_files = ["data/example4d.nii.gz", "data/example_nifti2.nii.gz"]
