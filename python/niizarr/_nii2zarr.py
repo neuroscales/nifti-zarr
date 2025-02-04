@@ -7,14 +7,15 @@ import sys
 
 import numcodecs
 import numpy as np
-import zarr.hierarchy
+import zarr
 import zarr.storage
 from nibabel import Nifti1Image, load
 from ome_zarr.writer import write_multiscale
 from skimage.transform import pyramid_gaussian, pyramid_laplacian
 
 from ._header import (
-    UNITS, DTYPES, INTENTS, INTENTS_P, SLICEORDERS, XFORMS, bin2nii, get_magic_string, SYS_BYTEORDER, JNIFTI_ZARR,
+    UNITS, DTYPES, INTENTS, INTENTS_P, SLICEORDERS, XFORMS,
+    bin2nii, get_magic_string, SYS_BYTEORDER, JNIFTI_ZARR,
     SYS_BYTEORDER_SWAPPED
 )
 
@@ -213,7 +214,9 @@ def nii2zarr(inp, out, *,
         Chunk size of the time dimension. If 0, combine all timepoints
         in a single chunk.
     nb_levels : int
-        Number of levels in the pyramid. If -1, make all possible levels until the level can be fit into one chunk.
+        Number of levels in the pyramid.
+        If -1, make all possible levels until the level can be fit into
+        one chunk.
         Default: -1
     method : {'gaussian', 'laplacian'}
         Method used to compute the pyramid.
@@ -240,7 +243,7 @@ def nii2zarr(inp, out, *,
             inp = load(inp)
 
     # Open zarr group
-    if not isinstance(out, zarr.hierarchy.Group):
+    if not isinstance(out, zarr.Group):
         if not isinstance(out, zarr.storage.Store):
             if fsspec:
                 out = zarr.storage.FSStore(out)
@@ -300,7 +303,8 @@ def nii2zarr(inp, out, *,
         label = jsonheader['Intent'] in ("label", "neuronames")
     pyramid_fn = pyramid_gaussian if method[0] == 'g' else pyramid_laplacian
 
-    # if chunk is a list, we use the first tuple, otherwise the logic might be too complicated
+    # if chunk is a list, we use the first tuple,
+    # otherwise the logic might be too complicated
     chunksize = np.array((chunk,) * 3 if isinstance(chunk, int) else chunk[0])
     nxyz = np.array(data.shape[-3:])
 
@@ -314,7 +318,8 @@ def nii2zarr(inp, out, *,
     shapes = [d.shape[-3:] for d in data]
 
     # Fix data type
-    # If nifti was swapped when loading it, we want to swapped it back to make it as same as before
+    # If nifti was swapped when loading it, we want to swapped it back
+    # to make it as same as before
     byteorder = SYS_BYTEORDER_SWAPPED if byteorder_swapped else SYS_BYTEORDER
     data_type = JNIFTI_ZARR[jsonheader['DataType']]
     if isinstance(data_type, tuple):
@@ -357,7 +362,9 @@ def nii2zarr(inp, out, *,
         extension_stream = io.BytesIO()
         inp.header.extensions.write_to(extension_stream,
                                        byteswap=byteorder_swapped)
-        bin_data.append(np.frombuffer(extension_stream.getvalue(), dtype=np.uint8))
+        bin_data.append(np.frombuffer(
+            extension_stream.getvalue(), dtype=np.uint8
+        ))
 
     # Concatenate the final binary data
     bin_data = np.concatenate(bin_data)
@@ -459,7 +466,8 @@ def cli(args=None):
         '--unchunk-channels', action='store_true',
         help='Save all chanels in a single chunk. '
              'Unchunk if you want to display all channels as a single RGB '
-             'layer in neuroglancer. Chunked by default, unless datatype is RGB.'
+             'layer in neuroglancer. '
+             'Chunked by default, unless datatype is RGB.'
     )
     parser.add_argument(
         '--unchunk-time', action='store_true',
