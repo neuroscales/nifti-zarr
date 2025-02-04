@@ -108,10 +108,10 @@ def zarr2nii(inp, out=None, level=0, mode="r", **store_opt):
     if isinstance(inp, zarr.Group):
         is_group = True
         inp0 = inp["0"]
-        nb_levels = -1
-        while str(nb_levels+1) in inp.keys():
+        nb_levels = 0
+        while str(nb_levels) in inp.keys():
             nb_levels += 1
-        if nb_levels < 0:
+        if nb_levels == 0:
             raise ValueError("This is a Zarr group but not an OME-Zarr.")
         if level < 0:
             level = nb_levels + level
@@ -256,7 +256,7 @@ def zarr2nii(inp, out=None, level=0, mode="r", **store_opt):
 
     # permute axes to nifti order (x, y, z, t, c)
     perm, i = [], len(actual_axis_order)
-    for name in 'xyzct':
+    for name in 'xyztc':
         if name in actual_axis_order:
             perm += [actual_axis_order.index(name)]
         else:
