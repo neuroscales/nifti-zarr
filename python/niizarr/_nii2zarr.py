@@ -356,25 +356,13 @@ def nii2zarr(inp, out, *,
         storage_options=chunk
     )
 
-    # # Write nifti header (binary)
-    # bin_data = [np.frombuffer(header.tobytes(), dtype='u1')]
-    #
-    # if inp.header.extensions:
-    #     extension_stream = io.BytesIO()
-    #     inp.header.extensions.write_to(extension_stream,
-    #                                    byteswap=byteorder_swapped)
-    #     bin_data.append(np.frombuffer(
-    #         extension_stream.getvalue(), dtype=np.uint8
-    #     ))
-    #
+    # Write nifti header (binary)
     stream = io.BytesIO()
     inp.header.write_to(stream)
     bin_data = np.frombuffer(stream.getvalue(), dtype=np.uint8)
-    if len(inp.header.extensions) ==0:
+    # Remove the extension flag if there are no extensions
+    if len(inp.header.extensions) == 0:
         bin_data = bin_data[:-4]
-
-    # # Concatenate the final binary data
-    # bin_data = np.concatenate(bin_data)
 
     out.create_dataset(
         'nifti',
