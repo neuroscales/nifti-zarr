@@ -1,14 +1,13 @@
 import argparse
 import io
 import sys
-import warnings
 
 import dask.array
 import numpy as np
 import zarr.hierarchy
 import zarr.storage
 from nibabel import (save, load)
-from nibabel.nifti1 import Nifti1Extensions, Nifti1Image, Nifti1Header
+from nibabel.nifti1 import Nifti1Image, Nifti1Header
 from nibabel.nifti2 import Nifti2Image, Nifti2Header
 
 from ._header import bin2nii, get_nibabel_klass, SYS_BYTEORDER
@@ -32,7 +31,7 @@ def _ome2affine(ome, level=0):
             scales = trf["scale"]
             if offsets:
                 # not valid OME but let's be robust
-                offsets = [t*s for t, s in zip(offsets, scales)]
+                offsets = [t * s for t, s in zip(offsets, scales)]
         elif trf["type"] == "translation":
             offsets = trf["translation"]
     scales = scales or [1.0] * len(names)
@@ -64,7 +63,6 @@ def _ome2affine(ome, level=0):
     ]
 
     return affine
-
 
 
 def zarr2nii(inp, out=None, level=0, mode="r", **store_opt):
@@ -135,7 +133,7 @@ def zarr2nii(inp, out=None, level=0, mode="r", **store_opt):
 
     if not is_group or 'nifti' not in inp:
         # not a nifti-zarr -> create nifti header on the fly
-        if any(x > 2**15 for x in inp['0'].shape):
+        if any(x > 2 ** 15 for x in inp['0'].shape):
             NiftiHeader, NiftiImage = Nifti2Header, Nifti2Image
         else:
             NiftiHeader, NiftiImage = Nifti1Header, Nifti1Image
@@ -178,12 +176,17 @@ def zarr2nii(inp, out=None, level=0, mode="r", **store_opt):
         byte_swapped = False
 
     else:
+
+        # TODO: As we use nibabel to directly loads from bytes, we can simply the steps
+        #       We only need to check which version but not load the actual content
         # read binary header
         header = bin2nii(np.asarray(inp['nifti']).tobytes())
-
         NiftiHeader, NiftiImage = get_nibabel_klass(header)
-        niiheader = NiftiHeader.from_fileobj(io.BytesIO(header.tobytes()),
-                                             check=False)
+
+        niiheader = NiftiHeader.from_fileobj(
+            io.BytesIO(np.asarray(inp['nifti']).tobytes()),
+            check=False)
+        # TODO: this variable seems no longer used
         byte_swapped = niiheader.endianness != SYS_BYTEORDER
 
     # -----------------------------------
@@ -203,7 +206,7 @@ def zarr2nii(inp, out=None, level=0, mode="r", **store_opt):
                 scales = xfrm_["scale"]
                 if offsets:
                     # not valid OME but let's be robust
-                    offsets = [t*s for t, s in zip(offsets, scales)]
+                    offsets = [t * s for t, s in zip(offsets, scales)]
             elif xfrm_["type"] == "translation":
                 offsets = xfrm_["translation"]
 
@@ -219,7 +222,7 @@ def zarr2nii(inp, out=None, level=0, mode="r", **store_opt):
                 scales = xfrm_["scale"]
                 if offsets:
                     # not valid OME but let's be robust
-                    offsets = [t*s for t, s in zip(offsets, scales)]
+                    offsets = [t * s for t, s in zip(offsets, scales)]
             elif xfrm_["type"] == "translation":
                 offsets = xfrm_["translation"]
 
@@ -271,21 +274,6 @@ def zarr2nii(inp, out=None, level=0, mode="r", **store_opt):
 
     # create nibabel image
     img = NiftiImage(array, niiheader.get_best_affine(), niiheader)
-
-    # load extensions following the header binary data if present
-    if is_group and 'nifti' in inp:
-        extension_size = len(inp['nifti']) - header['sizeof_hdr']
-        if extension_size > 0:
-            try:
-                file_obj = io.BytesIO(
-                    np.asarray(inp['nifti']).tobytes()[header['sizeof_hdr']:]
-                )
-                img.header.extensions = Nifti1Extensions.from_fileobj(
-                    file_obj, extension_size, byte_swapped
-                )
-
-            except Exception:
-                warnings.warn("Failed to load extensions")
 
     if out is not None:
         if hasattr(out, 'read'):

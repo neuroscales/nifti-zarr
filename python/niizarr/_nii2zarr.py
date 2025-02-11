@@ -308,9 +308,10 @@ def nii2zarr(inp, out, *,
     chunksize = np.array((chunk,) * 3 if isinstance(chunk, int) else chunk[0])
     nxyz = np.array(data.shape[-3:])
 
-    default_layers = int(np.ceil(np.log2(np.max(nxyz / chunksize)))) + 1
-    default_layers = max(default_layers, 1)
-    nb_levels = default_layers if nb_levels == -1 else nb_levels
+    if nb_levels == -1:
+        default_nb_levels = int(np.ceil(np.log2(np.max(nxyz / chunksize)))) + 1
+        default_nb_levels = max(default_nb_levels, 1)
+        nb_levels = default_nb_levels
 
     data = list(_make_pyramid3d(data, nb_levels, pyramid_fn, label,
                                 no_pyramid_axis))
@@ -356,18 +357,12 @@ def nii2zarr(inp, out, *,
     )
 
     # Write nifti header (binary)
-    bin_data = [np.frombuffer(header.tobytes(), dtype='u1')]
-
-    if inp.header.extensions:
-        extension_stream = io.BytesIO()
-        inp.header.extensions.write_to(extension_stream,
-                                       byteswap=byteorder_swapped)
-        bin_data.append(np.frombuffer(
-            extension_stream.getvalue(), dtype=np.uint8
-        ))
-
-    # Concatenate the final binary data
-    bin_data = np.concatenate(bin_data)
+    stream = io.BytesIO()
+    inp.header.write_to(stream)
+    bin_data = np.frombuffer(stream.getvalue(), dtype=np.uint8)
+    # Remove the extension flag if there are no extensions
+    if len(inp.header.extensions) == 0:
+        bin_data = bin_data[:-4]
 
     out.create_dataset(
         'nifti',

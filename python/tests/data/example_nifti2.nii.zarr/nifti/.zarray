@@ -1,6 +1,6 @@
 {
     "chunks": [
-        604
+        608
     ],
     "compressor": null,
     "dimension_separator": "/",
@@ -9,7 +9,7 @@
     "filters": null,
     "order": "C",
     "shape": [
-        604
+        608
     ],
     "zarr_format": 2
 }

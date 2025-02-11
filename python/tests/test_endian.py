@@ -74,7 +74,7 @@ class TestEndian(unittest.TestCase):
     def test_system_endian_extension(self):
 
         with open(os.path.join(self.sys_endian_zarr, "nifti/0"), "rb") as f:
-            f.seek(348)
+            f.seek(348 + 4)
             zarr_extension_content = f.read(4)
         with open(self.sys_endian_nifti, "rb") as f:
             f.seek(348 + 4)
@@ -88,7 +88,7 @@ class TestEndian(unittest.TestCase):
     def test_inv_endian_extension(self):
 
         with open(os.path.join(self.inv_endian_zarr, "nifti/0"), "rb") as f:
-            f.seek(348)
+            f.seek(348 + 4)
             zarr_extension_content = f.read(4)
         with open(self.inv_endian_nifti, "rb") as f:
             f.seek(348 + 4)

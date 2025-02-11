@@ -134,7 +134,6 @@ si_prefix_exponent = {
     "q": -30,
 }
 
-
 unit_space_short2long = {
     short + "m": long + "meter" for short, long in si_prefix_short2long.items()
 }
@@ -169,7 +168,7 @@ unit_time_short2long.update(
 unit_time_long2short = {long: short for short, long in unit_time_short2long.items()}
 
 unit_space_scale = {
-    prefix + "m": 10**exponent for prefix, exponent in si_prefix_exponent.items()
+    prefix + "m": 10 ** exponent for prefix, exponent in si_prefix_exponent.items()
 }
 unit_space_scale.update(
     {
@@ -185,7 +184,7 @@ unit_space_scale.update(
 )
 
 unit_time_scale = {
-    prefix + "s": 10**exponent for prefix, exponent in si_prefix_exponent.items()
+    prefix + "s": 10 ** exponent for prefix, exponent in si_prefix_exponent.items()
 }
 unit_time_scale.update(
     {
