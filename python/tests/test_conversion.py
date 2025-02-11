@@ -24,7 +24,8 @@ class TestNiizarrConversion(unittest.TestCase):
                     niizarr.nii2zarr(data, zarr_file)
 
                     loaded = niizarr.zarr2nii(zarr_file)
-
+                    # this dummy conversion will let nibabel fix "vox_offset" that it set to 0
+                    niizarr.nii2zarr(loaded, op.join(tmpdir, "foo.nii.zarr"))
                     original_header = data.header
                     loaded_header = loaded.header
 

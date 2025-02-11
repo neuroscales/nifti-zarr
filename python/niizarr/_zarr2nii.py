@@ -182,8 +182,13 @@ def zarr2nii(inp, out=None, level=0, mode="r", **store_opt):
         header = bin2nii(np.asarray(inp['nifti']).tobytes())
 
         NiftiHeader, NiftiImage = get_nibabel_klass(header)
-        niiheader = NiftiHeader.from_fileobj(io.BytesIO(header.tobytes()),
+
+        # niiheader2 = NiftiHeader.from_fileobj(io.BytesIO(header.tobytes()),
+        #                                      check=False)
+
+        niiheader = NiftiHeader.from_fileobj(io.BytesIO(np.asarray(inp['nifti']).tobytes()),
                                              check=False)
+
         byte_swapped = niiheader.endianness != SYS_BYTEORDER
 
     # -----------------------------------
@@ -273,19 +278,19 @@ def zarr2nii(inp, out=None, level=0, mode="r", **store_opt):
     img = NiftiImage(array, niiheader.get_best_affine(), niiheader)
 
     # load extensions following the header binary data if present
-    if is_group and 'nifti' in inp:
-        extension_size = len(inp['nifti']) - header['sizeof_hdr']
-        if extension_size > 0:
-            try:
-                file_obj = io.BytesIO(
-                    np.asarray(inp['nifti']).tobytes()[header['sizeof_hdr']:]
-                )
-                img.header.extensions = Nifti1Extensions.from_fileobj(
-                    file_obj, extension_size, byte_swapped
-                )
-
-            except Exception:
-                warnings.warn("Failed to load extensions")
+    # if is_group and 'nifti' in inp:
+    #     extension_size = len(inp['nifti']) - header['sizeof_hdr']
+    #     if extension_size > 0:
+    #         try:
+    #             file_obj = io.BytesIO(
+    #                 np.asarray(inp['nifti']).tobytes()[header['sizeof_hdr']:]
+    #             )
+    #             img.header.extensions = Nifti1Extensions.from_fileobj(
+    #                 file_obj, extension_size, byte_swapped
+    #             )
+    #
+    #         except Exception:
+    #             warnings.warn("Failed to load extensions")
 
     if out is not None:
         if hasattr(out, 'read'):
