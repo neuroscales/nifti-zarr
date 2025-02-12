@@ -213,7 +213,9 @@ function _nii2zarr_ome_attrs(axes, shapes, niiheader)
         "multiscales" => [Dict()]
     )
     multiscales = attrs["multiscales"][1]
-    
+    # TODO: missing attrs that exists in python, hardcoded now
+    multiscales["version"] = "0.4"
+    multiscales["name"] = "/"
     typemap = Dict(
         "t" => "time",
         "c" => "channel",
@@ -246,6 +248,7 @@ function _nii2zarr_ome_attrs(axes, shapes, niiheader)
         # spatial scale at each pyramid level
         level = multiscales["datasets"][n]
 
+        level["path"] = string(n-1)
         # Image.gaussian_pyramid aligns voxel edges across scales
         # (same behavior as scipy.ndimage.zoom(..., grid_mode=True))
         # so the effective scaling is the shape ratio, and there is
@@ -391,6 +394,15 @@ function nii2zarr(inp::NIfTI.NIVolume, out::Zarr.ZGroup;
 
     # Write nifti header
     binheader = bytesencode(header)
+    # NIfTI.jl has problem with handling extensions, so we cannot write it for now.
+    # if length(inp.extensions) > 0
+    #     io = IOBuffer()
+    #     write(io, inp.extensions)
+    #     seekstart(io)          # Reset the position of the buffer to read from the beginning
+    #     ext_bytes = read(io)   # Read the buffer content into a UInt8 vector
+    #     binheader = vcat(binheader, ext_bytes)
+    # end
+
     delete!(out.storage, "", "nifti")
     header_array = Zarr.zcreate(
         eltype(binheader), out, "nifti", length(binheader);
@@ -423,6 +435,7 @@ function nii2zarr(inp::NIfTI.NIVolume, out::Zarr.ZGroup;
             fill_as_missing=false,
             fill_value=nothing,
             compressor=compressor,
+            # TODO: dimension separator and order is not yet supported in Zarr.jl
             # dimension_separator='/',
             # order='F',
             attrs = Dict("_ARRAY_DIMENSIONS" => ARRAY_DIMENSIONS)
