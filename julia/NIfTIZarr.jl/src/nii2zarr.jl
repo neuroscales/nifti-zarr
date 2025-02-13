@@ -257,16 +257,16 @@ function _nii2zarr_ome_attrs(axes, shapes, niiheader)
             Dict(
                 "type" => "scale",
                 "scale" => [(
-                    typemap[axis] == "spatial"
-                    ? (shapes[1][i]/shapes[n][i])*niiheader["Dim"][idxmap[axis]]
+                    typemap[axis] == "space"
+                    ? (shapes[1][i]/shapes[n][i])*niiheader["VoxelSize"][idxmap[axis]]
                     : 1.0
                 ) for (i, axis) in enumerate(axes)]
             ),
             Dict(
                 "type" => "translation",
                 "translation" => [(
-                    typemap[axis] == "spatial"
-                    ? (shapes[1][i]/shapes[n][i] - 1)*niiheader["Dim"][idxmap[axis]]*0.5
+                    typemap[axis] == "space"
+                    ? (shapes[1][i]/shapes[n][i] - 1)*niiheader["VoxelSize"][idxmap[axis]]*0.5
                     : 0.0
                 ) for (i, axis) in enumerate(axes)]
             ),
@@ -277,7 +277,7 @@ function _nii2zarr_ome_attrs(axes, shapes, niiheader)
     multiscales["coordinateTransformations"] = [Dict(
         "scale" => [(
             typemap[axis] == "time"
-            ? niiheader["Dim"][idxmap[axis]]
+            ? niiheader["VoxelSize"][idxmap[axis]]
             : 1.0
         )  for (i, axis) in enumerate(axes)],
         "type" => "scale"
