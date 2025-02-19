@@ -335,19 +335,17 @@
       "maxItems": 3
     },
     "Name": {
-    "description": "'name' or meaning of data",
-    "type": "string"
-  },
-  "NIIFormat": {
-    "description": "NIfTI magic string",
-    "enum": [
-      "ni1",
-      "n+1",
-      "ni2",
-      "n+2"
-    ]
+      "description": "'name' or meaning of data",
+      "type": "string"
+    },
+    "NIIFormat": {
+      "description": "NIfTI magic string",
+      "enum": [
+        "ni1",
+        "n+1",
+        "ni2",
+        "n+2"
+      ]
+    }
   }
-  
-  }
-  
 }
