@@ -55,13 +55,7 @@ def nii2json(header, extensions=False):
     nii_version = 1 if header["sizeof_hdr"].item() == 348 else 2
     jsonheader = {
         "NIIHeaderSize": header["sizeof_hdr"].item(),
-        "A75DataTypeName": header["datatype"].tobytes().decode() if nii_version == 1 else "",
-        "A75DBName": header["db_name"].tobytes().decode() if nii_version == 1 else "",
-        "A75Extends": header["extents"].item() if nii_version == 1 else 0,
-        "A75SessionError": header["session_error"].item() if nii_version == 1 else 0,
-        "A75Regular": header["regular"].item() if nii_version == 1 else 0,
-        "A75GlobalMax": header["glmax"].item() if nii_version == 1 else 0,
-        "A75GlobalMin": header["glmin"].item() if nii_version == 1 else 0,
+        
         "NIIByteOffset": header["vox_offset"].item(),
         "BitDepth": header["bitpix"].item(),
 
@@ -120,6 +114,27 @@ def nii2json(header, extensions=False):
     if not math.isfinite(jsonheader["ScaleOffset"]):
         jsonheader["ScaleOffset"] = 0.0
 
+    if nii_version == 1:
+        unused_fields = {
+        "A75DataTypeName": header["datatype"].tobytes().decode(),
+        "A75DBName": header["db_name"].tobytes().decode(),
+        "A75Extends": header["extents"].item(),
+        "A75SessionError": header["session_error"].item(),
+        "A75Regular": header["regular"].item(),
+        "A75GlobalMax": header["glmax"].item(),
+        "A75GlobalMin": header["glmin"].item(),
+        }
+    else:
+        unused_fields= {
+        "A75DataTypeName": "",
+        "A75DBName": "",
+        "A75Extends": 0,
+        "A75SessionError": 0,
+        "A75Regular": 0,
+        "A75GlobalMax": 0,
+        "A75GlobalMin": 0,
+        }
+    jsonheader.update(unused_fields)
     # Remove control characters
     for k, v in jsonheader.items():
         if isinstance(v, str):
