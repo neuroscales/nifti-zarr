@@ -333,9 +333,8 @@
       },
       "minItems": 3,
       "maxItems": 3
-    }
-  },
-  "Name": {
+    },
+    "Name": {
     "description": "'name' or meaning of data",
     "type": "string"
   },
@@ -348,4 +347,7 @@
       "n+2"
     ]
   }
+  
+  }
+  
 }
