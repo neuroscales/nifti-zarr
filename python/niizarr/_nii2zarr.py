@@ -52,15 +52,16 @@ def nii2json(header, extensions=False):
     intent_param = header["intent_p"][:INTENTS_P[intent_code]].tolist()
     quatern = header["quatern"].tolist()
     qoffset = header["qoffset"].tolist()
+    nii_version = 1 if header["sizeof_hdr"].item() == 348 else 2
     jsonheader = {
         "NIIHeaderSize": header["sizeof_hdr"].item(),
-        "A75DataTypeName": header["datatype"].tobytes().decode(),
-        "A75DBName": header["db_name"].tobytes().decode(),
-        "A75Extends": header["extents"].item(),
-        "A75SessionError": header["session_error"].item(),
-        "A75Regular": header["regular"].item(),
-        "A75GlobalMax": header["glmax"].item(),
-        "A75GlobalMin": header["glmin"].item(),
+        "A75DataTypeName": header["datatype"].tobytes().decode() if nii_version == 1 else "",
+        "A75DBName": header["db_name"].tobytes().decode() if nii_version == 1 else "",
+        "A75Extends": header["extents"].item() if nii_version == 1 else 0,
+        "A75SessionError": header["session_error"].item() if nii_version == 1 else 0,
+        "A75Regular": header["regular"].item() if nii_version == 1 else 0,
+        "A75GlobalMax": header["glmax"].item() if nii_version == 1 else 0,
+        "A75GlobalMin": header["glmin"].item() if nii_version == 1 else 0,
         "NIIByteOffset": header["vox_offset"].item(),
         "BitDepth": header["bitpix"].item(),
 
