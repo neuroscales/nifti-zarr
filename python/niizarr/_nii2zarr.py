@@ -52,8 +52,18 @@ def nii2json(header, extensions=False):
     intent_param = header["intent_p"][:INTENTS_P[intent_code]].tolist()
     quatern = header["quatern"].tolist()
     qoffset = header["qoffset"].tolist()
-
     jsonheader = {
+        "NIIHeaderSize": header["sizeof_hdr"].item(),
+        "A75DataTypeName": header["datatype"].tobytes().decode(),
+        "A75DBName": header["db_name"].tobytes().decode(),
+        "A75Extends": header["extents"].item(),
+        "A75SessionError": header["session_error"].item(),
+        "A75Regular": header["regular"].item(),
+        "A75GlobalMax": header["glmax"].item(),
+        "A75GlobalMin": header["glmin"].item(),
+        "NIIByteOffset": header["vox_offset"].item(),
+        "BitDepth": header["bitpix"].item(),
+
         # Strip control characters
         "NIIFormat": get_magic_string(header),
         "Dim": header["dim"][1:1 + ndim].tolist(),
