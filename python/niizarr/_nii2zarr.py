@@ -55,41 +55,42 @@ def nii2json(header, extensions=False):
     nii_version = 1 if header["sizeof_hdr"].item() == 348 else 2
     jsonheader = {
         "NIIHeaderSize": header["sizeof_hdr"].item(),
-        
-        "NIIByteOffset": header["vox_offset"].item(),
-        "BitDepth": header["bitpix"].item(),
-
-        # Strip control characters
-        "NIIFormat": get_magic_string(header),
-        "Dim": header["dim"][1:1 + ndim].tolist(),
-        "VoxelSize": header["pixdim"][1:1 + ndim].tolist(),
-        "Unit": {
-            "L": UNITS[(header["xyzt_units"] & 0x07).item()],
-            "T": UNITS[(header["xyzt_units"] & 0x38).item()],
-        },
-        "DataType": DTYPES[header["datatype"].item()],
-        "DimInfo": {
+         "DimInfo": {
             "Freq": (header["dim_info"] & 0x03).item(),
             "Phase": ((header["dim_info"] >> 2) & 0x03).item(),
             "Slice": ((header["dim_info"] >> 4) & 0x03).item(),
         },
-        "Intent": intent_code,
+        "Dim": header["dim"][1:1 + ndim].tolist(),
         "Param1": intent_param[0] if len(intent_param) > 0 else None,
         "Param2": intent_param[1] if len(intent_param) > 1 else None,
         "Param3": intent_param[2] if len(intent_param) > 2 else None,
-        "Name": header["intent_name"].tobytes().decode(),
+        "Intent": intent_code,
+        "DataType": DTYPES[header["datatype"].item()],
+        "BitDepth": header["bitpix"].item(),
+        "FirstSliceID": header["slice_start"].item(),
+        "VoxelSize": header["pixdim"][1:1 + ndim].tolist(),
+        "Orientation": {
+            "x": "r" if header["pixdim"][0].item() == 0 else "l",
+            "y": "a",
+            "z": "s",
+        },
+        "NIIByteOffset": header["vox_offset"].item(),
         "ScaleSlope": header["scl_slope"].item(),
         "ScaleOffset": header["scl_inter"].item(),
-        "FirstSliceID": header["slice_start"].item(),
         "LastSliceID": header["slice_end"].item(),
         "SliceType": SLICEORDERS[header["slice_code"].item()],
-        "SliceTime": header["slice_duration"].item(),
-        "MinIntensity": header["cal_min"].item(),
+        "Unit": {
+            "L": UNITS[(header["xyzt_units"] & 0x07).item()],
+            "T": UNITS[(header["xyzt_units"] & 0x38).item()],
+        },
         "MaxIntensity": header["cal_max"].item(),
+        "MinIntensity": header["cal_min"].item(),
+        "SliceTime": header["slice_duration"].item(),
         "TimeOffset": header["toffset"].item(),
         "Description": header["descrip"].tobytes().decode(),
         "AuxFile": header["aux_file"].tobytes().decode(),
         "QForm": XFORMS[header["qform_code"].item()],
+        "SForm": XFORMS[header["sform_code"].item()],
         "Quatern": {
             "b": quatern[0],
             "c": quatern[1],
@@ -100,13 +101,10 @@ def nii2json(header, extensions=False):
             "y": qoffset[1],
             "z": qoffset[2],
         },
-        "Orientation": {
-            "x": "r" if header["pixdim"][0].item() == 0 else "l",
-            "y": "a",
-            "z": "s",
-        },
-        "SForm": XFORMS[header["sform_code"].item()],
         "Affine": header["sform"].tolist(),
+        "Name": header["intent_name"].tobytes().decode(),
+        # Strip control characters
+        "NIIFormat": get_magic_string(header),
         "NIFTIExtension": [1 if extensions else 0] + [0, 0, 0],
     }
     if not math.isfinite(jsonheader["ScaleSlope"]):
