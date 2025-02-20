@@ -37,38 +37,45 @@ function nii2json(header::NIfTI.NIfTIHeader, has_extensions::Bool)
     intent_code = IntentRecoder(header.intent_code)
 
     nb_intent_prm = IntentNbPrm[IntentRecoder(header.intent_code)]
-
+    
     jsonheader = Dict(
-        "NIIFormat" => magic,
-        "Dim" => collect(header.dim[2:2+ndim-1]),
-        "VoxelSize" => collect(header.pixdim[2:2+ndim-1]),
-        "Unit" => Dict(
-            "L" => UnitRecoder(header.xyzt_units & 0x07),
-            "T" => UnitRecoder(header.xyzt_units & 0x38)
-        ),
-        "DataType" => DataTypeRecoder(header.datatype),
+        "NIIHeaderSize" => header.sizeof_hdr,
         "DimInfo" => Dict(
             "Freq" => header.dim_info & 0x03,
             "Phase" => (header.dim_info >> 2) & 0x03,
             "Slice" => (header.dim_info >> 4) & 0x03
         ),
-        "Intent" => intent_code,
-        "Name" => _tuple2string(header.intent_name),
+        "Dim" => collect(header.dim[2:2+ndim-1]),
         "Param1" => nothing,
         "Param2" => nothing,
         "Param3" => nothing,
+        "Intent" => intent_code,
+        "DataType" => DataTypeRecoder(header.datatype),
+        "BitDepth" => header.bitpix,
+        "FirstSliceID" => header.slice_start,
+        "VoxelSize" => collect(header.pixdim[2:2+ndim-1]),
+        "Orientation"=> Dict(
+            "x"=> header.pixdim[1] == 0 ? "r" : "l",
+            "y"=> "a",
+            "z"=> "s",
+        ),
+        "NIIByteOffset" => header.vox_offset,
         "ScaleSlope"=> header.scl_slope,
         "ScaleOffset"=> header.scl_inter,
-        "FirstSliceID" => header.slice_start,
         "LastSliceID"=> header.slice_end,
         "SliceType" =>  SliceOrderRecoder(header.slice_code),
-        "SliceTime" => header.slice_duration,
-        "MinIntensity" => header.cal_min,
+        "Unit" => Dict(
+            "L" => UnitRecoder(header.xyzt_units & 0x07),
+            "T" => UnitRecoder(header.xyzt_units & 0x38)
+        ),
         "MaxIntensity" => header.cal_max,
+        "MinIntensity" => header.cal_min,
+        "SliceTime" => header.slice_duration,
         "TimeOffset" => header.toffset,
         "Description" => _tuple2string(header.descrip),
         "AuxFile" => _tuple2string(header.aux_file),
         "QForm"=> XFormRecoder(header.qform_code),
+        "SForm"=> XFormRecoder(header.sform_code),
         "Quatern"=> Dict(
             "b"=> header.quatern_b,
             "c"=> header.quatern_c,
@@ -79,13 +86,9 @@ function nii2json(header::NIfTI.NIfTIHeader, has_extensions::Bool)
             "y"=> header.qoffset_y,
             "z"=> header.qoffset_z,
         ),
-        "Orientation"=> Dict(
-            "x"=> header.pixdim[1] == 0 ? "r" : "l",
-            "y"=> "a",
-            "z"=> "s",
-        ),
-        "SForm"=> XFormRecoder(header.sform_code),
         "Affine" => [[header.srow_x...] [header.srow_y...] [header.srow_z...]],
+        "Name" => _tuple2string(header.intent_name),
+        "NIIFormat" => magic,
         "NIFTIExtension" => [has_extensions ? 1 : 0, 0 , 0 , 0]
     )
     if !isfinite(jsonheader["ScaleSlope"])
@@ -98,8 +101,7 @@ function nii2json(header::NIfTI.NIfTIHeader, has_extensions::Bool)
     for (i,v) in pairs(nb_intent_prm)
         jsonheader["Param$i"] = v
     end
-
-
+    
     return jsonheader
 end
 
