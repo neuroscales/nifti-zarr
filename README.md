@@ -64,7 +64,7 @@ drastically slowed down the adoption of a coordinate transform standard,
 which hampers the use of OME-NGFF with neuroimaging data in two ways:
 
 1. at the time of this writing, the current version of the format
-   ([0.4](https://ngff.openmicroscopy.org/0.4/index.html)) only handles
+   ([0.5](https://ngff.openmicroscopy.org/0.5/index.html)) only handles
    canonical scales and offsets;
 2. the coordinate transform standard
    [being drafted](https://github.com/ome/ngff/pull/138) is more flexible
