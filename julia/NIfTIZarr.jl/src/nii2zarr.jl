@@ -79,7 +79,6 @@ function nii2json(header::NIfTI.NIfTIHeader, has_extensions::Bool)
             "y"=> header.qoffset_y,
             "z"=> header.qoffset_z,
         ),
-        # TODO: change this after JNIfTI changed
         "Orientation"=> Dict(
             "x"=> header.pixdim[1] == 0 ? "r" : "l",
             "y"=> "a",
