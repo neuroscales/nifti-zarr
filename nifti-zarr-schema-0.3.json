@@ -125,13 +125,13 @@
         "rgb",
         "rgba",
         "shape",
-        "FSL_FNIRT_DISPLACEMENT_FIELD",
-        "FSL_CUBIC_SPLINE_COEFFICIENTS",
-        "FSL_DCT_COEFFICIENTS",
-        "FSL_QUADRATIC_SPLINE_COEFFICIENTS",
-        "FSL_TOPUP_CUBIC_SPLINE_COEFFICIENTS",
-        "FSL_TOPUP_QUADRATIC_SPLINE_COEFFICIENTS",
-        "FSL_TOPUP_FIELD"
+        "fsl_fnirt_displacement_field",
+        "fsl_cubic_spline_coefficients",
+        "fsl_dct_coefficients",
+        "fsl_quadratic_spline_coefficients",
+        "fsl_topup_cubic_spline_coefficients",
+        "fsl_topup_quadratic_spline_coefficients",
+        "fsl_topup_field"
       ]
     },
     "DataType": {
@@ -275,23 +275,23 @@
     "QForm": {
       "description": "A valid xform name (see table 4.5)",
       "enum": [
-        0,
-        1,
-        2,
-        3,
-        4,
-        5
+        "",
+        "scanner_anat",
+        "aligned_anat",
+        "talairach",
+        "mni_152",
+        "template_other"
       ]
     },
     "SForm": {
       "description": "A valid xform name (see table 4.5)",
       "enum": [
-        0,
-        1,
-        2,
-        3,
-        4,
-        5
+        "",
+        "scanner_anat",
+        "aligned_anat",
+        "talairach",
+        "mni_152",
+        "template_other"
       ]
     },
     "Quatern": {
@@ -333,19 +333,28 @@
       },
       "minItems": 3,
       "maxItems": 3
+    },
+    "Name": {
+      "description": "'name' or meaning of data",
+      "type": "string"
+    },
+    "NIIFormat": {
+      "description": "NIfTI magic string",
+      "enum": [
+        "ni1",
+        "n+1",
+        "ni2",
+        "n+2"
+      ]
+    },
+    "NIFTIExtension": {
+      "description": "Four bytes following header indicating the exist of extension",
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 4,
+      "minItems": 4,
+      "type": "array"
     }
-  },
-  "Name": {
-    "description": "'name' or meaning of data",
-    "type": "string"
-  },
-  "NIIFormat": {
-    "description": "NIfTI magic string",
-    "enum": [
-      "ni1",
-      "n+1",
-      "ni2",
-      "n+2"
-    ]
   }
 }
