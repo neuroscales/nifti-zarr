@@ -101,7 +101,27 @@ function nii2json(header::NIfTI.NIfTIHeader, has_extensions::Bool)
     for (i,v) in pairs(nb_intent_prm)
         jsonheader["Param$i"] = v
     end
-    
+    if typeof(header) == NIfTI.NIfTI1Header
+        unused_fields = Dict(
+        "A75DataTypeName" => header.data_type,
+        "A75DBName" => header.db_name,
+        "A75Extends" => header.extents,
+        "A75SessionError" => header.session_error,
+        "A75Regular" => header.regular,
+        "A75GlobalMax" => header.glmax,
+        "A75GlobalMin" => header.glmin,
+    )  
+    else
+        unused_fields = Dict(
+        "A75DataTypeName" => "",
+        "A75DBName" => "",
+        "A75Extends" => 0,
+        "A75SessionError" => 0,
+        "A75Regular" => 0,
+        "A75GlobalMax" => 0,
+        "A75GlobalMin" => 0,
+    )    
+    end
     return jsonheader
 end
 
