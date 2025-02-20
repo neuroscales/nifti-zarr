@@ -55,7 +55,7 @@ def nii2json(header, extensions=False):
     nii_version = 1 if header["sizeof_hdr"].item() == 348 else 2
     jsonheader = {
         "NIIHeaderSize": header["sizeof_hdr"].item(),
-         "DimInfo": {
+        "DimInfo": {
             "Freq": (header["dim_info"] & 0x03).item(),
             "Phase": ((header["dim_info"] >> 2) & 0x03).item(),
             "Slice": ((header["dim_info"] >> 4) & 0x03).item(),
@@ -114,23 +114,23 @@ def nii2json(header, extensions=False):
 
     if nii_version == 1:
         unused_fields = {
-        "A75DataTypeName": header["datatype"].tobytes().decode(),
-        "A75DBName": header["db_name"].tobytes().decode(),
-        "A75Extends": header["extents"].item(),
-        "A75SessionError": header["session_error"].item(),
-        "A75Regular": header["regular"].item(),
-        "A75GlobalMax": header["glmax"].item(),
-        "A75GlobalMin": header["glmin"].item(),
+            "A75DataTypeName": header["datatype"].tobytes().decode(),
+            "A75DBName": header["db_name"].tobytes().decode(),
+            "A75Extends": header["extents"].item(),
+            "A75SessionError": header["session_error"].item(),
+            "A75Regular": header["regular"].item(),
+            "A75GlobalMax": header["glmax"].item(),
+            "A75GlobalMin": header["glmin"].item(),
         }
     else:
-        unused_fields= {
-        "A75DataTypeName": "",
-        "A75DBName": "",
-        "A75Extends": 0,
-        "A75SessionError": 0,
-        "A75Regular": 0,
-        "A75GlobalMax": 0,
-        "A75GlobalMin": 0,
+        unused_fields = {
+            "A75DataTypeName": "",
+            "A75DBName": "",
+            "A75Extends": 0,
+            "A75SessionError": 0,
+            "A75Regular": 0,
+            "A75GlobalMax": 0,
+            "A75GlobalMin": 0,
         }
     jsonheader.update(unused_fields)
     # Remove control characters
