@@ -52,39 +52,45 @@ def nii2json(header, extensions=False):
     intent_param = header["intent_p"][:INTENTS_P[intent_code]].tolist()
     quatern = header["quatern"].tolist()
     qoffset = header["qoffset"].tolist()
-
+    nii_version = 1 if header["sizeof_hdr"].item() == 348 else 2
     jsonheader = {
-        # Strip control characters
-        "NIIFormat": get_magic_string(header),
-        "Dim": header["dim"][1:1 + ndim].tolist(),
-        "VoxelSize": header["pixdim"][1:1 + ndim].tolist(),
-        "Unit": {
-            "L": UNITS[(header["xyzt_units"] & 0x07).item()],
-            "T": UNITS[(header["xyzt_units"] & 0x38).item()],
-        },
-        "DataType": DTYPES[header["datatype"].item()],
+        "NIIHeaderSize": header["sizeof_hdr"].item(),
         "DimInfo": {
             "Freq": (header["dim_info"] & 0x03).item(),
             "Phase": ((header["dim_info"] >> 2) & 0x03).item(),
             "Slice": ((header["dim_info"] >> 4) & 0x03).item(),
         },
-        "Intent": intent_code,
+        "Dim": header["dim"][1:1 + ndim].tolist(),
         "Param1": intent_param[0] if len(intent_param) > 0 else None,
         "Param2": intent_param[1] if len(intent_param) > 1 else None,
         "Param3": intent_param[2] if len(intent_param) > 2 else None,
-        "Name": header["intent_name"].tobytes().decode(),
+        "Intent": intent_code,
+        "DataType": DTYPES[header["datatype"].item()],
+        "BitDepth": header["bitpix"].item(),
+        "FirstSliceID": header["slice_start"].item(),
+        "VoxelSize": header["pixdim"][1:1 + ndim].tolist(),
+        "Orientation": {
+            "x": "r" if header["pixdim"][0].item() == 0 else "l",
+            "y": "a",
+            "z": "s",
+        },
+        "NIIByteOffset": header["vox_offset"].item(),
         "ScaleSlope": header["scl_slope"].item(),
         "ScaleOffset": header["scl_inter"].item(),
-        "FirstSliceID": header["slice_start"].item(),
         "LastSliceID": header["slice_end"].item(),
         "SliceType": SLICEORDERS[header["slice_code"].item()],
-        "SliceTime": header["slice_duration"].item(),
-        "MinIntensity": header["cal_min"].item(),
+        "Unit": {
+            "L": UNITS[(header["xyzt_units"] & 0x07).item()],
+            "T": UNITS[(header["xyzt_units"] & 0x38).item()],
+        },
         "MaxIntensity": header["cal_max"].item(),
+        "MinIntensity": header["cal_min"].item(),
+        "SliceTime": header["slice_duration"].item(),
         "TimeOffset": header["toffset"].item(),
         "Description": header["descrip"].tobytes().decode(),
         "AuxFile": header["aux_file"].tobytes().decode(),
         "QForm": XFORMS[header["qform_code"].item()],
+        "SForm": XFORMS[header["sform_code"].item()],
         "Quatern": {
             "b": quatern[0],
             "c": quatern[1],
@@ -95,14 +101,10 @@ def nii2json(header, extensions=False):
             "y": qoffset[1],
             "z": qoffset[2],
         },
-        # TODO: change this after JNIfTI changed
-        "Orientation": {
-            "x": "r" if header["pixdim"][0].item() == 0 else "l",
-            "y": "a",
-            "z": "s",
-        },
-        "SForm": XFORMS[header["sform_code"].item()],
         "Affine": header["sform"].tolist(),
+        "Name": header["intent_name"].tobytes().decode(),
+        # Strip control characters
+        "NIIFormat": get_magic_string(header),
         "NIFTIExtension": [1 if extensions else 0] + [0, 0, 0],
     }
     if not math.isfinite(jsonheader["ScaleSlope"]):
@@ -110,6 +112,27 @@ def nii2json(header, extensions=False):
     if not math.isfinite(jsonheader["ScaleOffset"]):
         jsonheader["ScaleOffset"] = 0.0
 
+    if nii_version == 1:
+        unused_fields = {
+            "A75DataTypeName": header["datatype"].tobytes().decode(),
+            "A75DBName": header["db_name"].tobytes().decode(),
+            "A75Extends": header["extents"].item(),
+            "A75SessionError": header["session_error"].item(),
+            "A75Regular": header["regular"].item(),
+            "A75GlobalMax": header["glmax"].item(),
+            "A75GlobalMin": header["glmin"].item(),
+        }
+    else:
+        unused_fields = {
+            "A75DataTypeName": "",
+            "A75DBName": "",
+            "A75Extends": 0,
+            "A75SessionError": 0,
+            "A75Regular": 0,
+            "A75GlobalMax": 0,
+            "A75GlobalMin": 0,
+        }
+    jsonheader.update(unused_fields)
     # Remove control characters
     for k, v in jsonheader.items():
         if isinstance(v, str):

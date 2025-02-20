@@ -1,4 +1,11 @@
 {
+    "A75DBName": "",
+    "A75DataTypeName": "\u0004",
+    "A75Extends": 0,
+    "A75GlobalMax": 0,
+    "A75GlobalMin": 0,
+    "A75Regular": 114,
+    "A75SessionError": 0,
     "Affine": [
         [
             -2.0,
@@ -20,6 +27,7 @@
         ]
     ],
     "AuxFile": "",
+    "BitDepth": 16,
     "DataType": "int16",
     "Description": "FSL3.3 v2.25 NIfTI-1 Single file format",
     "Dim": [
@@ -44,7 +52,9 @@
         0,
         0
     ],
+    "NIIByteOffset": 0.0,
     "NIIFormat": "n+1",
+    "NIIHeaderSize": 348,
     "Name": "",
     "Orientation": {
         "x": "l",
