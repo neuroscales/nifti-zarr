@@ -77,7 +77,7 @@ def compare_json_objects(obj1, obj2):
 
 def compare_zarr_archives(path1, path2):
     """
-    Compare two Zarr archives by comparing the `.zarray`, `.zattrs`, and `nifti/0` JSON files
+    Compare two Zarr archives by comparing the `.zarray`, `.zattrs` JSON files
     in the root and subdirectories.
 
     :param path1: Path to the first Zarr archive.
@@ -123,7 +123,7 @@ if __name__ == '__main__':
     for input_file in input_files:
         output_file = input_file.replace(".gz", ".zarr")
         nii2zarr(input_file, output_file, chunk=64)
-        inp = zarr.storage.DirectoryStore(output_file)
+        inp = zarr.storage.LocalStore(output_file)
 
         inp = zarr.group(store=inp)
         for layer in (0, 1, 'nifti'):

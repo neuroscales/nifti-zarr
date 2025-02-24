@@ -43,8 +43,8 @@ class Testnii2zarr(unittest.TestCase):
         written_zarr = op.join(self.temp_dir.name, "example4d.nii.zarr")
         nii2zarr(op.join(DATA, "example4d.nii.gz"), written_zarr, chunk=64)
         self.assertTrue(compare_zarr_archives(written_zarr, op.join(DATA, "example4d.nii.zarr")))
-        written_data = zarr.load(written_zarr)
-        for layer in (0, 1, 'nifti'):
+        written_data = zarr.open(written_zarr)
+        for layer in ('0', '1', 'nifti'):
             reference_data = np.load(op.join(DATA, "example4d.nii.zarr", f"{layer}.npy"))
             np.testing.assert_array_almost_equal(reference_data, written_data[layer])
 
@@ -52,7 +52,7 @@ class Testnii2zarr(unittest.TestCase):
         written_zarr = op.join(self.temp_dir.name, "example_nifti2.nii.zarr")
         nii2zarr(op.join(DATA, "example_nifti2.nii.gz"), written_zarr, chunk=64)
         self.assertTrue(compare_zarr_archives(written_zarr, op.join(DATA, "example_nifti2.nii.zarr")))
-        written_data = zarr.load(written_zarr)
-        for layer in (0, 'nifti'):
+        written_data = zarr.open(written_zarr)
+        for layer in ('0', 'nifti'):
             reference_data = np.load(op.join(DATA, "example_nifti2.nii.zarr", f"{layer}.npy"))
             np.testing.assert_array_almost_equal(reference_data, written_data[layer])

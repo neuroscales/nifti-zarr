@@ -4,14 +4,15 @@ import json
 import math
 import re
 import sys
+from os import write
 
 import numcodecs
 import numpy as np
 import zarr
 import zarr.storage
 from nibabel import Nifti1Image, load
-from ome_zarr.writer import write_multiscale
 from skimage.transform import pyramid_gaussian, pyramid_laplacian
+from zarr.core.common import ZarrFormat
 
 from ._header import (
     UNITS, DTYPES, INTENTS, INTENTS_P, SLICEORDERS, XFORMS,
@@ -199,6 +200,176 @@ def _make_pyramid3d(
     for level in zip(*map(pyramid, data3d)):
         yield np.stack(level).reshape(batch + level[0].shape)
 
+def write_ome_metadata(
+    omz: zarr.Group,
+    axes: list[str],
+    space_scale: float | list[float] = 1,
+    time_scale: float = 1,
+    space_unit: str = "micrometer",
+    time_unit: str = "second",
+    name: str = "",
+    pyramid_aligns: str | int | list[str | int] = 2,
+    levels: int | None = None,
+    no_pool: int | None = None,
+    multiscales_type: str = "",
+) -> None:
+    """
+    Write OME metadata into Zarr.
+
+    Parameters
+    ----------
+    path : str | PathLike
+        Path to parent Zarr.
+    axes : list[str]
+        Name of each dimension, in Zarr order (t, c, z, y, x)
+    space_scale : float | list[float]
+        Finest-level voxel size, in Zarr order (z, y, x)
+    time_scale : float
+        Time scale
+    space_unit : str
+        Unit of spatial scale (assumed identical across dimensions)
+    space_time : str
+        Unit of time scale
+    name : str
+        Name attribute
+    pyramid_aligns : float | list[float] | {"center", "edge"}
+        Whether the pyramid construction aligns the edges or the centers
+        of the corner voxels. If a (list of) number, assume that a moving
+        window of that size was used.
+    levels : int
+        Number of existing levels. Default: find out automatically.
+    zarr_version : {2, 3} | None
+        Zarr version. If `None`, guess from existing zarr array.
+
+    """
+    # Read shape at each pyramid level
+    shapes = []
+    level = 0
+    while True:
+        if levels is not None and level > levels:
+            break
+
+        if str(level) not in omz.keys():
+            levels = level
+            break
+        shapes += [
+            omz[str(level)].shape,
+        ]
+        level += 1
+
+    axis_to_type = {
+        "x": "space",
+        "y": "space",
+        "z": "space",
+        "t": "time",
+        "c": "channel",
+    }
+
+    # Number of spatial (s), batch (b) and total (n) dimensions
+    ndim = len(axes)
+    sdim = sum(axis_to_type[axis] == "space" for axis in axes)
+    bdim = ndim - sdim
+
+    if isinstance(pyramid_aligns, (int, str)):
+        pyramid_aligns = [pyramid_aligns]
+    pyramid_aligns = list(pyramid_aligns)
+    if len(pyramid_aligns) < sdim:
+        repeat = pyramid_aligns[:1] * (sdim - len(pyramid_aligns))
+        pyramid_aligns = repeat + pyramid_aligns
+    pyramid_aligns = pyramid_aligns[-sdim:]
+
+    if isinstance(space_scale, (int, float)):
+        space_scale = [space_scale]
+    space_scale = list(space_scale)
+    if len(space_scale) < sdim:
+        repeat = space_scale[:1] * (sdim - len(space_scale))
+        space_scale = repeat + space_scale
+    space_scale = space_scale[-sdim:]
+
+    multiscales = [
+        {
+            "version": "0.4",
+            "axes": [
+                {
+                    "name": axis,
+                    "type": axis_to_type[axis],
+                }
+                if axis_to_type[axis] == "channel"
+                else {
+                    "name": axis,
+                    "type": axis_to_type[axis],
+                    "unit": (
+                        space_unit
+                        if axis_to_type[axis] == "space"
+                        else time_unit
+                        if axis_to_type[axis] == "time"
+                        else None
+                    ),
+                }
+                for axis in axes
+            ],
+            "datasets": [],
+            "type": "median window " + "x".join(["2"] * sdim)
+            if not multiscales_type
+            else multiscales_type,
+            "name": name,
+        }
+    ]
+
+    shape0 = shapes[0]
+    for n in range(len(shapes)):
+        shape = shapes[n]
+        multiscales[0]["datasets"].append({})
+        level = multiscales[0]["datasets"][-1]
+        level["path"] = str(n)
+
+        scale = [1] * bdim + [
+            (
+                pyramid_aligns[i] ** n
+                if not isinstance(pyramid_aligns[i], str)
+                else (shape0[bdim + i] / shape[bdim + i])
+                if pyramid_aligns[i][0].lower() == "e"
+                else ((shape0[bdim + i] - 1) / (shape[bdim + i] - 1))
+            )
+            * space_scale[i]
+            if i != no_pool
+            else space_scale[i]
+            for i in range(sdim)
+        ]
+        translation = [0] * bdim + [
+            (
+                pyramid_aligns[i] ** n - 1
+                if not isinstance(pyramid_aligns[i], str)
+                else (shape0[bdim + i] / shape[bdim + i]) - 1
+                if pyramid_aligns[i][0].lower() == "e"
+                else 0
+            )
+            * 0.5
+            * space_scale[i]
+            if i != no_pool
+            else 0
+            for i in range(sdim)
+        ]
+
+        level["coordinateTransformations"] = [
+            {
+                "type": "scale",
+                "scale": scale,
+            },
+            {
+                "type": "translation",
+                "translation": translation,
+            },
+        ]
+
+    scale = [1.0] * ndim
+    if "t" in axes:
+        scale[axes.index("t")] = time_scale
+    multiscales[0]["coordinateTransformations"] = [{"scale": scale, "type": "scale"}]
+
+    multiscales[0]["version"] = "0.4"
+    omz.attrs["multiscales"] = multiscales
+
 
 def nii2zarr(inp, out, *,
              chunk=64,
@@ -267,12 +438,12 @@ def nii2zarr(inp, out, *,
 
     # Open zarr group
     if not isinstance(out, zarr.Group):
-        if not isinstance(out, zarr.storage.Store):
+        if not isinstance(out, zarr.storage.StoreLike):
             if fsspec:
-                out = zarr.storage.FSStore(out)
+                out = zarr.storage.FsspecStore(out)
             else:
-                out = zarr.storage.DirectoryStore(out)
-        out = zarr.group(store=out, overwrite=True)
+                out = zarr.storage.LocalStore(out)
+        out = zarr.group(store=out, overwrite=True, zarr_format= 2)
 
     if no_time and len(inp.shape) > 3:
         inp = Nifti1Image(inp.dataobj[:, :, :, None], inp.affine, inp.header)
@@ -365,19 +536,21 @@ def nii2zarr(inp, out, *,
     chunk = chunk + chunk[-1:] * max(0, nb_levels - len(chunk))
     chunk = [{
         'chunks': c,
-        'dimension_separator': r'/',
-        'order': 'F',
+        # 'dimension_separator': r'/',
+        'order': 'C',
         'dtype': data_type,
         'fill_value': fill_value,
         'compressor': compressor,
     } for c in chunk]
 
     # Write zarr arrays
-    write_multiscale(
-        data, out,
-        axes=axes,
-        storage_options=chunk
-    )
+    # write_multiscale(
+    #     data, out,
+    #     axes=axes,
+    #     storage_options=chunk
+    # )
+    for i, d in enumerate(data):
+        out.create_dataset(str(i), data=d, shape=d.shape ,**chunk[i])
 
     # Write nifti header (binary)
     stream = io.BytesIO()
@@ -395,7 +568,7 @@ def nii2zarr(inp, out, *,
         dtype='u1',
         compressor=None,
         fill_value=None,
-        dimension_separator='/',
+        # dimension_separator='/',
         overwrite=True,
     )
 
@@ -404,70 +577,88 @@ def nii2zarr(inp, out, *,
 
     # write xarray metadata
     for i in range(len(data)):
-        out[i].attrs['_ARRAY_DIMENSIONS'] = ARRAY_DIMENSIONS
+        out[str(i)].attrs['_ARRAY_DIMENSIONS'] = ARRAY_DIMENSIONS
 
-    # Ensure that OME attributes are compatible
-    multiscales = out.attrs["multiscales"]
-    multiscales[0]["axes"] = [
-        {
-            "name": "z",
-            "type": "space",
-            "unit": JNIFTI_ZARR[jsonheader["Unit"]["L"]],
-        },
-        {
-            "name": "y",
-            "type": "space",
-            "unit": JNIFTI_ZARR[jsonheader["Unit"]["L"]],
-        },
-        {
-            "name": "x",
-            "type": "space",
-            "unit": JNIFTI_ZARR[jsonheader["Unit"]["L"]],
-        }
-    ]
-    if nbatch >= 2:
-        multiscales[0]["axes"].insert(0, {
-            "name": "c",
-            "type": "channel"
-        })
-    if nbatch >= 1:
-        multiscales[0]["axes"].insert(0, {
-            "name": "t",
-            "type": "time",
-            "unit": JNIFTI_ZARR[jsonheader["Unit"]["T"]],
-        })
-    for n, level in enumerate(multiscales[0]["datasets"]):
-        # skimage pyramid_gaussian/pyramid_laplace use
-        # scipy.ndimage.zoom(..., grid_mode=True)
-        # so the effective scaling is the shape ratio, and there is
-        # a half voxel shift wrt to the "center of first voxel" frame
-        level["coordinateTransformations"][0]["scale"] = [1.0] * nbatch + [
-            (shapes[0][0] / shapes[n][0]) * jsonheader["VoxelSize"][2],
-            (shapes[0][1] / shapes[n][1]) * jsonheader["VoxelSize"][1],
-            (shapes[0][2] / shapes[n][2]) * jsonheader["VoxelSize"][0],
-        ]
-        level["coordinateTransformations"].append({
-            "type": "translation",
-            "translation": [0.0] * nbatch + [
-                (shapes[0][0] / shapes[n][0] - 1) * jsonheader["VoxelSize"][2] * 0.5,
-                (shapes[0][1] / shapes[n][1] - 1) * jsonheader["VoxelSize"][1] * 0.5,
-                (shapes[0][2] / shapes[n][2] - 1) * jsonheader["VoxelSize"][0] * 0.5,
-            ]
-        })
-    multiscales[0]["coordinateTransformations"] = [
-        {
-            "scale": [1.0] * 3,
-            "type": "scale"
-        }
-    ]
-    if nbatch >= 2:
-        multiscales[0]["coordinateTransformations"][0]['scale'].insert(
-            0, 1.0)
-    if nbatch >= 1:
-        multiscales[0]["coordinateTransformations"][0]['scale'].insert(
-            0, jsonheader["VoxelSize"][3] or 1.0)
+    write_ome_metadata(out,
+                       axes=axes,
+                       space_scale=[jsonheader["VoxelSize"][2],jsonheader["VoxelSize"][1],jsonheader["VoxelSize"][0]],
+                       time_scale=jsonheader["VoxelSize"][3] if nbatch >= 1 else 1.0,
+                       space_unit=JNIFTI_ZARR[jsonheader["Unit"]["L"]],
+                       time_unit=JNIFTI_ZARR[jsonheader["Unit"]["T"]],
 
-    out.attrs["multiscales"] = multiscales
+
+                       )
+
+
+
+
+
+
+
+
+
+    # # Ensure that OME attributes are compatible
+    # multiscales = out.attrs["multiscales"]
+    # multiscales[0]["axes"] = [
+    #     {
+    #         "name": "z",
+    #         "type": "space",
+    #         "unit": JNIFTI_ZARR[jsonheader["Unit"]["L"]],
+    #     },
+    #     {
+    #         "name": "y",
+    #         "type": "space",
+    #         "unit": JNIFTI_ZARR[jsonheader["Unit"]["L"]],
+    #     },
+    #     {
+    #         "name": "x",
+    #         "type": "space",
+    #         "unit": JNIFTI_ZARR[jsonheader["Unit"]["L"]],
+    #     }
+    # ]
+    # if nbatch >= 2:
+    #     multiscales[0]["axes"].insert(0, {
+    #         "name": "c",
+    #         "type": "channel"
+    #     })
+    # if nbatch >= 1:
+    #     multiscales[0]["axes"].insert(0, {
+    #         "name": "t",
+    #         "type": "time",
+    #         "unit": JNIFTI_ZARR[jsonheader["Unit"]["T"]],
+    #     })
+    # for n, level in enumerate(multiscales[0]["datasets"]):
+    #     # skimage pyramid_gaussian/pyramid_laplace use
+    #     # scipy.ndimage.zoom(..., grid_mode=True)
+    #     # so the effective scaling is the shape ratio, and there is
+    #     # a half voxel shift wrt to the "center of first voxel" frame
+    #     level["coordinateTransformations"][0]["scale"] = [1.0] * nbatch + [
+    #         (shapes[0][0] / shapes[n][0]) * jsonheader["VoxelSize"][2],
+    #         (shapes[0][1] / shapes[n][1]) * jsonheader["VoxelSize"][1],
+    #         (shapes[0][2] / shapes[n][2]) * jsonheader["VoxelSize"][0],
+    #     ]
+    #     level["coordinateTransformations"].append({
+    #         "type": "translation",
+    #         "translation": [0.0] * nbatch + [
+    #             (shapes[0][0] / shapes[n][0] - 1) * jsonheader["VoxelSize"][2] * 0.5,
+    #             (shapes[0][1] / shapes[n][1] - 1) * jsonheader["VoxelSize"][1] * 0.5,
+    #             (shapes[0][2] / shapes[n][2] - 1) * jsonheader["VoxelSize"][0] * 0.5,
+    #         ]
+    #     })
+    # multiscales[0]["coordinateTransformations"] = [
+    #     {
+    #         "scale": [1.0] * 3,
+    #         "type": "scale"
+    #     }
+    # ]
+    # if nbatch >= 2:
+    #     multiscales[0]["coordinateTransformations"][0]['scale'].insert(
+    #         0, 1.0)
+    # if nbatch >= 1:
+    #     multiscales[0]["coordinateTransformations"][0]['scale'].insert(
+    #         0, jsonheader["VoxelSize"][3] or 1.0)
+    #
+    # out.attrs["multiscales"] = multiscales
 
 
 def cli(args=None):

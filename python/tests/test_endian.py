@@ -24,8 +24,8 @@ class TestEndian(unittest.TestCase):
         ni = get_nifti_image()
         # so there will be a endian sign in dtype
         ni.set_data_dtype(np.dtype("int32"))
-
-        header = np.frombuffer(ni.header.structarr.tobytes(), HEADERTYPE1).byteswap().newbyteorder()
+        header = np.frombuffer(ni.header.structarr.tobytes(), HEADERTYPE1).byteswap()
+        header = header.view(header.dtype.newbyteorder())
         header_file_obj = io.BytesIO(header.tobytes())
         header = Nifti1Header.from_fileobj(header_file_obj)
         inv_ni = Nifti1Image(ni.get_fdata(), np.eye(4), header=header)

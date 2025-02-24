@@ -4,7 +4,6 @@ import sys
 
 import dask.array
 import numpy as np
-import zarr.hierarchy
 import zarr.storage
 from nibabel import (save, load)
 from nibabel.nifti1 import Nifti1Image, Nifti1Header
@@ -91,11 +90,11 @@ def zarr2nii(inp, out=None, level=0, mode="r", **store_opt):
     # --------------
 
     if not isinstance(inp, (zarr.Group, zarr.Array)):
-        if not isinstance(inp, zarr.storage.Store):
+        if not isinstance(inp, zarr.storage.StoreLike):
             if fsspec:
-                inp = zarr.storage.FSStore(inp, **store_opt, mode=mode)
+                inp = zarr.storage.FsspecStore(inp, **store_opt, mode=mode)
             else:
-                inp = zarr.storage.DirectoryStore(inp, **store_opt)
+                inp = zarr.storage.LocalStore(inp, **store_opt)
         inp = zarr.open(inp, mode=mode)
 
     # ----------------
