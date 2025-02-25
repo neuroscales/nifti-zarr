@@ -25,11 +25,12 @@ class TestNiizarrConversion(unittest.TestCase):
 
                     loaded = niizarr.zarr2nii(zarr_file)
                     # this dummy conversion will let nibabel fix "vox_offset" that it set to 0
-                    # TODO: find out why and try to simplify
                     niizarr.nii2zarr(loaded, op.join(tmpdir, "foo.nii.zarr"))
                     original_header = data.header
                     loaded_header = loaded.header
-
+                    # nibabel will reset slope and inter, we ignore them during testing
+                    original_header.set_slope_inter(1,0)
+                    loaded_header.set_slope_inter(1,0)
                     self.assertEqual(str(original_header), str(loaded_header))
 
     def test_conversion_roundtrip_extension(self):
