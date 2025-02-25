@@ -447,13 +447,18 @@ def nii2zarr(inp, out, *,
 
     if no_time and len(inp.shape) > 3:
         inp = Nifti1Image(inp.dataobj[:, :, :, None], inp.affine, inp.header)
+    # nibabel consumde these two values
+    if hasattr(inp.dataobj,"_slope") and hasattr(inp.dataobj,"_inter"):
+        inp.header.set_slope_inter(inp.dataobj._slope,inp.dataobj._inter)
 
     header = bin2nii(inp.header.structarr.tobytes())
     byteorder_swapped = inp.header.endianness != SYS_BYTEORDER
     jsonheader = nii2json(header, len(inp.header.extensions) != 0)
 
-    data = np.asarray(inp.dataobj)
-
+    if hasattr(inp.dataobj, "get_unscaled"):
+        data = np.asarray(inp.dataobj.get_unscaled())
+    else:
+        data = np.asarray(inp.dataobj)
     if fill_value:
         if np.issubdtype(data.dtype, np.complexfloating):
             fill_value = complex(fill_value)
