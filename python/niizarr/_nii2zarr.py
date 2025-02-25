@@ -550,8 +550,8 @@ def nii2zarr(inp, out, *,
     #     storage_options=chunk
     # )
     for i, d in enumerate(data):
-        out.create_dataset(str(i), data=d, shape=d.shape ,**chunk[i])
-
+        out.create_array(str(i),shape=d.shape, **chunk[i])
+        out[str(i)][:] = d
     # Write nifti header (binary)
     stream = io.BytesIO()
     inp.header.write_to(stream)
@@ -560,9 +560,8 @@ def nii2zarr(inp, out, *,
     if len(inp.header.extensions) == 0:
         bin_data = bin_data[:-4]
 
-    out.create_dataset(
+    out.create_array(
         'nifti',
-        data=bin_data,
         shape=[len(bin_data)],
         chunks=len(bin_data),
         dtype='u1',
@@ -571,7 +570,7 @@ def nii2zarr(inp, out, *,
         # dimension_separator='/',
         overwrite=True,
     )
-
+    out['nifti'][:] = bin_data
     # Write nifti header (JSON)
     out['nifti'].attrs.update(jsonheader)
 
