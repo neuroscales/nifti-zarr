@@ -102,8 +102,9 @@ function zarr2nii(inp::Zarr.ZGroup, ::Nothing=nothing; level::Integer=0)
         error("Array should have 3 to 5 dimensions")
     end
     niiarray = inp.arrays[string(level)]
-    niiarray = permutedims(niiarray, perm)
-
+    # zarr.jl always reverse the order of the dimensions
+    niiarray = permutedims(niiarray, reverse(perm))
+    
     # create NIVolume
     return NIVolume(niiheader, niiarray)
 end
