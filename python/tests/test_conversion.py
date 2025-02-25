@@ -1,11 +1,11 @@
+import os.path as op
 import tempfile
 import unittest
-import os.path as op
 
 import nibabel as nib
 import numpy as np
-import niizarr
 
+import niizarr
 
 HERE = op.dirname(op.abspath(__file__))
 DATA = op.join(HERE, "data")
@@ -29,8 +29,8 @@ class TestNiizarrConversion(unittest.TestCase):
                     original_header = data.header
                     loaded_header = loaded.header
                     # nibabel will reset slope and inter, we ignore them during testing
-                    original_header.set_slope_inter(1,0)
-                    loaded_header.set_slope_inter(1,0)
+                    original_header.set_slope_inter(1, 0)
+                    loaded_header.set_slope_inter(1, 0)
                     self.assertEqual(str(original_header), str(loaded_header))
 
     def test_conversion_roundtrip_extension(self):
@@ -46,7 +46,8 @@ class TestNiizarrConversion(unittest.TestCase):
             original_header = data.header
             loaded_header = loaded.header
 
-            self.assertEqual(str(original_header.extensions), str(loaded_header.extensions))
+            self.assertEqual(str(original_header.extensions),
+                             str(loaded_header.extensions))
 
     def test_conversion_roundtrip_data_preservation(self):
         test_files = ["example_nifti2.nii.gz", "example4d.nii.gz"]
@@ -57,7 +58,8 @@ class TestNiizarrConversion(unittest.TestCase):
                     zarr_file = op.join(tmpdir, "test.nii.zarr")
                     niizarr.nii2zarr(data, zarr_file)
                     loaded = niizarr.zarr2nii(zarr_file)
-                    np.testing.assert_array_almost_equal(data.get_fdata(), loaded.get_fdata())
+                    np.testing.assert_array_almost_equal(data.get_fdata(),
+                                                         loaded.get_fdata())
 
 
 if __name__ == '__main__':

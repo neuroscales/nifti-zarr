@@ -4,7 +4,6 @@ import json
 import math
 import re
 import sys
-from os import write
 
 import numcodecs
 import numpy as np
@@ -12,7 +11,6 @@ import zarr
 import zarr.storage
 from nibabel import Nifti1Image, load
 from skimage.transform import pyramid_gaussian, pyramid_laplacian
-from zarr.core.common import ZarrFormat
 
 from ._header import (
     UNITS, DTYPES, INTENTS, INTENTS_P, SLICEORDERS, XFORMS,
@@ -200,18 +198,19 @@ def _make_pyramid3d(
     for level in zip(*map(pyramid, data3d)):
         yield np.stack(level).reshape(batch + level[0].shape)
 
+
 def write_ome_metadata(
-    omz: zarr.Group,
-    axes: list[str],
-    space_scale: float | list[float] = 1,
-    time_scale: float = 1,
-    space_unit: str = "micrometer",
-    time_unit: str = "second",
-    name: str = "",
-    pyramid_aligns: str | int | list[str | int] = 2,
-    levels: int | None = None,
-    no_pool: int | None = None,
-    multiscales_type: str = "",
+        omz: zarr.Group,
+        axes: list[str],
+        space_scale: float | list[float] = 1,
+        time_scale: float = 1,
+        space_unit: str = "micrometer",
+        time_unit: str = "second",
+        name: str = "",
+        pyramid_aligns: str | int | list[str | int] = 2,
+        levels: int | None = None,
+        no_pool: int | None = None,
+        multiscales_type: str = "",
 ) -> None:
     """
     Write OME metadata into Zarr.
@@ -443,13 +442,13 @@ def nii2zarr(inp, out, *,
                 out = zarr.storage.FsspecStore(out)
             else:
                 out = zarr.storage.LocalStore(out)
-        out = zarr.group(store=out, overwrite=True, zarr_format= 2)
+        out = zarr.group(store=out, overwrite=True, zarr_format=2)
 
     if no_time and len(inp.shape) > 3:
         inp = Nifti1Image(inp.dataobj[:, :, :, None], inp.affine, inp.header)
     # nibabel consumde these two values
-    if hasattr(inp.dataobj,"_slope") and hasattr(inp.dataobj,"_inter"):
-        inp.header.set_slope_inter(inp.dataobj._slope,inp.dataobj._inter)
+    if hasattr(inp.dataobj, "_slope") and hasattr(inp.dataobj, "_inter"):
+        inp.header.set_slope_inter(inp.dataobj._slope, inp.dataobj._inter)
 
     header = bin2nii(inp.header.structarr.tobytes())
     byteorder_swapped = inp.header.endianness != SYS_BYTEORDER
@@ -555,7 +554,7 @@ def nii2zarr(inp, out, *,
     #     storage_options=chunk
     # )
     for i, d in enumerate(data):
-        out.create_array(str(i),shape=d.shape, **chunk[i])
+        out.create_array(str(i), shape=d.shape, **chunk[i])
         out[str(i)][:] = d
     # Write nifti header (binary)
     stream = io.BytesIO()
@@ -585,7 +584,9 @@ def nii2zarr(inp, out, *,
 
     write_ome_metadata(out,
                        axes=axes,
-                       space_scale=[jsonheader["VoxelSize"][2],jsonheader["VoxelSize"][1],jsonheader["VoxelSize"][0]],
+                       space_scale=[jsonheader["VoxelSize"][2],
+                                    jsonheader["VoxelSize"][1],
+                                    jsonheader["VoxelSize"][0]],
                        time_scale=jsonheader["VoxelSize"][3] if nbatch >= 1 else 1.0,
                        space_unit=JNIFTI_ZARR[jsonheader["Unit"]["L"]],
                        time_unit=JNIFTI_ZARR[jsonheader["Unit"]["T"]],

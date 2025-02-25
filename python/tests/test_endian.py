@@ -6,9 +6,10 @@ import unittest
 
 import nibabel as nib
 import numpy as np
-from _data import get_nifti_image
 from nibabel import Nifti1Header, Nifti1Image
 from nibabel.nifti1 import Nifti1Extension
+
+from _data import get_nifti_image
 from niizarr import nii2zarr
 from niizarr._header import SYS_BYTEORDER, HEADERTYPE1
 
@@ -44,8 +45,10 @@ class TestEndian(unittest.TestCase):
         self.tempdir.cleanup()
 
     def test_setup_endian(self):
-        self.assertTrue(nib.load(self.sys_endian_nifti).header.endianness == SYS_BYTEORDER)
-        self.assertFalse(nib.load(self.inv_endian_nifti).header.endianness == SYS_BYTEORDER)
+        self.assertTrue(
+            nib.load(self.sys_endian_nifti).header.endianness == SYS_BYTEORDER)
+        self.assertFalse(
+            nib.load(self.inv_endian_nifti).header.endianness == SYS_BYTEORDER)
 
     def test_system_endian_header(self):
         with open(self.sys_endian_nifti, "rb") as f:

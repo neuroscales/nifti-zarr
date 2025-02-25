@@ -100,7 +100,8 @@ def compare_zarr_archives(path1, path2):
                         json1 = json.load(f1)
                         json2 = json.load(f2)
                     except json.JSONDecodeError as e:
-                        print(f"Error decoding JSON in {file_path1} or {file_path2}: {e}")
+                        print(
+                            f"Error decoding JSON in {file_path1} or {file_path2}: {e}")
                         return False
 
                     if not compare_json_objects(json1, json2):
@@ -109,10 +110,12 @@ def compare_zarr_archives(path1, path2):
             else:
                 # If one file exists and the other does not
                 if os.path.exists(file_path1) or os.path.exists(file_path2):
-                    print(f"File missing in one of the directories: {file_path1} or {file_path2}")
+                    print(
+                        f"File missing in one of the directories: {file_path1} or {file_path2}")
                     return False
 
     return True
+
 
 # This script generates trusted test data.
 if __name__ == '__main__':

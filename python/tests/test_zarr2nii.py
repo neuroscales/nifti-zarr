@@ -1,11 +1,11 @@
+import os.path as op
 import tempfile
 import unittest
-import os.path as op
 
 import nibabel as nib
 import numpy as np
-from niizarr import zarr2nii
 
+from niizarr import zarr2nii
 
 HERE = op.dirname(op.abspath(__file__))
 DATA = op.join(HERE, "data")
@@ -26,7 +26,8 @@ class Testzarr2nii(unittest.TestCase):
         loaded = nib.load(nifti_file)
 
         self.assertEqual(str(loaded.header), str(converted.header))
-        self.assertEqual(str(loaded.header.extensions), str(converted.header.extensions))
+        self.assertEqual(str(loaded.header.extensions),
+                         str(converted.header.extensions))
         np.testing.assert_array_almost_equal(loaded.get_fdata(), converted.get_fdata())
 
     def test_same_result_nifti2(self):
@@ -37,5 +38,6 @@ class Testzarr2nii(unittest.TestCase):
         loaded = nib.load(nifti_file)
 
         self.assertEqual(str(loaded.header), str(converted.header))
-        self.assertEqual(str(loaded.header.extensions), str(converted.header.extensions))
+        self.assertEqual(str(loaded.header.extensions),
+                         str(converted.header.extensions))
         np.testing.assert_array_almost_equal(loaded.get_fdata(), converted.get_fdata())

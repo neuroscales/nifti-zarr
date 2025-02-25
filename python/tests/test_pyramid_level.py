@@ -4,6 +4,7 @@ import unittest
 
 import numpy as np
 from nibabel import Nifti1Image
+
 from niizarr import nii2zarr
 
 

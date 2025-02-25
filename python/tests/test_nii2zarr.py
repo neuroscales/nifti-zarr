@@ -1,14 +1,14 @@
 import gzip
+import os.path as op
 import tempfile
 import unittest
-import os.path as op
 
 import nibabel as nib
 import numpy as np
 import zarr
+
 from _data import compare_zarr_archives
 from niizarr import nii2zarr
-
 
 HERE = op.dirname(op.abspath(__file__))
 DATA = op.join(HERE, "data")
@@ -42,17 +42,21 @@ class Testnii2zarr(unittest.TestCase):
     def test_same_result_nifti1(self):
         written_zarr = op.join(self.temp_dir.name, "example4d.nii.zarr")
         nii2zarr(op.join(DATA, "example4d.nii.gz"), written_zarr, chunk=64)
-        self.assertTrue(compare_zarr_archives(written_zarr, op.join(DATA, "example4d.nii.zarr")))
+        self.assertTrue(
+            compare_zarr_archives(written_zarr, op.join(DATA, "example4d.nii.zarr")))
         written_data = zarr.open(written_zarr)
         for layer in ('0', '1', 'nifti'):
-            reference_data = np.load(op.join(DATA, "example4d.nii.zarr", f"{layer}.npy"))
+            reference_data = np.load(
+                op.join(DATA, "example4d.nii.zarr", f"{layer}.npy"))
             np.testing.assert_array_almost_equal(reference_data, written_data[layer])
 
     def test_same_result_nifti2(self):
         written_zarr = op.join(self.temp_dir.name, "example_nifti2.nii.zarr")
         nii2zarr(op.join(DATA, "example_nifti2.nii.gz"), written_zarr, chunk=64)
-        self.assertTrue(compare_zarr_archives(written_zarr, op.join(DATA, "example_nifti2.nii.zarr")))
+        self.assertTrue(compare_zarr_archives(written_zarr,
+                                              op.join(DATA, "example_nifti2.nii.zarr")))
         written_data = zarr.open(written_zarr)
         for layer in ('0', 'nifti'):
-            reference_data = np.load(op.join(DATA, "example_nifti2.nii.zarr", f"{layer}.npy"))
+            reference_data = np.load(
+                op.join(DATA, "example_nifti2.nii.zarr", f"{layer}.npy"))
             np.testing.assert_array_almost_equal(reference_data, written_data[layer])

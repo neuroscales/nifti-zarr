@@ -1,13 +1,13 @@
 import json
+import os.path as op
 import tempfile
 import unittest
-import os.path as op
 
 import nibabel as nib
 from jsonschema import validate
 from jsonschema.exceptions import ValidationError
-import niizarr
 
+import niizarr
 
 HERE = op.dirname(op.abspath(__file__))
 DATA = op.join(HERE, "data")
