@@ -589,80 +589,8 @@ def nii2zarr(inp, out, *,
                        time_scale=jsonheader["VoxelSize"][3] if nbatch >= 1 else 1.0,
                        space_unit=JNIFTI_ZARR[jsonheader["Unit"]["L"]],
                        time_unit=JNIFTI_ZARR[jsonheader["Unit"]["T"]],
-
-
                        )
-
-
-
-
-
-
-
-
-
-    # # Ensure that OME attributes are compatible
-    # multiscales = out.attrs["multiscales"]
-    # multiscales[0]["axes"] = [
-    #     {
-    #         "name": "z",
-    #         "type": "space",
-    #         "unit": JNIFTI_ZARR[jsonheader["Unit"]["L"]],
-    #     },
-    #     {
-    #         "name": "y",
-    #         "type": "space",
-    #         "unit": JNIFTI_ZARR[jsonheader["Unit"]["L"]],
-    #     },
-    #     {
-    #         "name": "x",
-    #         "type": "space",
-    #         "unit": JNIFTI_ZARR[jsonheader["Unit"]["L"]],
-    #     }
-    # ]
-    # if nbatch >= 2:
-    #     multiscales[0]["axes"].insert(0, {
-    #         "name": "c",
-    #         "type": "channel"
-    #     })
-    # if nbatch >= 1:
-    #     multiscales[0]["axes"].insert(0, {
-    #         "name": "t",
-    #         "type": "time",
-    #         "unit": JNIFTI_ZARR[jsonheader["Unit"]["T"]],
-    #     })
-    # for n, level in enumerate(multiscales[0]["datasets"]):
-    #     # skimage pyramid_gaussian/pyramid_laplace use
-    #     # scipy.ndimage.zoom(..., grid_mode=True)
-    #     # so the effective scaling is the shape ratio, and there is
-    #     # a half voxel shift wrt to the "center of first voxel" frame
-    #     level["coordinateTransformations"][0]["scale"] = [1.0] * nbatch + [
-    #         (shapes[0][0] / shapes[n][0]) * jsonheader["VoxelSize"][2],
-    #         (shapes[0][1] / shapes[n][1]) * jsonheader["VoxelSize"][1],
-    #         (shapes[0][2] / shapes[n][2]) * jsonheader["VoxelSize"][0],
-    #     ]
-    #     level["coordinateTransformations"].append({
-    #         "type": "translation",
-    #         "translation": [0.0] * nbatch + [
-    #             (shapes[0][0] / shapes[n][0] - 1) * jsonheader["VoxelSize"][2] * 0.5,
-    #             (shapes[0][1] / shapes[n][1] - 1) * jsonheader["VoxelSize"][1] * 0.5,
-    #             (shapes[0][2] / shapes[n][2] - 1) * jsonheader["VoxelSize"][0] * 0.5,
-    #         ]
-    #     })
-    # multiscales[0]["coordinateTransformations"] = [
-    #     {
-    #         "scale": [1.0] * 3,
-    #         "type": "scale"
-    #     }
-    # ]
-    # if nbatch >= 2:
-    #     multiscales[0]["coordinateTransformations"][0]['scale'].insert(
-    #         0, 1.0)
-    # if nbatch >= 1:
-    #     multiscales[0]["coordinateTransformations"][0]['scale'].insert(
-    #         0, jsonheader["VoxelSize"][3] or 1.0)
-    #
-    # out.attrs["multiscales"] = multiscales
+    return
 
 
 def cli(args=None):
