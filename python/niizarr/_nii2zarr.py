@@ -9,9 +9,9 @@ import numcodecs
 import numpy as np
 import zarr
 import zarr.storage
+import zarr.codecs
 from nibabel import Nifti1Image, load
 from skimage.transform import pyramid_gaussian, pyramid_laplacian
-
 from ._header import (
     UNITS, DTYPES, INTENTS, INTENTS_P, SLICEORDERS, XFORMS,
     bin2nii, get_magic_string, SYS_BYTEORDER, JNIFTI_ZARR,
@@ -143,14 +143,20 @@ def nii2json(header, extensions=False):
     return jsonheader
 
 
-def _make_compressor(name, **prm):
+def _make_compressor(name, zarr_format, **prm):
     if not isinstance(name, str):
         return name
     name = name.lower()
     if name == 'blosc':
-        Compressor = numcodecs.Blosc
+        if zarr_format == 3:
+            Compressor = zarr.codecs.BloscCodec
+        elif zarr_format == 2:
+            Compressor = numcodecs.Blosc
     elif name == 'zlib':
-        Compressor = numcodecs.Zlib
+        if zarr_format == 3:
+            Compressor = zarr.codecs.ZstdCodec
+        elif zarr_format == 2:
+            Compressor = numcodecs.Zlib
     else:
         raise ValueError('Unknown compressor', name)
     return Compressor(**prm)
@@ -211,6 +217,7 @@ def write_ome_metadata(
         levels: int | None = None,
         no_pool: int | None = None,
         multiscales_type: str = "",
+        ome_zarr_version: str = "0.4"
 ) -> None:
     """
     Write OME metadata into Zarr.
@@ -366,8 +373,13 @@ def write_ome_metadata(
         scale[axes.index("t")] = time_scale
     multiscales[0]["coordinateTransformations"] = [{"scale": scale, "type": "scale"}]
 
-    multiscales[0]["version"] = "0.4"
-    omz.attrs["multiscales"] = multiscales
+    multiscales[0]["version"] = ome_zarr_version
+    if ome_zarr_version == "0.4":
+        omz.attrs["multiscales"] = multiscales
+    elif ome_zarr_version == "0.5":
+        omz.attrs["ome"] = {"multiscales": multiscales}
+    else:
+        raise Exception("Unsupported ome version")
 
 
 def nii2zarr(inp, out, *,
@@ -381,7 +393,10 @@ def nii2zarr(inp, out, *,
              no_pyramid_axis=None,
              fill_value=None,
              compressor='blosc',
-             compressor_options={}):
+             compressor_options={},
+             zarr_format=2,
+             ome_zarr_version="0.4",
+             ):
     """
     Convert a nifti file to nifti-zarr
 
@@ -427,6 +442,10 @@ def nii2zarr(inp, out, *,
         Compression to use
     compressor_options : dict
         Compressor options
+    zarr_format : {2, 3}
+        Zarr format version
+    ome_zarr_version : {0.4, 0.5}
+        OME-Zarr version
     """
     # Open nifti image with nibabel
     if not isinstance(inp, Nifti1Image):
@@ -442,7 +461,7 @@ def nii2zarr(inp, out, *,
                 out = zarr.storage.FsspecStore(out)
             else:
                 out = zarr.storage.LocalStore(out)
-        out = zarr.group(store=out, overwrite=True, zarr_format=2)
+        out = zarr.group(store=out, overwrite=True, zarr_format=zarr_format)
 
     if no_time and len(inp.shape) > 3:
         inp = Nifti1Image(inp.dataobj[:, :, :, None], inp.affine, inp.header)
@@ -531,7 +550,8 @@ def nii2zarr(inp, out, *,
         data_type = byteorder + data_type
 
     # Prepare array metadata at each level
-    compressor = _make_compressor(compressor, **compressor_options)
+    compressor = _make_compressor(compressor, zarr_format=zarr_format,
+                                  **compressor_options)
     if not isinstance(chunk, list):
         chunk = [chunk]
     chunk = [tuple(c) if isinstance(c, (list, tuple)) else (c,) for c in chunk]
@@ -544,7 +564,7 @@ def nii2zarr(inp, out, *,
         'order': 'C',
         'dtype': data_type,
         'fill_value': fill_value,
-        'compressor': compressor,
+        'compressors': compressor,
     } for c in chunk]
 
     # Write zarr arrays
@@ -569,7 +589,7 @@ def nii2zarr(inp, out, *,
         shape=[len(bin_data)],
         chunks=len(bin_data),
         dtype='u1',
-        compressor=None,
+        compressors=None,
         fill_value=None,
         # dimension_separator='/',
         overwrite=True,
@@ -590,6 +610,7 @@ def nii2zarr(inp, out, *,
                        time_scale=jsonheader["VoxelSize"][3] if nbatch >= 1 else 1.0,
                        space_unit=JNIFTI_ZARR[jsonheader["Unit"]["L"]],
                        time_unit=JNIFTI_ZARR[jsonheader["Unit"]["T"]],
+                       ome_zarr_version=ome_zarr_version
                        )
     return
 
@@ -641,6 +662,12 @@ def cli(args=None):
         '--no-pyramid-axis', choices=('x', 'y', 'z'),
         help='Thick slice axis that should not be downsampled'
     )
+    parser.add_argument(
+        '--zarr-format', type=int, default=2
+    )
+    parser.add_argument(
+        '--ome-zarr-version', type=str, default="0.4"
+    )
 
     args = args or sys.argv[1:]
     args = parser.parse_args(args)
@@ -657,4 +684,6 @@ def cli(args=None):
         label=args.label,
         no_time=args.no_time,
         no_pyramid_axis=args.no_pyramid_axis,
+        zarr_format=args.zarr_format,
+        ome_zarr_version=args.ome_zarr_version,
     )
