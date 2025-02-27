@@ -143,19 +143,19 @@ def nii2json(header, extensions=False):
     return jsonheader
 
 
-def _make_compressor(name, zarr_format, **prm):
+def _make_compressor(name, zarr_version, **prm):
     if not isinstance(name, str):
         return name
     name = name.lower()
     if name == 'blosc':
-        if zarr_format == 3:
+        if zarr_version == 3:
             Compressor = zarr.codecs.BloscCodec
-        elif zarr_format == 2:
+        elif zarr_version == 2:
             Compressor = numcodecs.Blosc
     elif name == 'zlib':
-        if zarr_format == 3:
+        if zarr_version == 3:
             Compressor = zarr.codecs.ZstdCodec
-        elif zarr_format == 2:
+        elif zarr_version == 2:
             Compressor = numcodecs.Zlib
     else:
         raise ValueError('Unknown compressor', name)
@@ -217,7 +217,7 @@ def write_ome_metadata(
         levels: int | None = None,
         no_pool: int | None = None,
         multiscales_type: str = "",
-        ome_zarr_version: str = "0.4"
+        ome_version: str = "0.4"
 ) -> None:
     """
     Write OME metadata into Zarr.
@@ -294,7 +294,7 @@ def write_ome_metadata(
 
     multiscales = [
         {
-            "version": "0.4",
+            "version": ome_version,
             "axes": [
                 {
                     "name": axis,
@@ -373,10 +373,10 @@ def write_ome_metadata(
         scale[axes.index("t")] = time_scale
     multiscales[0]["coordinateTransformations"] = [{"scale": scale, "type": "scale"}]
 
-    multiscales[0]["version"] = ome_zarr_version
-    if ome_zarr_version == "0.4":
+    multiscales[0]["version"] = ome_version
+    if ome_version == "0.4":
         omz.attrs["multiscales"] = multiscales
-    elif ome_zarr_version == "0.5":
+    elif ome_version == "0.5":
         omz.attrs["multiscales"] = multiscales
         omz.attrs["ome"] = {"multiscales": multiscales}
     else:
@@ -395,8 +395,8 @@ def nii2zarr(inp, out, *,
              fill_value=None,
              compressor='blosc',
              compressor_options={},
-             zarr_format=2,
-             ome_zarr_version="0.4",
+             zarr_version=2,
+             ome_version="0.4",
              ):
     """
     Convert a nifti file to nifti-zarr
@@ -443,9 +443,9 @@ def nii2zarr(inp, out, *,
         Compression to use
     compressor_options : dict
         Compressor options
-    zarr_format : {2, 3}
+    zarr_version : {2, 3}
         Zarr format version
-    ome_zarr_version : {0.4, 0.5}
+    ome_version : {0.4, 0.5}
         OME-Zarr version
     """
     # Open nifti image with nibabel
@@ -462,7 +462,7 @@ def nii2zarr(inp, out, *,
                 out = zarr.storage.FsspecStore(out)
             else:
                 out = zarr.storage.LocalStore(out)
-        out = zarr.group(store=out, overwrite=True, zarr_format=zarr_format)
+        out = zarr.group(store=out, overwrite=True, zarr_version=zarr_version)
 
     if no_time and len(inp.shape) > 3:
         inp = Nifti1Image(inp.dataobj[:, :, :, None], inp.affine, inp.header)
@@ -551,7 +551,7 @@ def nii2zarr(inp, out, *,
         data_type = byteorder + data_type
 
     # Prepare array metadata at each level
-    compressor = _make_compressor(compressor, zarr_format=zarr_format,
+    compressor = _make_compressor(compressor, zarr_version=zarr_version,
                                   **compressor_options)
     if not isinstance(chunk, list):
         chunk = [chunk]
@@ -611,7 +611,7 @@ def nii2zarr(inp, out, *,
                        time_scale=jsonheader["VoxelSize"][3] if nbatch >= 1 else 1.0,
                        space_unit=JNIFTI_ZARR[jsonheader["Unit"]["L"]],
                        time_unit=JNIFTI_ZARR[jsonheader["Unit"]["T"]],
-                       ome_zarr_version=ome_zarr_version
+                       ome_version=ome_version
                        )
     return
 
@@ -664,10 +664,10 @@ def cli(args=None):
         help='Thick slice axis that should not be downsampled'
     )
     parser.add_argument(
-        '--zarr-format', type=int, default=2
+        '--zarr-version', type=int, default=2
     )
     parser.add_argument(
-        '--ome-zarr-version', type=str, default="0.4"
+        '--ome-version', type=str, default="0.4"
     )
 
     args = args or sys.argv[1:]
@@ -685,6 +685,6 @@ def cli(args=None):
         label=args.label,
         no_time=args.no_time,
         no_pyramid_axis=args.no_pyramid_axis,
-        zarr_format=args.zarr_format,
-        ome_zarr_version=args.ome_zarr_version,
+        zarr_version=args.zarr_version,
+        ome_version=args.ome_version,
     )
