@@ -468,7 +468,7 @@ def nii2zarr(
 
     if no_time and len(inp.shape) > 3:
         inp = Nifti1Image(inp.dataobj[:, :, :, None], inp.affine, inp.header)
-    # nibabel consumde these two values
+    # nibabel consumed these two values
     if hasattr(inp.dataobj, "_slope") and hasattr(inp.dataobj, "_inter"):
         inp.header.set_slope_inter(inp.dataobj._slope, inp.dataobj._inter)
 
