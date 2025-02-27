@@ -377,6 +377,7 @@ def write_ome_metadata(
     if ome_zarr_version == "0.4":
         omz.attrs["multiscales"] = multiscales
     elif ome_zarr_version == "0.5":
+        omz.attrs["multiscales"] = multiscales
         omz.attrs["ome"] = {"multiscales": multiscales}
     else:
         raise Exception("Unsupported ome version")
