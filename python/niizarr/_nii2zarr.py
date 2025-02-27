@@ -8,10 +8,11 @@ import sys
 import numcodecs
 import numpy as np
 import zarr
-import zarr.storage
 import zarr.codecs
+import zarr.storage
 from nibabel import Nifti1Image, load
 from skimage.transform import pyramid_gaussian, pyramid_laplacian
+
 from ._header import (
     UNITS, DTYPES, INTENTS, INTENTS_P, SLICEORDERS, XFORMS,
     bin2nii, get_magic_string, SYS_BYTEORDER, JNIFTI_ZARR,
@@ -383,21 +384,22 @@ def write_ome_metadata(
         raise Exception("Unsupported ome version")
 
 
-def nii2zarr(inp, out, *,
-             chunk=64,
-             chunk_channel=1,
-             chunk_time=1,
-             nb_levels=-1,
-             method='gaussian',
-             label=None,
-             no_time=False,
-             no_pyramid_axis=None,
-             fill_value=None,
-             compressor='blosc',
-             compressor_options={},
-             zarr_version=2,
-             ome_version="0.4",
-             ):
+def nii2zarr(
+        inp, out, *,
+        chunk=64,
+        chunk_channel=1,
+        chunk_time=1,
+        nb_levels=-1,
+        method='gaussian',
+        label=None,
+        no_time=False,
+        no_pyramid_axis=None,
+        fill_value=None,
+        compressor='blosc',
+        compressor_options={},
+        zarr_version=2,
+        ome_version="0.4",
+):
     """
     Convert a nifti file to nifti-zarr
 
@@ -603,16 +605,17 @@ def nii2zarr(inp, out, *,
     for i in range(len(data)):
         out[str(i)].attrs['_ARRAY_DIMENSIONS'] = ARRAY_DIMENSIONS
 
-    write_ome_metadata(out,
-                       axes=axes,
-                       space_scale=[jsonheader["VoxelSize"][2],
-                                    jsonheader["VoxelSize"][1],
-                                    jsonheader["VoxelSize"][0]],
-                       time_scale=jsonheader["VoxelSize"][3] if nbatch >= 1 else 1.0,
-                       space_unit=JNIFTI_ZARR[jsonheader["Unit"]["L"]],
-                       time_unit=JNIFTI_ZARR[jsonheader["Unit"]["T"]],
-                       ome_version=ome_version
-                       )
+    write_ome_metadata(
+        out,
+        axes=axes,
+        space_scale=[jsonheader["VoxelSize"][2],
+                     jsonheader["VoxelSize"][1],
+                     jsonheader["VoxelSize"][0]],
+        time_scale=jsonheader["VoxelSize"][3] if nbatch >= 1 else 1.0,
+        space_unit=JNIFTI_ZARR[jsonheader["Unit"]["L"]],
+        time_unit=JNIFTI_ZARR[jsonheader["Unit"]["T"]],
+        ome_version=ome_version
+    )
     return
 
 
