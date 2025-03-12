@@ -53,8 +53,7 @@ The [Zarr](https://zarr.readthedocs.io) format was developed to bypass
 the limitations of single-file formats such as [HDF5](https://www.hdfgroup.org/).
 The microscopy community is currently developping its own standard for
 cloud-friendly biomedical imaging data
-([OME-NGFF](https://ngff.openmicroscopy.org))—with a Zarr-based implementation
-([OME-Zarr](https://ngff.openmicroscopy.org/0.4/index.html#on-disk))—
+([OME-NGFF](https://ngff.openmicroscopy.org))—with a Zarr-based implementation—
 and adds rules for storing multi-resolutions images and medical-specific
 metadata such as axis names and voxel sizes. However, this community
 has needs in terms of metadata and coordinate-space description that are
@@ -135,9 +134,9 @@ of compressed-NIfTI (`.nii.gz`).
 ## 2. Format specification
 
 A NIfTI-Zarr file __MUST__ be a valid
-[OME-Zarr 0.4 multi-resolution image](https://ngff.openmicroscopy.org/latest/#image-layout)
+[OME-Zarr multi-resolution image](https://ngff.openmicroscopy.org/latest/#image-layout)
 (and therefore also a valid
-[Zarr v2 dataset](https://zarr.readthedocs.io/en/stable/spec/v2.html)),
+[Zarr dataset](https://zarr-specs.readthedocs.io/en/latest/specs.html)),
 whose directory structure and metadata are described in sections
 [2.1](#21-directory-structure), [2.2](#22-multiresolution-metadata) and
 [2.3](#23-ome-ngff-metadata).
@@ -146,9 +145,26 @@ In addition, it __MUST__ store the nifti header corresponding to the finest
 level of the pyramid as a Zarr array with the `"nifti"` key, as described
 in section [2.4](#24-nifti-header).
 
+> [!NOTE]
+> At the time of this writing, Zarr is at version 3 and OME-NGFF is at version 0.5.
+> NIfTI-Zarr being a simple layer within an OME-Zarr object, it does not impose a specific
+ Zarr or OME-NGFF version. However, note that OME-NGFF v0.4 specifies that it should
+> be used with Zarr v2, while OME-NGFF v0.5 specifies that it should be used with Zarr v3.
+>
+> Similarly, the NIfTI header may follow the
+> [NIfTI-1](https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h) or
+> [NIfTI-2](https://nifti.nimh.nih.gov/pub/dist/doc/nifti2.h)
+> specifications.
+>
+> All examples below use the OME-NGFF v0.4 + Zarr v2 specification, but
+> they could equivalently have used OME-NGFF v0.5 + Zarr v3.
+
 ### 2.1. Directory structure
 
-__REF:__ [https://ngff.openmicroscopy.org/0.4/#image-layout](https://ngff.openmicroscopy.org/0.4/#image-layout)
+__REF:__ 
+- OME-NGFF latest: [https://ngff.openmicroscopy.org/latest/#image-layout](https://ngff.openmicroscopy.org/latest/#image-layout)
+- OME-NGFF v0.5: [https://ngff.openmicroscopy.org/0.5/#image-layout](https://ngff.openmicroscopy.org/0.5/#image-layout)
+- OME-NGFF v0.4: [https://ngff.openmicroscopy.org/0.4/#image-layout](https://ngff.openmicroscopy.org/0.4/#image-layout)
 
 ```text
 └── mri.nii.zarr              # A NIfTI volume converted to Zarr.
@@ -188,7 +204,9 @@ __REF:__ [https://ngff.openmicroscopy.org/0.4/#image-layout](https://ngff.openmi
 
 ### 2.2. Multiresolution metadata
 
-__REF:__ [https://zarr.readthedocs.io/en/stable/spec/v2.html#arrays](https://zarr.readthedocs.io/en/stable/spec/v2.html#arrays)
+__REF:__ 
+- NIfTI v3: [https://zarr-specs.readthedocs.io/en/latest/v3/core/v3.0.html#array-metadata](https://zarr-specs.readthedocs.io/en/latest/v3/core/v3.0.html#array-metadata)
+- NIfTI v2: [https://zarr-specs.readthedocs.io/en/latest/v2/v2.0.html#arrays](https://zarr-specs.readthedocs.io/en/latest/v2/v2.0.html#arrays)
 
 ```yaml
 # {filename}.nii.zarr/{0..n}/.zarray
@@ -222,7 +240,10 @@ __REF:__ [https://zarr.readthedocs.io/en/stable/spec/v2.html#arrays](https://zar
 
 ### 2.3. OME-NGFF metadata
 
-__REF:__ [https://ngff.openmicroscopy.org/0.4/#multiscale-md](https://ngff.openmicroscopy.org/0.4/#multiscale-md)
+__REF:__
+- OME-NGFF latest: [https://ngff.openmicroscopy.org/latest/#image-layout](https://ngff.openmicroscopy.org/latest/#multiscale-md)
+- OME-NGFF v0.5: [https://ngff.openmicroscopy.org/0.5/#image-layout](https://ngff.openmicroscopy.org/0.5/#multiscale-md)
+- OME-NGFF v0.4: [https://ngff.openmicroscopy.org/0.4/#image-layout](https://ngff.openmicroscopy.org/0.4/#multiscale-md)
 
 ```yaml
 # {filename}.nii.zarr/.zattrs
@@ -288,9 +309,11 @@ be accepted.
 
 __REF__:
 
-* [https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h](https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h)
-* [https://zarr.readthedocs.io/en/stable/spec/v2.html#arrays](https://zarr.readthedocs.io/en/stable/spec/v2.html#arrays)
-* [https://github.com/NeuroJSON/jnifti/blob/master/JNIfTI_specification.md#niftiheader](https://github.com/NeuroJSON/jnifti/blob/master/JNIfTI_specification.md#niftiheader)
+* NIfTI v1: [https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h](https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h)
+* NIfTI v2: [https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h]([https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h](https://nifti.nimh.nih.gov/pub/dist/doc/nifti2.h))
+* JNIfTI: [https://github.com/NeuroJSON/jnifti/blob/master/JNIfTI_specification.md#niftiheader](https://github.com/NeuroJSON/jnifti/blob/master/JNIfTI_specification.md#niftiheader)
+* Zarr v3: [https://zarr-specs.readthedocs.io/en/latest/v3/core/v3.0.html#array-metadata](https://zarr-specs.readthedocs.io/en/latest/v3/core/v3.0.html#array-metadata)
+* Zarr v2: [https://zarr-specs.readthedocs.io/en/latest/v2/v2.0.html#arrays](https://zarr-specs.readthedocs.io/en/latest/v2/v2.0.html#arrays)
 
 The nifti header ([v1](https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h)
 or [v2](https://nifti.nimh.nih.gov/pub/dist/doc/nifti2.h)) __MUST__ be encoded
