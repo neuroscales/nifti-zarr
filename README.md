@@ -630,7 +630,7 @@ Additional FSL codes:
 
 We implemented software to convert data between `.nii[.gz]` and `.nii.zarr`.
 
-### 5.1. Python
+### 5.1. [Python](https://github.com/neuroscales/nifti-zarr-py)
 
 ```python
 from niizarr import nii2zarr, zarr2nii
@@ -649,10 +649,7 @@ zarr2nii('/path/to/mri.nii.zarr', '/path/to/mri_2x.nii.gz', level=1)
 img = zarr2nii('/path/to/mri.nii.zarr')
 ```
 
-`python/notebooks/neuroglancer.ipynb` gives an example of a zarr viewer
-that takes the nifti orientation information in consideration.
-
-### 5.2. Julia
+### 5.2. [Julia](https://github.com/neuroscales/NIfTIZarr.jl)
 
 ```julia
 import NIfTIZarr: nii2zarr, zarr2nii
@@ -670,3 +667,7 @@ zarr2nii("/path/to/mri.nii.zarr", "/path/to/mri_2x.nii.gz"; level=1)
 # raw data is a DiskArray
 img = zarr2nii("s3://path/to/bucket")
 ```
+
+### 5.3. [NGtools](https://github.com/neuroscales/ngtools)
+
+The [`ngtools`](https://github.com/neuroscales/ngtools) package allows NIfTI-Zarr files to be properly oriented and displayed in [`neuroglancer`](https://github.com/google/neuroglancer). 
