@@ -161,7 +161,7 @@ in section [2.4](#24-nifti-header).
 
 ### 2.1. Directory structure
 
-__REF:__ 
+__REF:__
 - OME-NGFF latest: [https://ngff.openmicroscopy.org/latest/#image-layout](https://ngff.openmicroscopy.org/latest/#image-layout)
 - OME-NGFF v0.5: [https://ngff.openmicroscopy.org/0.5/#image-layout](https://ngff.openmicroscopy.org/0.5/#image-layout)
 - OME-NGFF v0.4: [https://ngff.openmicroscopy.org/0.4/#image-layout](https://ngff.openmicroscopy.org/0.4/#image-layout)
@@ -204,7 +204,7 @@ __REF:__
 
 ### 2.2. Multiresolution metadata
 
-__REF:__ 
+__REF:__
 - NIfTI v3: [https://zarr-specs.readthedocs.io/en/latest/v3/core/v3.0.html#array-metadata](https://zarr-specs.readthedocs.io/en/latest/v3/core/v3.0.html#array-metadata)
 - NIfTI v2: [https://zarr-specs.readthedocs.io/en/latest/v2/v2.0.html#arrays](https://zarr-specs.readthedocs.io/en/latest/v2/v2.0.html#arrays)
 
@@ -310,7 +310,7 @@ be accepted.
 __REF__:
 
 * NIfTI v1: [https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h](https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h)
-* NIfTI v2: [https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h]([https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h](https://nifti.nimh.nih.gov/pub/dist/doc/nifti2.h))
+* NIfTI v2: [https://nifti.nimh.nih.gov/pub/dist/doc/nifti2.h](https://nifti.nimh.nih.gov/pub/dist/doc/nifti2.h)
 * JNIfTI: [https://github.com/NeuroJSON/jnifti/blob/master/JNIfTI_specification.md#niftiheader](https://github.com/NeuroJSON/jnifti/blob/master/JNIfTI_specification.md#niftiheader)
 * Zarr v3: [https://zarr-specs.readthedocs.io/en/latest/v3/core/v3.0.html#array-metadata](https://zarr-specs.readthedocs.io/en/latest/v3/core/v3.0.html#array-metadata)
 * Zarr v2: [https://zarr-specs.readthedocs.io/en/latest/v2/v2.0.html#arrays](https://zarr-specs.readthedocs.io/en/latest/v2/v2.0.html#arrays)
@@ -670,4 +670,4 @@ img = zarr2nii("s3://path/to/bucket")
 
 ### 5.3. [NGtools](https://github.com/neuroscales/ngtools)
 
-The [`ngtools`](https://github.com/neuroscales/ngtools) package allows NIfTI-Zarr files to be properly oriented and displayed in [`neuroglancer`](https://github.com/google/neuroglancer). 
+The [`ngtools`](https://github.com/neuroscales/ngtools) package allows NIfTI-Zarr files to be properly oriented and displayed in [`neuroglancer`](https://github.com/google/neuroglancer).
