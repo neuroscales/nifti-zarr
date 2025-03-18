@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-06/schema",
-  "$id": "https://raw.githubusercontent.com/neuroscales/nifti-zarr/main/nifti-zarr-schema-0.3.json",
-  "title": "NIfTI-Zarr v0.3 - NIfTI header in JSON form",
+  "$id": "https://raw.githubusercontent.com/neuroscales/nifti-zarr/main/nifti-zarr-schema-1.0.rc1.json",
+  "title": "NIfTI-Zarr v1.0.rc1 - NIfTI header in JSON form",
   "type": "object",
   "properties": {
     "NIIHeaderSize": {
