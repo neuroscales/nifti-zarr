@@ -1,13 +1,13 @@
 # NIfTI-Zarr draft specification
 
-* Status of this document: This document is currently under development.
+* Status of this document: release candidate
 * Editor: Yael Balbastre <y.balbastre at ucl.ac.uk>
-* Version: 0.3 (draft)
+* Version: 1.0.rc1
 
 ## Abstract
 
-This document contains _draft_ nifti-zarr specifications for storing
-neuroimaging data in the cloud.
+This document specifies the nifti-zarr format for storing neuroimaging
+data in the cloud.
 
 ## Table of Content
 
@@ -146,14 +146,15 @@ level of the pyramid as a Zarr array with the `"nifti"` key, as described
 in section [2.4](#24-nifti-header).
 
 > [!NOTE]
-> At the time of this writing, Zarr is at version 3 and OME-NGFF is at version 0.5.
-> NIfTI-Zarr being a simple layer within an OME-Zarr object, it does not impose a specific
- Zarr or OME-NGFF version. However, note that OME-NGFF v0.4 specifies that it should
-> be used with Zarr v2, while OME-NGFF v0.5 specifies that it should be used with Zarr v3.
+> At the time of this writing, Zarr is at version 3 and OME-NGFF is at
+> version 0.5. NIfTI-Zarr being a simple layer within an OME-Zarr object,
+> it does not impose a specific Zarr or OME-NGFF version. However, note that
+> OME-NGFF v0.4 specifies that it should be used with Zarr v2, while
+> OME-NGFF v0.5 specifies that it should be used with Zarr v3.
 >
 > Similarly, the NIfTI header may follow the
-> [NIfTI-1](https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h) or
-> [NIfTI-2](https://nifti.nimh.nih.gov/pub/dist/doc/nifti2.h)
+> [NIfTI v1](https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h) or
+> [NIfTI v2](https://nifti.nimh.nih.gov/pub/dist/doc/nifti2.h)
 > specifications.
 >
 > All examples below use the OME-NGFF v0.4 + Zarr v2 specification, but
@@ -161,7 +162,7 @@ in section [2.4](#24-nifti-header).
 
 ### 2.1. Directory structure
 
-__REF:__ 
+__REF:__
 - OME-NGFF latest: [https://ngff.openmicroscopy.org/latest/#image-layout](https://ngff.openmicroscopy.org/latest/#image-layout)
 - OME-NGFF v0.5: [https://ngff.openmicroscopy.org/0.5/#image-layout](https://ngff.openmicroscopy.org/0.5/#image-layout)
 - OME-NGFF v0.4: [https://ngff.openmicroscopy.org/0.4/#image-layout](https://ngff.openmicroscopy.org/0.4/#image-layout)
@@ -204,9 +205,9 @@ __REF:__
 
 ### 2.2. Multiresolution metadata
 
-__REF:__ 
-- NIfTI v3: [https://zarr-specs.readthedocs.io/en/latest/v3/core/v3.0.html#array-metadata](https://zarr-specs.readthedocs.io/en/latest/v3/core/v3.0.html#array-metadata)
-- NIfTI v2: [https://zarr-specs.readthedocs.io/en/latest/v2/v2.0.html#arrays](https://zarr-specs.readthedocs.io/en/latest/v2/v2.0.html#arrays)
+__REF:__
+- Zarr v3: [https://zarr-specs.readthedocs.io/en/latest/v3/core/v3.0.html#array-metadata](https://zarr-specs.readthedocs.io/en/latest/v3/core/v3.0.html#array-metadata)
+- Zarr v2: [https://zarr-specs.readthedocs.io/en/latest/v2/v2.0.html#arrays](https://zarr-specs.readthedocs.io/en/latest/v2/v2.0.html#arrays)
 
 ```yaml
 # {filename}.nii.zarr/{0..n}/.zarray
@@ -311,7 +312,7 @@ __REF__:
 
 * NIfTI v1: [https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h](https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h)
 * NIfTI v2: [https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h]([https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h](https://nifti.nimh.nih.gov/pub/dist/doc/nifti2.h))
-* JNIfTI: [https://github.com/NeuroJSON/jnifti/blob/master/JNIfTI_specification.md#niftiheader](https://github.com/NeuroJSON/jnifti/blob/master/JNIfTI_specification.md#niftiheader)
+* JNIfTI v1: [https://github.com/NeuroJSON/jnifti/blob/master/JNIfTI_specification.md#niftiheader](https://github.com/NeuroJSON/jnifti/blob/master/JNIfTI_specification.md#niftiheader)
 * Zarr v3: [https://zarr-specs.readthedocs.io/en/latest/v3/core/v3.0.html#array-metadata](https://zarr-specs.readthedocs.io/en/latest/v3/core/v3.0.html#array-metadata)
 * Zarr v2: [https://zarr-specs.readthedocs.io/en/latest/v2/v2.0.html#arrays](https://zarr-specs.readthedocs.io/en/latest/v2/v2.0.html#arrays)
 
@@ -344,11 +345,12 @@ as a single-chunk zarr array if bytes under the `nifti` key:
 }
 ```
 
-A JSON version  of the nifti header __MAY__ be encoded in the `.zattrs` file.
-The JSON version is only provided for human-readability. Its values __SHOULD__ be
-compatible with those of the binary header. If values conflict between the binary
-and JSON headers, the binary form __MUST__ take precedence. The JSON header
-__MUST__ be compatible with the [`JNIfTI/NIFTIHeader`](https://github.com/NeuroJSON/jnifti/blob/master/JNIfTI_specification.md#niftiheader)
+A JSON version  of the nifti header __MAY__ be encoded in the attributes file
+(`.zattrs` or `attrs.json`). The JSON version is only provided for
+human-readability. Its values __SHOULD__ be compatible with those of the
+binary header. If values conflict between the binary and JSON headers,
+the binary form __MUST__ take precedence. The JSON header __MUST__ be
+compatible with the [`JNIfTI/NIFTIHeader`](https://github.com/NeuroJSON/jnifti/blob/master/JNIfTI_specification.md#niftiheader)
 specification.
 
 ```yaml
@@ -628,7 +630,8 @@ Additional FSL codes:
 
 ## 5. Reference implementations
 
-We implemented software to convert data between `.nii[.gz]` and `.nii.zarr`.
+Reference software to convert data between `.nii[.gz]` and `.nii.zarr`
+is provided.
 
 ### 5.1. [Python](https://github.com/neuroscales/nifti-zarr-py)
 
@@ -670,4 +673,6 @@ img = zarr2nii("s3://path/to/bucket")
 
 ### 5.3. [NGtools](https://github.com/neuroscales/ngtools)
 
-The [`ngtools`](https://github.com/neuroscales/ngtools) package allows NIfTI-Zarr files to be properly oriented and displayed in [`neuroglancer`](https://github.com/google/neuroglancer). 
+The [`ngtools`](https://github.com/neuroscales/ngtools) package allows
+NIfTI-Zarr files to be properly oriented and displayed in
+[`neuroglancer`](https://github.com/google/neuroglancer).
