@@ -1,0 +1,360 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema",
+  "$id": "https://raw.githubusercontent.com/neuroscales/nifti-zarr/main/nifti-zarr-schema-0.3.json",
+  "title": "NIfTI-Zarr v0.3 - NIfTI header in JSON form",
+  "type": "object",
+  "properties": {
+    "NIIHeaderSize": {
+      "type": "integer"
+    },
+    "A75DataTypeName": {
+      "type": "string"
+    },
+    "A75DBName": {
+      "type": "string"
+    },
+    "A75Extends": {
+      "type": "integer"
+    },
+    "A75SessionError": {
+      "type": "integer"
+    },
+    "A75Regular": {
+      "type": "integer"
+    },
+    "DimInfo": {
+      "type": "object",
+      "properties": {
+        "Freq": {
+          "enum": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        "Phase": {
+          "enum": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        "Slice": {
+          "enum": [
+            0,
+            1,
+            2,
+            3
+          ]
+        }
+      }
+    },
+    "Dim": {
+      "description": "Number of voxels for each dimension",
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "minItems": 3,
+      "maxItems": 5
+    },
+    "Param1": {
+      "description": "First intent parameter",
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "Param2": {
+      "description": "Second intent parameter",
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "Param3": {
+      "description": "Third intent parameter",
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "Intent": {
+      "description": "Data intent or meaning",
+      "enum": [
+        "",
+        "corr",
+        "ttest",
+        "ftest",
+        "zscore",
+        "chi2",
+        "beta",
+        "binomial",
+        "gamma",
+        "poisson",
+        "normal",
+        "ncftest",
+        "ncchi2",
+        "logistic",
+        "laplace",
+        "uniform",
+        "ncttest",
+        "weibull",
+        "chi",
+        "invgauss",
+        "extval",
+        "pvalue",
+        "logpvalue",
+        "log10pvalue",
+        "estimate",
+        "label",
+        "neuronames",
+        "matrix",
+        "symmatrix",
+        "dispvec",
+        "vector",
+        "point",
+        "triangle",
+        "quaternion",
+        "unitless",
+        "tseries",
+        "elem",
+        "rgb",
+        "rgba",
+        "shape",
+        "fsl_fnirt_displacement_field",
+        "fsl_cubic_spline_coefficients",
+        "fsl_dct_coefficients",
+        "fsl_quadratic_spline_coefficients",
+        "fsl_topup_cubic_spline_coefficients",
+        "fsl_topup_quadratic_spline_coefficients",
+        "fsl_topup_field"
+      ]
+    },
+    "DataType": {
+      "description": "Data type, in numpy format",
+      "type": "string"
+    },
+    "BitDepth": {
+      "type": "integer"
+    },
+    "FirstSliceID": {
+      "description": "First slice index",
+      "type": "integer"
+    },
+    "VoxelSize": {
+      "description": "Spacing between elements for each dimension",
+      "type": "array",
+      "items": {
+        "type": "number",
+        "minimum": 0
+      },
+      "minItems": 3,
+      "maxItems": 5
+    },
+    "Orientation": {
+      "description": "Handedness of the coordinate system",
+      "type": "object",
+      "properties": {
+        "x": {
+          "enum": [
+            "r",
+            "l",
+            "a",
+            "p",
+            "i",
+            "s"
+          ]
+        },
+        "y": {
+          "enum": [
+            "r",
+            "l",
+            "a",
+            "p",
+            "i",
+            "s"
+          ]
+        },
+        "z": {
+          "enum": [
+            "r",
+            "l",
+            "a",
+            "p",
+            "i",
+            "s"
+          ]
+        }
+      }
+    },
+    "NIIByteOffset": {
+      "type": "integer"
+    },
+    "ScaleSlope": {
+      "description": "Intensity transform Slope",
+      "type": "number"
+    },
+    "ScaleOffset": {
+      "description": "Intensity transform offset",
+      "type": "number"
+    },
+    "LastSliceID": {
+      "description": "Last slice index",
+      "type": "integer"
+    },
+    "SliceType": {
+      "description": "A valid slice timing code (see table 4.6)",
+      "enum": [
+        "",
+        "seq+",
+        "seq-",
+        "alt+",
+        "alt-",
+        "alt2+",
+        "alt2-"
+      ]
+    },
+    "Unit": {
+      "description": "Space and time units",
+      "type": "object",
+      "properties": {
+        "L": {
+          "enum": [
+            "",
+            "m",
+            "mm",
+            "um"
+          ]
+        },
+        "T": {
+          "enum": [
+            "",
+            "s",
+            "ms",
+            "us"
+          ]
+        }
+      }
+    },
+    "MaxIntensity": {
+      "description": "Max display intensity",
+      "type": "number"
+    },
+    "MinIntensity": {
+      "description": "Min display intensity",
+      "type": "number"
+    },
+    "SliceTime": {
+      "description": "Time for 1 slice",
+      "type": "number"
+    },
+    "TimeOffset": {
+      "description": "Time axis shift",
+      "type": "number"
+    },
+    "A75GlobalMax": {
+      "type": "integer"
+    },
+    "A75GlobalMin": {
+      "type": "integer"
+    },
+    "Description": {
+      "description": "Any text you like",
+      "type": "string",
+      "maxLength": 80
+    },
+    "AuxFile": {
+      "description": "Auxiliary filename",
+      "type": "string",
+      "maxLength": 24
+    },
+    "QForm": {
+      "description": "A valid xform name (see table 4.5)",
+      "enum": [
+        "",
+        "scanner_anat",
+        "aligned_anat",
+        "talairach",
+        "mni_152",
+        "template_other"
+      ]
+    },
+    "SForm": {
+      "description": "A valid xform name (see table 4.5)",
+      "enum": [
+        "",
+        "scanner_anat",
+        "aligned_anat",
+        "talairach",
+        "mni_152",
+        "template_other"
+      ]
+    },
+    "Quatern": {
+      "properties": {
+        "b": {
+          "type": "number"
+        },
+        "c": {
+          "type": "number"
+        },
+        "d": {
+          "type": "number"
+        }
+      }
+    },
+    "QuaternOffset": {
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "z": {
+          "type": "number"
+        }
+      }
+    },
+    "Affine": {
+      "description": "3x4 Matrix",
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 4,
+        "maxItems": 4
+      },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "Name": {
+      "description": "'name' or meaning of data",
+      "type": "string"
+    },
+    "NIIFormat": {
+      "description": "NIfTI magic string",
+      "enum": [
+        "ni1",
+        "n+1",
+        "ni2",
+        "n+2"
+      ]
+    },
+    "NIFTIExtension": {
+      "description": "Four bytes following header indicating the exist of extension",
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 4,
+      "minItems": 4,
+      "type": "array"
+    }
+  }
+}
