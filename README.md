@@ -315,6 +315,7 @@ __REF__:
 * JNIfTI v1: [https://github.com/NeuroJSON/jnifti/blob/master/JNIfTI_specification.md#niftiheader](https://github.com/NeuroJSON/jnifti/blob/master/JNIfTI_specification.md#niftiheader)
 * Zarr v3: [https://zarr-specs.readthedocs.io/en/latest/v3/core/v3.0.html#array-metadata](https://zarr-specs.readthedocs.io/en/latest/v3/core/v3.0.html#array-metadata)
 * Zarr v2: [https://zarr-specs.readthedocs.io/en/latest/v2/v2.0.html#arrays](https://zarr-specs.readthedocs.io/en/latest/v2/v2.0.html#arrays)
+* NIfTI-Zarr v1.0.rc1: [nifti-zarr-schema-1.0.rc1.json](./nifti-zarr-schema-1.0.rc1.json)
 
 The nifti header ([v1](https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h)
 or [v2](https://nifti.nimh.nih.gov/pub/dist/doc/nifti2.h)) __MUST__ be encoded
@@ -351,7 +352,8 @@ human-readability. Its values __SHOULD__ be compatible with those of the
 binary header. If values conflict between the binary and JSON headers,
 the binary form __MUST__ take precedence. The JSON header __MUST__ be
 compatible with the [`JNIfTI/NIFTIHeader`](https://github.com/NeuroJSON/jnifti/blob/master/JNIfTI_specification.md#niftiheader)
-specification.
+specification. The JSON version __MUST__ be compatible with the 
+[`NIfTI-Zarr schema`](./nifti-zarr-schema-1.0.rc1.json) specification.
 
 ```yaml
 # filename.nii.zarr/nifti/.zattrs
