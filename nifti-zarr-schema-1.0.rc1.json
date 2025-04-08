@@ -156,7 +156,7 @@
       "maxItems": 5
     },
     "Orientation": {
-      "description": "Handedness of the coordinate system to indicate the direction of the positive axis. For example, if the positive x-axis is in the direction from left to right, then 'x': 'r' ",
+      "description": "Handedness of the coordinate system to denote the positive direction along an axis. For example, if the positive x-axis is in the direction from left to right, then 'x': 'r' ",
       "type": "object",
       "properties": {
         "x": {
