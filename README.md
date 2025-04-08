@@ -345,7 +345,7 @@ as a single-chunk zarr array if bytes under the `nifti` key:
 }
 ```
 
-A JSON version  of the nifti header __MAY__ be encoded in the attributes file
+A JSON version of the nifti header __MAY__ be encoded in the attributes file
 (`.zattrs` or `attrs.json`). The JSON version is only provided for
 human-readability. Its values __SHOULD__ be compatible with those of the
 binary header. If values conflict between the binary and JSON headers,
@@ -449,7 +449,7 @@ nifti.zattrs["VoxelSize"][4]   ==  zattrs["multiscales"][0]["coordinateTransform
 
 As a reminder, the nifti1 header has the following structure:
 
-| Type       | Name             | NIFfI-1 usage                       | JNIfTI                | JSON type                              |
+| Type       | Name             | NIfTI-1 usage                       | JNIfTI                | JSON type                              |
 | ---------- | ---------------- | ----------------------------------- | --------------------- | -------------------------------------- |
 | `int`      | `sizeof_hdr`     | __MUST__ be 348                     | `"NIIHeaderSize"`     | `integer`                              |
 | `char`     | `data_type`      | ~~UNUSED~~                          | `"A75DataTypeName"`   | `string`                               |
