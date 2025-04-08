@@ -346,7 +346,7 @@ as a single-chunk zarr array if bytes under the `nifti` key:
 }
 ```
 
-A JSON version of the nifti header __MAY__ be encoded in the attributes file
+A JSON version  of the nifti header __MAY__ be encoded in the attributes file
 (`.zattrs` or `attrs.json`). The JSON version is only provided for
 human-readability. Its values __SHOULD__ be compatible with those of the
 binary header. If values conflict between the binary and JSON headers,
