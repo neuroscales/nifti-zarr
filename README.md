@@ -451,7 +451,7 @@ nifti.zattrs["VoxelSize"][4]   ==  zattrs["multiscales"][0]["coordinateTransform
 
 As a reminder, the nifti1 header has the following structure:
 
-| Type       | Name             | NIFfI-1 usage                       | JNIfTI                | JSON type                              |
+| Type       | Name             | NIfTI-1 usage                       | JNIfTI                | JSON type                              |
 | ---------- | ---------------- | ----------------------------------- | --------------------- | -------------------------------------- |
 | `int`      | `sizeof_hdr`     | __MUST__ be 348                     | `"NIIHeaderSize"`     | `integer`                              |
 | `char`     | `data_type`      | ~~UNUSED~~                          | `"A75DataTypeName"`   | `string`                               |
