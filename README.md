@@ -319,7 +319,7 @@ __REF__:
 
 The nifti header ([v1](https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h)
 or [v2](https://nifti.nimh.nih.gov/pub/dist/doc/nifti2.h)) __MUST__ be encoded
-as a single-chunk zarr array if bytes under the `nifti` key:
+as a single-chunk zarr array of bytes under the `nifti` key:
 
 ```text
 └── mri.nii.zarr
