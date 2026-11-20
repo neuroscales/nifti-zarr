@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-06/schema",
-  "$id": "https://raw.githubusercontent.com/neuroscales/nifti-zarr/main/nifti-zarr-schema-1.0.rc1.json",
+  "$id": "https://raw.githubusercontent.com/neuroscales/nifti-zarr/main/nifti-zarr-schema.json",
   "title": "NIfTI-Zarr v1.0.rc1 - NIfTI header in JSON form",
   "type": "object",
   "properties": {
