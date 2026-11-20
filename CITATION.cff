@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+message: "If you use this specification, please cite it using the metadata from this file."
+title: "NIfTI-Zarr: Specification for storing NIfTI images in Zarr"
+url: https://github.com/neuroscales/nifti-zarr
+repository-code: https://github.com/neuroscales/nifti-zarr
+license: MIT
+type: software
+keywords:
+  - nifti
+  - neuroimaging
+  - zarr
+  - specification
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.24407399
+authors:
+  - family-names: Balbastre
+    given-names: Yaël
+    orcid: https://orcid.org/0000-0001-8758-9978
+    affiliation: "University College London, London, UK"
+  - family-names: Chai
+    given-names: Kaidong
+    orcid: https://orcid.org/0009-0001-4654-4092
+    affiliation: "Athinoula A. Martinos Center for Biomedical Imaging, Massachusetts General Hospital, Boston, MA, USA"
+  - family-names: Gunalan
+    given-names: Kabilar
+    orcid: https://orcid.org/0000-0001-6964-4865
+    affiliation: "McGovern Institute for Brain Research, Massachusetts Institute of Technology, Cambridge, MA, USA"
