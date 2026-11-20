@@ -1,5 +1,7 @@
 # NIfTI-Zarr draft specification
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24407399.svg)](https://doi.org/10.5281/zenodo.24407399)
+
 * Status of this document: release candidate
 * Editor: Yael Balbastre <y.balbastre at ucl.ac.uk>
 * Version: 1.0.rc1
