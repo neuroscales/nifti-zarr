@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+message: "If you use this specification, please cite it using the metadata from this file."
+title: "NIfTI-Zarr: A specification for storing neuroimaging data in the cloud"
+url: https://github.com/neuroscales/nifti-zarr
+repository-code: https://github.com/neuroscales/nifti-zarr
+license: MIT
+type: software
+keywords:
+  - nifti
+  - neuroimaging
+  - zarr
+  - specification
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.16575942
+authors:
+  - family-names: Balbastre
+    given-names: Yaël
+    orcid: https://orcid.org/0000-0001-8758-9978
+    affiliation: "University College London, London, UK"
+  - family-names: Gunalan
+    given-names: Kabilar
+    orcid: https://orcid.org/0000-0001-6964-4865
+    affiliation: "McGovern Institute for Brain Research, Massachusetts Institute of Technology, Cambridge, MA, USA"
