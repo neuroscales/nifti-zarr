@@ -1,4 +1,4 @@
-# NIfTI-Zarr draft specification
+# nifti-zarr: Specification of the NIfTI-Zarr format
 
 * Status of this document: release candidate
 * Editor: Yael Balbastre <y.balbastre at ucl.ac.uk>
