@@ -1,4 +1,4 @@
-# nifti-zarr: Specification of the NIfTI-Zarr format
+# NIfTI-Zarr: Specification for storing neuroimaging data in the cloud
 
 * Status of this document: release candidate
 * Editor: Yael Balbastre <y.balbastre at ucl.ac.uk>
