@@ -1,4 +1,4 @@
-# NIfTI-Zarr draft specification
+# NIfTI-Zarr: Specification for storing NIfTI images in Zarr
 
 * Status of this document: release candidate
 * Editor: Yael Balbastre <y.balbastre at ucl.ac.uk>
