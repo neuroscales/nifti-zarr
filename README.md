@@ -2,7 +2,7 @@
 
 * Status of this document: release candidate
 * Editor: Yael Balbastre <y.balbastre at ucl.ac.uk>
-* Version: 1.0.rc1
+* Version: 1.0.0rc1
 
 ## Abstract
 
