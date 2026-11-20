@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use this specification, please cite it using the metadata from this file."
-title: "NIfTI-Zarr: A specification for storing neuroimaging data in the cloud"
+title: "NIfTI-Zarr: Specification for storing NIfTI images in Zarr"
 url: https://github.com/neuroscales/nifti-zarr
 repository-code: https://github.com/neuroscales/nifti-zarr
 license: MIT
