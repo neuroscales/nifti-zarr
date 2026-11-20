@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24407399.svg)](https://doi.org/10.5281/zenodo.24407399)
+
 # NIfTI-Zarr draft specification
 
 * Status of this document: release candidate
